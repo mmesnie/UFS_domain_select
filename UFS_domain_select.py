@@ -1,9 +1,27 @@
+#!/usr/bin/env python3
+
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from matplotlib.backend_bases import MouseButton
 import time
 import math
+
+# For output files
+import io
+import PIL
+
+# For plotting the grib forecast using -f <gribfile>
+import pygrib
+import scipy
+import numpy as np
+import argparse
+import cartopy
+import matplotlib
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--filename", "-f", help="gfs grib file", required=False)
+args = parser.parse_args()
 
 g_write_component_default = 0.97
 g_res = 3000 # choose among 3000, 13000 or 25000
@@ -34,6 +52,8 @@ g_cen_lon_default = -97.5; g_cen_lat_default =  38.5; g_lon_span_default = 25; g
 #g_cen_lon_default = -59.5236; g_cen_lat_default = -51.7963; g_lon_span_default = 15; g_lat_span_default = 15 # FALKLAND ISLANDS
 #g_cen_lon_default = 0; g_cen_lat_default =  0; g_lon_span_default = 30; g_lat_span_default = 20
 #g_cen_lon_default = 0; g_cen_lat_default = 85; g_lon_span_default = 30; g_lat_span_default = 20
+
+g_cen_lon_default = -141.76352041233912; g_cen_lat_default = 37.343673765071934; g_lon_span_default = 25; g_lat_span_default = 20 # Eastern Pacific
 
 g_halo_width = 6
 g_dt_atmos = 36
@@ -131,7 +151,8 @@ def output_yaml(index):
     for res in [ g_res ]:
         nx_r = int(xspan_r/res)
         ny_r = int(yspan_r/res)
-        print(f"\"CUSTOM_XX_{int(res/1000)}km\":")
+        #print(f"\"CUSTOM_XX_{int(res/1000)}km\":")
+        print(f"\"CUSTOM_XX\":")
         print(f"  GRID_GEN_METHOD: \"ESGgrid\"")
         print(f"  ESGgrid_LON_CTR: {cen_lon_r}")
         print(f"  ESGgrid_LAT_CTR: {cen_lat_r}")
@@ -181,7 +202,8 @@ def set_write_component(index):
     p_src = index
     for p_tgt in g_projs:
         draw_box_xy_data(p_tgt, p_src, 'blue') # write component grid
-    draw_box_xy_data("Gnomonic", "Gnomonic", 'red') # write component grid
+    if not args.filename:
+        draw_box_xy_data("Gnomonic", "Gnomonic", 'red') # write component grid
 
     return
 
@@ -218,7 +240,7 @@ def on_key_press(event):
         print(f"Set write component to {int(100*g_write_component)}% of compute grid")
         set_write_component("LambertConformal")
     elif event.key == ' ':
-        print(f"Write component set. \'y\' to output yaml")
+        print(f"Write component set. \'y\' to output yaml.")
         set_write_component("LambertConformal")
     elif event.key == 'g':
         print("DOING REGIONAL")
@@ -304,8 +326,13 @@ def projs_create(mode):
                 "Robinson", "Mollweide", "Sinusoidal", "InterruptedGoodeHomolosine" ]
 
     g_projs = [ "PlateCarree", "Orthographic", "LambertConformal", "Gnomonic" ]
-    g_projs = [ "LambertConformal", "Gnomonic", "Orthographic" ]
-    g_dim_x = 3; g_dim_y = 1
+    g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
+    if True and args.filename:
+        g_projs = [ "LambertConformal" ]
+        g_dim_x = 1; g_dim_y = 1
+    else:
+        g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
+        g_dim_x = 3; g_dim_y = 1
 
     if mode == "init":
         for p in g_projs:
@@ -397,6 +424,19 @@ def plots_draw(mode):
     if mode == "init":
         set_write_component("LambertConformal")
 
+    if args.filename:
+        plot_forecast()
+        ram = io.BytesIO()
+        g_axis[p].set_title(g_title)
+        plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
+        ram.seek(0)
+        im = PIL.Image.open(ram)
+        im2 = im.convert("RGB")
+        im2.save(args.filename + ".png", format="PNG")
+        exit(0)
+
+    plt.show()
+
 def draw_box_geodetic(ax):
     x_degrees = 10
     y_degrees = 10
@@ -449,6 +489,42 @@ def draw_box_xy_data(tgt_index, src_index, color):
 
     g_axis[tgt_index].plot(xs, ys, transform=g_axis[src_index].projection, color=color, linewidth=2, alpha=1.0, linestyle='solid')
 
+def plot_forecast():
+    global g_title
+
+    g_data = pygrib.open(args.filename)
+    lats, lons = g_data[1].latlons()
+
+    sio = io.StringIO()
+    msg = g_data.select(name="Geopotential height", level=500)[0]
+    print(msg, file=sio)
+    fcst = sio.getvalue().split(':')[6]
+    time = sio.getvalue().split(':')[7]
+    g_title = fcst + " " + time
+
+    z500 = g_data.select(name="Geopotential height", level=500)[0].values * 0.1
+    z500 = scipy.ndimage.gaussian_filter(z500, 6.89)
+    for p in g_projs:
+        contours = g_axis[p].contour(lons, lats, z500, 
+                                     np.arange(0, 900, 6), 
+                                     colors="blue", linewidths=1, 
+                                     transform=cartopy.crs.PlateCarree(), alpha=0.25)
+    plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
+
+    vort500 = g_data.select(name="Absolute vorticity", level=500)[0].values * 100000
+    vort500 = scipy.ndimage.gaussian_filter(vort500, 1.7225)
+    #vort500[vort500 > 1000] = 0  # Mask out undefined values on domain edge
+    vortlevs = [16, 20, 24, 28, 32, 36, 40]
+    colorlist = ["yellow", "gold", "goldenrod", "orange", "orangered", "red" ]
+    cm = matplotlib.colors.ListedColormap(colorlist)
+    norm = matplotlib.colors.BoundaryNorm(vortlevs, cm.N)
+    for p in g_projs:
+        cs1_a = g_axis[p].pcolormesh(lons, lats,
+                                     vort500, transform=cartopy.crs.PlateCarree(),
+                                     cmap=cm, norm=norm)
+    cs1_a.cmap.set_under("none")   # under 16
+    cs1_a.cmap.set_over("darkred") # above 40
+
 def show_help():
     print("**************************************")
     print("*         Zoom: zoom grid            *")                  
@@ -468,12 +544,12 @@ def show_help():
 
 plt.rcParams["figure.raise_window"] = False
 
-fig = plt.figure()
+fig = plt.figure(figsize=(8, 8))
 fig.canvas.mpl_connect('button_press_event', on_button_press)
 fig.canvas.mpl_connect('key_press_event', on_key_press)
 show_help()
 
 plots_draw("init") #1
 
-while True:
-    plt.pause(.5)
+#while True:
+#    plt.pause(0.1)
