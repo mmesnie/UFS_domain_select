@@ -2,7 +2,9 @@
 
 
 # TODO
-# Fix compute component vs. write component
+# -automatically set bounding box for GFS plot
+# -understand how GFS filtering is working. Do we need to hardcode the +1?
+# -automate when to draw compute grid (Gnomonic)
 #
 
 import matplotlib.pyplot as plt
@@ -25,7 +27,10 @@ import cartopy
 import matplotlib
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--cen_lon", help="center longitude", required=False)
+parser.add_argument("--cen_lat", help="center latitude", required=False)
 parser.add_argument("--filename", "-f", help="gfs grib file", required=False)
+parser.add_argument("--close", "-x", help="close", required=False, action="store_true")
 args = parser.parse_args()
 
 g_compute_grid_default = 0.0
@@ -47,7 +52,12 @@ g_res = 3000 # choose among 3000, 13000 or 25000
 
 g_cen_lon_default = -78.0; g_cen_lat_default =  0;    g_lon_span_default = 10; g_lat_span_default = 10 # Equator
 g_cen_lon_default = -59.5; g_cen_lat_default = -51.8; g_lon_span_default = 15; g_lat_span_default = 15 # Falkland Islands
-g_cen_lon_default = -97.5; g_cen_lat_default =  38.5; g_lon_span_default = 60; g_lat_span_default = 30 # CONUS
+i_cen_lon_default = -97.5; g_cen_lat_default =  38.5; g_lon_span_default = 60; g_lat_span_default = 30 # CONUS
+
+if args.cen_lon:
+    g_cen_lon_default = float(args.cen_lon)
+if args.cen_lat:
+    g_cen_lat_default = float(args.cen_lat)
 
 g_halo_width = 6
 g_dt_atmos = 36
@@ -321,12 +331,13 @@ def projs_create(mode):
 
     g_projs = [ "PlateCarree", "Orthographic", "LambertConformal", "Gnomonic" ]
     g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
-    if True and args.filename:
+
+    if False and args.filename:
         g_projs = [ "LambertConformal" ]
         g_dim_x = 1; g_dim_y = 1
     else:
-        g_projs = [ "LambertConformal", "Gnomonic", "Mercator", "PlateCarree" ]
-        g_dim_x = 2; g_dim_y = 2
+        g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
+        g_dim_x = 3; g_dim_y = 1
 
     if mode == "init":
         for p in g_projs:
@@ -400,6 +411,17 @@ def plots_draw(mode):
     
         j = j + 1
 
+    # Set extent of Lambert grid and draw write components in all
+    # projections. Draw compute grid in just the Gnomonic.
+    g_axis["LambertConformal"].set_extent((-g_lambert_xspan/2, g_lambert_xspan/2, 
+                                           -g_lambert_yspan/2, g_lambert_yspan/2), 
+                                           crs=g_proj["LambertConformal"])
+    for p_tgt in g_projs:
+        draw_box_xy_data(p_tgt, "LambertConformal", 'blue') # write component
+
+    #if not args.filename:
+    draw_box_xy_data("Gnomonic", "Gnomonic", 'red') # compute grid B
+
     if args.filename:
         plot_forecast()
         ram = io.BytesIO()
@@ -409,51 +431,18 @@ def plots_draw(mode):
         im = PIL.Image.open(ram)
         im2 = im.convert("RGB")
         im2.save(args.filename + ".png", format="PNG")
-        exit(0)
-
-    # Set extent of Lambert grid and draw write components in all
-    # projections. Draw compute grid in just the Gnomonic.
-    g_axis["LambertConformal"].set_extent((-g_lambert_xspan/2, g_lambert_xspan/2, 
-                                           -g_lambert_yspan/2, g_lambert_yspan/2), 
-                                           crs=g_proj["LambertConformal"])
-    for p_tgt in g_projs:
-        draw_box_xy_data(p_tgt, "LambertConformal", 'blue') # write component
-    draw_box_xy_data("Gnomonic", "Gnomonic", 'red') # compute grid B
+        if args.close:
+            exit(0)
 
     plt.show()
 
-def draw_box_geodetic(ax):
-    index = get_index(ax)
-    x_degrees = g_lon_span[index]/2
-    y_degrees = g_lat_span[index]/2
-    for p in g_projs:
-        lons = []
-        lats = []
-        #left
-        for i in range(0, 33):
-            lons.append(g_cen_lon-x_degrees)
-            lats.append(g_cen_lat-y_degrees+i*y_degrees/16)
-        #top
-        for i in range(0, 33):
-            lons.append(g_cen_lon-x_degrees+i*x_degrees/16)
-            lats.append(g_cen_lat+y_degrees)
-        #right
-        for i in range(0, 33):
-            lons.append(g_cen_lon+x_degrees)
-            lats.append(g_cen_lat+y_degrees-i*y_degrees/16)
-        #bottom
-        for i in range(0, 33):
-            lons.append(g_cen_lon+x_degrees-i*x_degrees/16)
-            lats.append(g_cen_lat-y_degrees)
-    ax.plot(lons, lats, transform=ccrs.Geodetic(), color='purple', linewidth=5, alpha=1.0)
-
 def draw_box_xy_data(tgt_index, src_index, color):
-    cen_lon, cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, _, _ = get_dims(src_index, color)
+    cen_lon, cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, _, _ = \
+                get_dims(src_index, color)
     x1, x2, y1, y2 = extent 
-    # Center circle usng data coords
-    #g_axis[tgt_index].plot(*((x1+x2)/2, (y1+y2)/2), transform=g_axis[src_index].projection, marker='o', ms=15, color='green')
     # Star inside of circle using geodetic coords (just a test)
-    g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), marker='*', ms=10, color='gold')
+    g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
+                           marker='*', ms=10, color='red')
     xs = []
     ys = []
     #left
@@ -473,22 +462,49 @@ def draw_box_xy_data(tgt_index, src_index, color):
         xs.append(x2-i*(x2-x1)/32)
         ys.append(y1)
 
-    g_axis[tgt_index].plot(xs, ys, transform=g_axis[src_index].projection, color=color, linewidth=2, alpha=1.0, linestyle='solid')
+    g_axis[tgt_index].plot(xs, ys, transform=g_axis[src_index].projection, 
+                           color=color, linewidth=2, alpha=1.0, linestyle='solid')
 
 def plot_forecast():
     global g_title
 
     g_data = pygrib.open(args.filename)
-    lats, lons = g_data[1].latlons()
+
+    zmsg = g_data.select(name="Geopotential height", level=500)[0]
+    zdata = zmsg.values
+    lats, lons = zmsg.latlons()
+
+    vdata = g_data.select(name="Absolute vorticity", level=500)[0].values
 
     sio = io.StringIO()
-    msg = g_data.select(name="Geopotential height", level=500)[0]
-    print(msg, file=sio)
+    print(zmsg, file=sio)
     fcst = sio.getvalue().split(':')[6]
     time = sio.getvalue().split(':')[7]
     g_title = fcst + " " + time
 
-    z500 = g_data.select(name="Geopotential height", level=500)[0].values * 0.1
+    # Filter out by lat/lon (need to understand this more)
+    if True:
+        lat_min, lat_max = 30, 65
+        dim0 = (lat_max-lat_min)*4+1
+        lon_min, lon_max = 180, 260
+        dim1 = (lon_max-lon_min)*4+1 # +1 only needed if end isn't 360
+        print(f"dim0 {dim0} dim1 {dim1}")
+        mask = (lats >= lat_min) & (lats <= lat_max) & (lons >= lon_min) & (lons <= lon_max)
+        filtered_lats = lats[mask]
+        filtered_lons = lons[mask]
+        filtered_zdata = zdata[mask]
+        filtered_vdata = vdata[mask]
+        lats = np.array(filtered_lats)
+        lons = np.array(filtered_lons)
+        zdata = np.array(filtered_zdata)
+        vdata = np.array(filtered_vdata)
+        lats = np.reshape(lats, (dim0, dim1))
+        lons = np.reshape(lons, (dim0, dim1))
+        zdata = np.reshape(zdata, (dim0, dim1))
+        vdata = np.reshape(vdata, (dim0, dim1))
+
+    # Geopotential height
+    z500 = zdata * 0.1
     z500 = scipy.ndimage.gaussian_filter(z500, 6.89)
     for p in g_projs:
         contours = g_axis[p].contour(lons, lats, z500, 
@@ -497,7 +513,8 @@ def plot_forecast():
                                      transform=cartopy.crs.PlateCarree(), alpha=0.25)
     plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
 
-    vort500 = g_data.select(name="Absolute vorticity", level=500)[0].values * 100000
+    # Vorticity
+    vort500 = vdata * 100000
     vort500 = scipy.ndimage.gaussian_filter(vort500, 1.7225)
     #vort500[vort500 > 1000] = 0  # Mask out undefined values on domain edge
     vortlevs = [16, 20, 24, 28, 32, 36, 40]
@@ -529,15 +546,8 @@ def show_help():
 #
 
 plt.rcParams["figure.raise_window"] = False
-
 fig = plt.figure(figsize=(10, 10))
 fig.canvas.mpl_connect('button_press_event', on_button_press)
 fig.canvas.mpl_connect('key_press_event', on_key_press)
-#fig.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
-#plt.margins(x=0.0, y=0.0)
 show_help()
-
 plots_draw("init")
-
-#while True:
-#    plt.pause(0.1)
