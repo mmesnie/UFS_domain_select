@@ -1,10 +1,53 @@
 #!/usr/bin/env python3
 
+#
+# TODO / FIXME
+#
+# - double star
+# - messed up blue/red when we go global
+#
 
-# TODO
-# -automatically set bounding box for GFS plot
-# -understand how GFS filtering is working. Do we need to hardcode the +1?
-# -automate when to draw compute grid (Gnomonic)
+#
+# This script has two uses. First, it automates the creation of the YAML 
+# configuration that specifies the compute grid and write component. The write
+# component will be shown in red and the compute grid in blue.  Usage is -
+#
+g_help="""
+******************************************************************************
+*         Zoom: zoom grid                                                    *
+*          Pan: shift grid                                                   *
+*     Spacebar: set write component (view taken from Lambert Conformal plot) *
+*        Key g: toggle global view                                           *
+*        Key y: output yaml config                                           *
+*        Key -: decrement Gnomonic compute grid by 1%                        *
+*        Key +: increment Gnomonic compute grid by 1%                        *
+*        Key R: set resolution (3km, 13km, 25km)                             *
+*        Key 0: reset all settings                                           *
+*        Key h: show this help                                               *
+* Middle Click: center grid                                                  *
+******************************************************************************
+"""
+
+#
+# The second use is to graph a grib file (500 MB geopotential and vorticity), using
+# the -f <FILENAME> option. This can be a GFS grib file (initial or boundary conditions)
+# or the output from a SRW forecast (i.e., the grib files in "postprd" directory). The
+# center latitude and longitude can be specified via the --cen_lon and _cen_lat options,
+# and the longitude and latitude extents via --lon_span and --lat_span. Run with -h for
+# more details.
+#
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--cen_lon", help="center longitude", required=False)
+parser.add_argument("--cen_lat", help="center latitude", required=False)
+parser.add_argument("--lon_span", help="longitude span (degrees)", required=False)
+parser.add_argument("--lat_span", help="latitude span (degrees)", required=False)
+parser.add_argument("--file", "-f", help="grib file to plot", required=False)
+parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
+args = parser.parse_args()
+
+#
+# Imports
 #
 
 import matplotlib.pyplot as plt
@@ -13,51 +56,21 @@ import cartopy.feature as cfeature
 from matplotlib.backend_bases import MouseButton
 import time
 import math
-
-# For output files
 import io
 import PIL
-
-# For plotting the grib forecast using -f <gribfile>
 import pygrib
 import scipy
 import numpy as np
-import argparse
 import cartopy
 import matplotlib
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--cen_lon", help="center longitude", required=False)
-parser.add_argument("--cen_lat", help="center latitude", required=False)
-parser.add_argument("--filename", "-f", help="gfs grib file", required=False)
-parser.add_argument("--close", "-x", help="close", required=False, action="store_true")
-args = parser.parse_args()
-
-g_compute_grid_default = 0.0
-g_res = 3000 # choose among 3000, 13000 or 25000
-
 #
-# This script automates the creation of the write
-# component parameters. 'h' for detailed options.
-#
-# -The write component grid is shown in blue on all projections.
-# -The write component grid will be the size of the Lambert plot.
-# -The compute grid will be shown in red on the Gnomonic plot. The
-#  compute grid will be larger than the Lambert plot extents.
+# User globals (modify as needed)
 #
 
-#
-# Globals
-#
-
-g_cen_lon_default = -78.0; g_cen_lat_default =  0;    g_lon_span_default = 10; g_lat_span_default = 10 # Equator
-g_cen_lon_default = -59.5; g_cen_lat_default = -51.8; g_lon_span_default = 15; g_lat_span_default = 15 # Falkland Islands
-i_cen_lon_default = -97.5; g_cen_lat_default =  38.5; g_lon_span_default = 60; g_lat_span_default = 30 # CONUS
-
-if args.cen_lon:
-    g_cen_lon_default = float(args.cen_lon)
-if args.cen_lat:
-    g_cen_lat_default = float(args.cen_lat)
+g_cen_lon_default = -97.5; g_cen_lat_default =  38.5; g_lon_span_default = 60; g_lat_span_default = 30; g_res=25000  # CONUS
+g_cen_lon_default = -59.5; g_cen_lat_default = -51.8; g_lon_span_default = 10; g_lat_span_default =  5; g_res=13000  # Falkland Islands
+g_cen_lon_default = -143;  g_cen_lat_default =  36;   g_lon_span_default = 42; g_lat_span_default = 34; g_res=25000  # Eastern Pacific
 
 g_halo_width = 6
 g_dt_atmos = 36
@@ -67,15 +80,27 @@ g_layout_y = 3
 g_write_groups = 1
 g_write_tasks_per_group = 3
 
-g_default_view = "regional" # regional or global
+#
+# Internal globals (don't modify)
+#
 
-# Internal globals
+g_compute_grid_default = 0.05
+if args.cen_lon:
+    g_cen_lon_default = float(args.cen_lon)
+if args.cen_lat:
+    g_cen_lat_default = float(args.cen_lat)
+if args.lon_span:
+    g_lon_span_default = float(args.lon_span)
+if args.lat_span:
+    g_lat_span_default = float(args.lat_span)
+g_default_view = "regional" # regional or global
 g_cen_lon = g_cen_lon_default
 g_cen_lat = g_cen_lat_default
 g_view = {}
 g_axis = {}
 g_proj = {}
 g_projs = {}
+g_extent = {}
 g_mode = None
 
 #
@@ -100,6 +125,7 @@ def on_button_press(event):
     global g_cen_lon, g_cen_lat
 
     if event.inaxes and event.button is MouseButton.MIDDLE:
+        print(f"centering plots at mouse click...")
         g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata, 
                                                                   event.inaxes.projection)
         g_cen_lat = cen_lat_adjust(g_cen_lat)
@@ -113,6 +139,7 @@ def get_dims(index, color):
     x1, x2, y1, y2 = extent
 
     if color == "red":
+        extent = g_axis[index].get_extent()
         xspan = abs(x2-x1)
         x1 -= xspan*(g_compute_grid)/2
         x2 += xspan*(g_compute_grid)/2
@@ -138,14 +165,6 @@ def get_dims(index, color):
 
     return cen_lon, cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, lon_span, lat_span
 
-def set_views():
-    for p in g_projs:
-        if g_view[p] == "global":
-            g_axis[p].set_title(f"{p} global")
-            g_axis[p].set_global()
-        else:
-            g_axis[p].set_title(f"{p} regional")
-
 def output_yaml(index):
     if index != "LambertConformal":
         print("Write component must be written from LambertConformal grid")
@@ -162,8 +181,8 @@ def output_yaml(index):
         #print(f"\"CUSTOM_XX_{int(res/1000)}km\":")
         print(f"\"CUSTOM_XX\":")
         print(f"  GRID_GEN_METHOD: \"ESGgrid\"")
-        print(f"  ESGgrid_LON_CTR: {cen_lon_r}")
-        print(f"  ESGgrid_LAT_CTR: {cen_lat_r}")
+        print(f"  ESGgrid_LON_CTR: {round(cen_lon_r, 2)}")
+        print(f"  ESGgrid_LAT_CTR: {round(cen_lat_r, 2)}")
         print(f"  ESGgrid_NX: {nx_r}")
         print(f"  ESGgrid_NY: {ny_r}")
         print(f"  ESGgrid_DELX: {res}")
@@ -180,14 +199,14 @@ def output_yaml(index):
         print(f"    WRTCMP_write_groups: {g_write_groups}")
         print(f"    WRTCMP_write_tasks_per_group: {g_write_tasks_per_group}")
         print(f"    WRTCMP_output_grid: \"lambert_conformal\"")
-        print(f"    WRTCMP_cen_lon: {cen_lon_b}")
-        print(f"    WRTCMP_cen_lat: {cen_lat_b}")
-        print(f"    WRTCMP_stdlat1: {cen_lat_b}")
-        print(f"    WRTCMP_stdlat2: {cen_lat_b}")
+        print(f"    WRTCMP_cen_lon: {round(cen_lon_b, 2)}")
+        print(f"    WRTCMP_cen_lat: {round(cen_lat_b, 2)}")
+        print(f"    WRTCMP_stdlat1: {round(cen_lat_b, 2)}")
+        print(f"    WRTCMP_stdlat2: {round(cen_lat_b, 2)}")
         print(f"    WRTCMP_nx: {nx_b}")
         print(f"    WRTCMP_ny: {ny_b}")
-        print(f"    WRTCMP_lon_lwr_left: {lwr_lon_b}")
-        print(f"    WRTCMP_lat_lwr_left: {lwr_lat_b}")
+        print(f"    WRTCMP_lon_lwr_left: {round(lwr_lon_b, 2)}")
+        print(f"    WRTCMP_lat_lwr_left: {round(lwr_lat_b, 2)}")
         print(f"    WRTCMP_dx: {res}")
         print(f"    WRTCMP_dy: {res}")
     return
@@ -201,12 +220,6 @@ def set_write_component(index):
     g_view[index] = "regional"
 
     g_cen_lon, g_cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, _, _ = get_dims(index, 'blue')
-
-    if False:
-        print(f"cen_lon {g_cen_lon} cen_lat {g_cen_lat}")
-        print(f"lwr_lon {lwr_lon} lwr_lat {lwr_lat}")
-        print(f"upr_lon {upr_lon} upr_lat {upr_lat}")
-        print(f"xspan {xspan} yspan {yspan}")
     g_cen_lat = cen_lat_adjust(g_cen_lat)
     plots_draw("setting write grid") #3
     p_src = index
@@ -217,6 +230,7 @@ def on_key_press(event):
     global g_cen_lon, g_cen_lat
     global g_compute_grid
     global g_res
+    global g_extent
 
     ax = event.inaxes
     index = get_index(ax)
@@ -224,11 +238,23 @@ def on_key_press(event):
     if event.key == 'h':
         show_help()
     elif event.key == '0':
+        print(f"resetting to default settings...")
         plots_draw("init") #4
-    elif event.key == 'v':
-        set_views()
     elif event.key == 'y':
+        index = "LambertConformal"
         output_yaml("LambertConformal")
+        x1, x2, y1, y2 = g_axis[index].get_extent()
+        left_lon, left_lat = ccrs.PlateCarree().transform_point(x1, (y1+y2)/2, g_axis[index].projection)
+        right_lon, right_lat = ccrs.PlateCarree().transform_point(x2, (y1+y2)/2, g_axis[index].projection)
+        top_lon, top_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, y2, g_axis[index].projection)
+        bottom_lon, bottom_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, y1, g_axis[index].projection)
+        lon_span = abs(right_lon - left_lon)
+        lat_span = abs(top_lat - bottom_lat)
+        print(f"    UFS_domain_select.py args: "  \
+              f"--cen_lon {int(g_cen_lon)} " \
+              f"--cen_lat {int(g_cen_lat)} " \
+              f"--lon_span {int(lon_span)} " \
+              f"--lat_span {int(lat_span)}")
     elif event.key == 'R':
         if g_res == 3000:
             g_res = 13000
@@ -236,34 +262,36 @@ def on_key_press(event):
             g_res = 25000
         else:
             g_res = 3000
-        print(f"Resolution set to {int(g_res/1000)}km")
+        print(f"resolution set to {int(g_res/1000)}km")
     elif event.key == '+':
         g_compute_grid += .01
-        print(f"Set compute grid component to {g_compute_grid}")
+        print(f"set compute grid component to {g_compute_grid}")
         set_write_component("LambertConformal")
     elif event.key == '-':
         g_compute_grid -= .01
-        print(f"Set compute grid component to {g_compute_grid}")
+        print(f"set compute grid component to {g_compute_grid}")
         set_write_component("LambertConformal")
     elif event.key == ' ':
+        print(f"setting write component...")
         set_write_component("LambertConformal")
-        print(f"Write component set. \'y\' to output yaml.")
+        print(f"write component set ok. 'y' to output yaml")
     elif event.key == 'g':
-        print("DOING REGIONAL")
-        if g_view[index] == "regional":
-            g_view[index] = "global"
-            set_views()
-        else:
-            print(f"ALREADY GLOBAL")
-    elif event.key == 'r':
-        print("DOING REGIONAL")
-        if g_view[index] == "global":
-            g_view[index] = "regional"
-            set_views()
-        else:
-            print(f"ALREADY REGIONAL")
+        if index == "Gnomonic":
+            print("global view disabled for Gnomonic")
+        elif index:
+            print(f"toggling global view for {index}...")
+            if g_view[index] == "regional":
+                g_extent[index] = g_axis[index].get_extent()
+                g_view[index] = "global"
+                g_axis[index].set_global()
+            elif g_view[index] == "global": 
+                g_view[index] = "regional"
+                g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
     elif event.key == 'q':
         exit(0)
+
+    #plt.show() # end on_key_press
+
 
 def get_index(ax):
     for p in g_projs:
@@ -332,12 +360,12 @@ def projs_create(mode):
     g_projs = [ "PlateCarree", "Orthographic", "LambertConformal", "Gnomonic" ]
     g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
 
-    if False and args.filename:
+    if False and args.file:
         g_projs = [ "LambertConformal" ]
         g_dim_x = 1; g_dim_y = 1
     else:
-        g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
-        g_dim_x = 3; g_dim_y = 1
+        g_projs = [ "LambertConformal", "Gnomonic", "Mercator", "Orthographic" ]
+        g_dim_x = 2; g_dim_y = 2
 
     if mode == "init":
         for p in g_projs:
@@ -353,13 +381,7 @@ def projs_create(mode):
                 g_lambert_xspan = abs(nxr-nxl)
                 g_lambert_yspan = abs(nyt-nyb)
 
-            if p == "Orthographic":
-                g_view[p] = "global"
-            else:
-                g_view[p] = g_default_view
-
-        print(f"g_lambert_xspan {g_lambert_xspan}")
-        print(f"g_lambert_yspan {g_lambert_yspan}")
+            g_view[p] = "regional"
 
 def plots_draw(mode):
     global g_proj
@@ -391,7 +413,7 @@ def plots_draw(mode):
     j = 1; g_axis = {}
     for p in g_projs:
 
-        g_axis[p] = fig.add_subplot(g_dim_x, g_dim_y, j, projection=g_proj[p])
+        g_axis[p] = g_fig.add_subplot(g_dim_x, g_dim_y, j, projection=g_proj[p])
         g_axis[p].margins(x=0.0, y=0.0)
         g_axis[p].add_feature(cfeature.COASTLINE)
         g_axis[p].add_feature(cfeature.BORDERS)
@@ -404,37 +426,50 @@ def plots_draw(mode):
             g_axis[p].set_global()
         else:
             g_view[p] = "regional"
-            g_axis[p].set_title(f"{p} regional")
+            g_axis[p].set_title(f"{p}")
 
         # Restore mode
         g_axis[p].set_navigate_mode(g_mode)
     
         j = j + 1
 
-    # Set extent of Lambert grid and draw write components in all
-    # projections. Draw compute grid in just the Gnomonic.
-    g_axis["LambertConformal"].set_extent((-g_lambert_xspan/2, g_lambert_xspan/2, 
-                                           -g_lambert_yspan/2, g_lambert_yspan/2), 
-                                           crs=g_proj["LambertConformal"])
-    for p_tgt in g_projs:
-        draw_box_xy_data(p_tgt, "LambertConformal", 'blue') # write component
+    if not args.file:
 
-    #if not args.filename:
-    draw_box_xy_data("Gnomonic", "Gnomonic", 'red') # compute grid B
+        # Set extent of Lambert grid and draw write components in all
+        # projections. Draw compute grid in just the Gnomonic.
+        g_axis["LambertConformal"].set_extent((-g_lambert_xspan/2, g_lambert_xspan/2, 
+                                               -g_lambert_yspan/2, g_lambert_yspan/2), 
+                                               crs=g_proj["LambertConformal"])
 
-    if args.filename:
-        plot_forecast()
+        # The write component (shown in blue) is taken from the LambertConformal
+        # extents and, as such, will be a perfect rectangle when plotted on the
+        # LambertConformal plot. All other projects will show the transformed
+        # rectangle.
+        for p_tgt in g_projs:
+            draw_box_xy_data(p_tgt, "LambertConformal", 'blue') # write component
+
+        # The compute component (shown in red) is taken from the Gnomonic
+        # extents and, as such, will be a perfect rectangle when plotted on the
+        # Gnomonic plot.  All other projects will show the transformed
+        # rectangle.
+        for p_tgt in g_projs:
+            draw_box_xy_data(p_tgt, "Gnomonic", 'red') # compute component
+
+    if args.file:
+        plot_grib()
         ram = io.BytesIO()
-        g_axis[p].set_title(g_title)
+        for p in g_projs:
+            g_axis[p].set_title(p)
+        g_fig.suptitle(g_title)
         plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
         ram.seek(0)
         im = PIL.Image.open(ram)
         im2 = im.convert("RGB")
-        im2.save(args.filename + ".png", format="PNG")
+        im2.save(args.file + ".png", format="PNG")
         if args.close:
             exit(0)
 
-    plt.show()
+    plt.show() # end plots_draw()
 
 def draw_box_xy_data(tgt_index, src_index, color):
     cen_lon, cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, _, _ = \
@@ -465,10 +500,10 @@ def draw_box_xy_data(tgt_index, src_index, color):
     g_axis[tgt_index].plot(xs, ys, transform=g_axis[src_index].projection, 
                            color=color, linewidth=2, alpha=1.0, linestyle='solid')
 
-def plot_forecast():
+def plot_grib():
     global g_title
 
-    g_data = pygrib.open(args.filename)
+    g_data = pygrib.open(args.file)
 
     zmsg = g_data.select(name="Geopotential height", level=500)[0]
     zdata = zmsg.values
@@ -482,13 +517,14 @@ def plot_forecast():
     time = sio.getvalue().split(':')[7]
     g_title = fcst + " " + time
 
-    # Filter out by lat/lon (need to understand this more)
-    if True:
-        lat_min, lat_max = 30, 65
+    # Filter out by lat/lon
+    if args.cen_lon and args.cen_lat and args.lon_span and args.lat_span: 
+        lat_min, lat_max = round(g_cen_lat-g_lat_span_default/2), \
+                           round(g_cen_lat+g_lat_span_default/2)
         dim0 = (lat_max-lat_min)*4+1
-        lon_min, lon_max = 180, 260
-        dim1 = (lon_max-lon_min)*4+1 # +1 only needed if end isn't 360
-        print(f"dim0 {dim0} dim1 {dim1}")
+        lon_min, lon_max = round(360+g_cen_lon-g_lon_span_default/2), \
+                           round(360+g_cen_lon+g_lon_span_default/2)
+        dim1 = (lon_max-lon_min)*4+1
         mask = (lats >= lat_min) & (lats <= lat_max) & (lons >= lon_min) & (lons <= lon_max)
         filtered_lats = lats[mask]
         filtered_lons = lons[mask]
@@ -529,25 +565,15 @@ def plot_forecast():
     cs1_a.cmap.set_over("darkred") # above 40
 
 def show_help():
-    print("**************************************")
-    print("*         Zoom: zoom grid            *")                  
-    print("*          Pan: shift grid           *")
-    print("*     Spacebar: set write component  *")
-    print("*        Key g: set global view      *")
-    print("*        Key r: set regional view    *")
-    print("*        Key y: output yaml config   *")
-    print("*        Key 0: reset grid to CONUS  *")
-    print("*        Key h: show this help       *")
-    print("* Middle Click: center grid          *")
-    print("**************************************")
+    print(g_help)
 
 #
 # Main
 #
 
 plt.rcParams["figure.raise_window"] = False
-fig = plt.figure(figsize=(10, 10))
-fig.canvas.mpl_connect('button_press_event', on_button_press)
-fig.canvas.mpl_connect('key_press_event', on_key_press)
+g_fig = plt.figure(figsize=(10, 10))
+g_fig.canvas.mpl_connect('button_press_event', on_button_press)
+g_fig.canvas.mpl_connect('key_press_event', on_key_press)
 show_help()
 plots_draw("init")
