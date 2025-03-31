@@ -3,8 +3,8 @@
 #
 # TODO / FIXME
 #
-# - double star
-# - messed up blue/red when we go global
+# - make sure GFS plots look ok, based on args we generated
+# - FIXME "upper" is still off.  "center" is working ok
 #
 
 #
@@ -21,8 +21,8 @@ g_help="""
 *        Key y: output yaml config                                           *
 *        Key -: decrement Gnomonic compute grid by 1%                        *
 *        Key +: increment Gnomonic compute grid by 1%                        *
-*        Key R: set resolution (3km, 13km, 25km)                             *
-*        Key 0: reset all settings                                           *
+*        Key R: set resolution (3km, 13km, 25km, AUTO)                       *
+*        Key 0: restore default settings                                     *
 *        Key h: show this help                                               *
 * Middle Click: center grid                                                  *
 ******************************************************************************
@@ -64,44 +64,54 @@ import numpy as np
 import cartopy
 import matplotlib
 
-#
-# User globals (modify as needed)
-#
+g_output_filename = '/home/mmesnie/ufs-srweather-app-v2.2.0/ush/config.yaml'
 
-g_cen_lon_default = -97.5; g_cen_lat_default =  38.5; g_lon_span_default = 60; g_lat_span_default = 30; g_res=25000  # CONUS
-g_cen_lon_default = -59.5; g_cen_lat_default = -51.8; g_lon_span_default = 10; g_lat_span_default =  5; g_res=13000  # Falkland Islands
-g_cen_lon_default = -143;  g_cen_lat_default =  36;   g_lon_span_default = 42; g_lat_span_default = 34; g_res=25000  # Eastern Pacific
-
-g_halo_width = 6
+#
+# Static user config
+#
 g_dt_atmos = 36
 g_blocksize = 40
 g_layout_x = 3
 g_layout_y = 3
 g_write_groups = 1
 g_write_tasks_per_group = 3
+g_date_first_cycl = '2025032300'
+g_date_last_cycl = '2025032300'
+g_fcst_len_hrs = 1
+g_lbc_spec_intvl_hrs = 1
+g_extrn_mdl_source_basedir_ics = '/home/mmesnie/DATA-2.2.0/input_model_data/FV3GFS/grib2/2025032300'
+g_extrn_mdl_source_basedir_lbcs = '/home/mmesnie/DATA-2.2.0/input_model_data/FV3GFS/grib2/2025032300'
+
+#
+# Forecast domain defaults (g_res of -1 is "auto" mode)
+#
+g_cen_lon_dflt = -59.5; g_cen_lat_dflt = -51.8; g_lon_span_dflt = 10; g_lat_span_dflt =  5; g_res_dflt=-1  # Falkland Islands
+g_cen_lon_dflt = -143;  g_cen_lat_dflt =  36;   g_lon_span_dflt = 43; g_lat_span_dflt = 34; g_res_dflt=-1  # Eastern Pacific
+g_cen_lon_dflt = -97.5; g_cen_lat_dflt =  38.5; g_lon_span_dflt = 70; g_lat_span_dflt = 30; g_res_dflt=-1  # CONUS
 
 #
 # Internal globals (don't modify)
 #
-
-g_compute_grid_default = 0.05
+g_compute_grid_dflt = 0.05
 if args.cen_lon:
-    g_cen_lon_default = float(args.cen_lon)
+    g_cen_lon_dflt = float(args.cen_lon)
 if args.cen_lat:
-    g_cen_lat_default = float(args.cen_lat)
+    g_cen_lat_dflt = float(args.cen_lat)
 if args.lon_span:
-    g_lon_span_default = float(args.lon_span)
+    g_lon_span_dflt = float(args.lon_span)
 if args.lat_span:
-    g_lat_span_default = float(args.lat_span)
-g_default_view = "regional" # regional or global
-g_cen_lon = g_cen_lon_default
-g_cen_lat = g_cen_lat_default
+    g_lat_span_dflt = float(args.lat_span)
+g_dflt = "regional" # regional or global
+g_cen_lon = g_cen_lon_dflt
+g_cen_lat = g_cen_lat_dflt
+g_res = g_res_dflt
 g_view = {}
 g_axis = {}
 g_proj = {}
 g_projs = {}
 g_extent = {}
 g_mode = None
+g_which = "center"
 
 #
 # Function definitions
@@ -134,82 +144,209 @@ def on_button_press(event):
 def fmt_dims(dims):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in dims])
 
+def center_xyspan(index, lon_span, lat_span):
+    xl, yl = g_proj[index].transform_point(g_cen_lon-lon_span/2, g_cen_lat, ccrs.Geodetic())
+    xr, yr = g_proj[index].transform_point(g_cen_lon+lon_span/2, g_cen_lat, ccrs.Geodetic())
+    xt, yt = g_proj[index].transform_point(g_cen_lon, g_cen_lat+lat_span/2, ccrs.Geodetic())
+    xb, yb = g_proj[index].transform_point(g_cen_lon, g_cen_lat-lat_span/2, ccrs.Geodetic())
+    #print(f"center_xyspan: {abs(xr-xl)} {abs(yt-yb)}")
+
+    return abs(xr-xl), abs(yt-yb)
+
+def upper_xyspan(index, lon_span, lat_span):
+    xl, yl = g_proj[index].transform_point(g_cen_lon-lon_span/2, g_cen_lat+lat_span/2, ccrs.Geodetic())
+    xr, yr = g_proj[index].transform_point(g_cen_lon+lon_span/2, g_cen_lat+lat_span/2, ccrs.Geodetic())
+    xt, yt = g_proj[index].transform_point(g_cen_lon, g_cen_lat+lat_span/2, ccrs.Geodetic())
+    xb, yb = g_proj[index].transform_point(g_cen_lon, g_cen_lat-lat_span/2, ccrs.Geodetic())
+    #print(f"upper_xyspan: {abs(xr-xl)} {abs(yt-yb)}")
+
+    return abs(xr-xl), abs(yt-yb)
+
+def xyspan(index, lon_span, lat_span):
+    if g_which == "center":
+        return center_xyspan(index, lon_span, lat_span)
+    elif g_which == "upper":
+        return upper_xyspan(index, lon_span, lat_span)
+
+def calc_center_lonlat_span(index):
+    x1, x2, y1, y2 = g_axis[index].get_extent()
+    xc = (x1+x2)/2
+    yc = (y1+y2)/2
+    cen_lon, cen_lat = ccrs.PlateCarree().transform_point(xc, yc, g_axis[index].projection)
+    yc = 0
+    while True:
+        lft_lon, lft_lat = ccrs.PlateCarree().transform_point(x1, yc, g_axis[index].projection)
+        if abs(lft_lat-cen_lat)<0.01:
+            break
+        if lft_lat<cen_lat:
+            yc = yc + 1000
+        else:
+            yc = yc - 1000
+    lft_lon, lft_lat = ccrs.PlateCarree().transform_point(x1, yc, g_axis[index].projection)
+    rgt_lon, rgt_lat = ccrs.PlateCarree().transform_point(x2, yc, g_axis[index].projection)
+    lon_span = abs(lft_lon-rgt_lon)
+    top_lon, top_lat = ccrs.PlateCarree().transform_point(xc, y2, g_axis[index].projection)
+    btm_lon, btm_lat = ccrs.PlateCarree().transform_point(xc, y1, g_axis[index].projection)
+    lat_span = abs(top_lat-btm_lat)
+
+    return lon_span, lat_span
+
+def calc_upper_lonlat_span(index):
+    x1, x2, y1, y2 = g_axis[index].get_extent()
+    xc = (x1+x2)/2
+    lft_lon, lft_lat = ccrs.PlateCarree().transform_point(x1, y2, g_axis[index].projection)
+    rgt_lon, rgt_lat = ccrs.PlateCarree().transform_point(x2, y2, g_axis[index].projection)
+    lon_span = abs(lft_lon-rgt_lon)
+    top_lon, top_lat = ccrs.PlateCarree().transform_point(xc, y2, g_axis[index].projection)
+    btm_lon, btm_lat = ccrs.PlateCarree().transform_point(xc, y1, g_axis[index].projection)
+    lat_span = abs(top_lat-btm_lat)
+
+    return lon_span, lat_span
+
 def get_dims(index, color):
     extent = g_axis[index].get_extent()
     x1, x2, y1, y2 = extent
 
     if color == "red":
-        extent = g_axis[index].get_extent()
         xspan = abs(x2-x1)
-        x1 -= xspan*(g_compute_grid)/2
-        x2 += xspan*(g_compute_grid)/2
+        x1 -= xspan*g_compute_grid/2
+        x2 += xspan*g_compute_grid/2
         yspan = abs(y2-y1)
-        y1 -= yspan*(g_compute_grid)/2
-        y2 += yspan*(g_compute_grid)/2
+        y1 -= yspan*g_compute_grid/2
+        y2 += yspan*g_compute_grid/2
         extent = x1, x2, y1, y2
 
-    nxc = (x1+x2)/2
-    nyc = (y1+y2)/2
+    xc = (x1+x2)/2
+    yc = (y1+y2)/2
     xspan = abs(x2-x1)
     yspan = abs(y2-y1)
-    cen_lon, cen_lat = ccrs.PlateCarree().transform_point(nxc, nyc, g_axis[index].projection)
+    cen_lon, cen_lat = ccrs.PlateCarree().transform_point(xc, yc, g_axis[index].projection)
     lwr_lon, lwr_lat = ccrs.PlateCarree().transform_point(x1, y1, g_axis[index].projection)
     upr_lon, upr_lat = ccrs.PlateCarree().transform_point(x2, y2, g_axis[index].projection)
+    #lft_lon, lft_lat = ccrs.PlateCarree().transform_point(x1, yc, g_axis[index].projection)
+    #rgt_lon, rgt_lat = ccrs.PlateCarree().transform_point(x2, yc, g_axis[index].projection)
+    #top_lon, top_lat = ccrs.PlateCarree().transform_point(xc, y2, g_axis[index].projection)
+    #btm_lon, btm_lat = ccrs.PlateCarree().transform_point(xc, y1, g_axis[index].projection)
 
-    lft_lon, lft_lat = ccrs.PlateCarree().transform_point(x1, nyc, g_axis[index].projection)
-    rgt_lon, rgt_lat = ccrs.PlateCarree().transform_point(x2, nyc, g_axis[index].projection)
-    top_lon, top_lat = ccrs.PlateCarree().transform_point(nxc, y2, g_axis[index].projection)
-    bot_lon, bot_lat = ccrs.PlateCarree().transform_point(nxc, y1, g_axis[index].projection)
-    lon_span = abs(lft_lon-rgt_lon)
-    lat_span = abs(top_lat-bot_lat)
+    if g_which == "center":
+        lon_span, lat_span = calc_center_lonlat_span(index)
+    elif g_which == "upper":
+        lon_span, lat_span = calc_upper_lonlat_span(index)
 
     return cen_lon, cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, lon_span, lat_span
 
-def output_yaml(index):
-    if index != "LambertConformal":
-        print("Write component must be written from LambertConformal grid")
-        return
+def pick_max_delta(xspan, yspan):
+    if (xspan/25000 < 50) or (yspan/25000<50):
+        if (xspan/13000 < 50) or (yspan/13000<50):
+            return 3000
+        else:
+            return 13000
+    else:
+        return 25000
+
+def output_config(index):
+    index = "LambertConformal"
+    res = g_res
     # computational grid
     cen_lon_r, cen_lat_r, lwr_lon_r, lwr_lat_r, \
         upr_lon_r, upr_lat_r, xspan_r, yspan_r, extent_r, _, _ = get_dims(index, "red")
+    max_delta = pick_max_delta(xspan_r, yspan_r)
+    if g_res == -1:
+        res = max_delta
+        print(f"             resolution: automatically set to {res} meters")
+    elif (g_res>max_delta):
+        res = max_delta
+        print(f"             resolution: forced to max ({res} meters)")
+    percent = round(100*(1+g_compute_grid))
+    print(f"      compute grid size: {percent}% of write component")
+    nx_r = int(xspan_r/res)
+    ny_r = int(yspan_r/res)
+
+    print(f"  gnomonic compute grid: nx {nx_r} ny {ny_r}")
     # write component grid
     cen_lon_b, cen_lat_b, lwr_lon_b, lwr_lat_b, \
         upr_lon_b, upr_lat_b, xspan_b, yspan_b, extent_b, _, _ = get_dims(index, "blue")
-    for res in [ g_res ]:
-        nx_r = int(xspan_r/res)
-        ny_r = int(yspan_r/res)
-        #print(f"\"CUSTOM_XX_{int(res/1000)}km\":")
-        print(f"\"CUSTOM_XX\":")
-        print(f"  GRID_GEN_METHOD: \"ESGgrid\"")
-        print(f"  ESGgrid_LON_CTR: {round(cen_lon_r, 2)}")
-        print(f"  ESGgrid_LAT_CTR: {round(cen_lat_r, 2)}")
-        print(f"  ESGgrid_NX: {nx_r}")
-        print(f"  ESGgrid_NY: {ny_r}")
-        print(f"  ESGgrid_DELX: {res}")
-        print(f"  ESGgrid_DELY: {res}")
-        print(f"  ESGgrid_PAZI: 0.0")
-        print(f"  ESGgrid_WIDE_HALO_WIDTH: {g_halo_width}")
-        print(f"  DT_ATMOS: {g_dt_atmos}")
-        print(f"  LAYOUT_X: {g_layout_x}")
-        print(f"  LAYOUT_Y: {g_layout_y}")
-        print(f"  BLOCKSIZE: {g_blocksize}")
-        nx_b = int(xspan_b/res)
-        ny_b = int(yspan_b/res)
-        print(f"  QUILTING:")
-        print(f"    WRTCMP_write_groups: {g_write_groups}")
-        print(f"    WRTCMP_write_tasks_per_group: {g_write_tasks_per_group}")
-        print(f"    WRTCMP_output_grid: \"lambert_conformal\"")
-        print(f"    WRTCMP_cen_lon: {round(cen_lon_b, 2)}")
-        print(f"    WRTCMP_cen_lat: {round(cen_lat_b, 2)}")
-        print(f"    WRTCMP_stdlat1: {round(cen_lat_b, 2)}")
-        print(f"    WRTCMP_stdlat2: {round(cen_lat_b, 2)}")
-        print(f"    WRTCMP_nx: {nx_b}")
-        print(f"    WRTCMP_ny: {ny_b}")
-        print(f"    WRTCMP_lon_lwr_left: {round(lwr_lon_b, 2)}")
-        print(f"    WRTCMP_lat_lwr_left: {round(lwr_lat_b, 2)}")
-        print(f"    WRTCMP_dx: {res}")
-        print(f"    WRTCMP_dy: {res}")
-    return
+    nx_b = int(xspan_b/res)
+    ny_b = int(yspan_b/res)
+
+    print(f"lambert write component: nx {nx_b} ny {ny_b}")
+    print(f"       center longitude: {g_cen_lon}")
+    print(f"        center latitude: {g_cen_lat}")
+    print(f"     lambert corner lon: {round(lwr_lon_b, 2)}")
+    print(f"     lambert corner lat: {round(lwr_lat_b, 2)}")
+
+    if g_which == "center":
+        lon_span, lat_span = calc_center_lonlat_span(index)
+        print(f"output: calculated center lon_span is {lon_span}")
+        print(f"output: calculated center lat_span is {lat_span}")
+    elif g_which == "upper":
+        lon_span, lat_span = calc_upper_lonlat_span(index)
+        print(f"output: calculated upper lon_span is {lon_span}")
+        print(f"output: calculated upper lat_span is {lat_span}")
+
+    config_text = f"""
+metadata:
+  description: >-
+    Automatically generated via UFS_domain_select.py
+user:
+  RUN_ENVIR: community
+  MACHINE: linux
+  ACCOUNT: an_account
+workflow:
+  EXPT_SUBDIR: /home/mmesnie/expt-2.2.0/test_community
+  USE_CRON_TO_RELAUNCH: false
+  CCPP_PHYS_SUITE: FV3_GFS_v16
+  DATE_FIRST_CYCL: '{g_date_first_cycl}'
+  DATE_LAST_CYCL: '{g_date_last_cycl}'
+  FCST_LEN_HRS: {g_fcst_len_hrs}
+  PREEXISTING_DIR_METHOD: rename
+  VERBOSE: true
+  COMPILER: gnu
+  GRID_GEN_METHOD: "ESGgrid"
+task_make_grid:
+  ESGgrid_LON_CTR: {g_cen_lon}
+  ESGgrid_LAT_CTR: {g_cen_lat}
+  ESGgrid_NX: {nx_r} 
+  ESGgrid_NY: {ny_r}
+  ESGgrid_DELX: {res}
+  ESGgrid_DELY: {res} 
+  ESGgrid_PAZI: 0.0
+  ESGgrid_WIDE_HALO_WIDTH: 6
+task_get_extrn_ics:
+  EXTRN_MDL_NAME_ICS: FV3GFS
+  FV3GFS_FILE_FMT_ICS: grib2
+  EXTRN_MDL_SOURCE_BASEDIR_ICS: {g_extrn_mdl_source_basedir_ics}
+task_get_extrn_lbcs:
+  EXTRN_MDL_NAME_LBCS: FV3GFS
+  LBC_SPEC_INTVL_HRS: {g_lbc_spec_intvl_hrs} 
+  FV3GFS_FILE_FMT_LBCS: grib2
+  EXTRN_MDL_SOURCE_BASEDIR_LBCS: {g_extrn_mdl_source_basedir_lbcs}
+task_run_fcst:
+  QUILTING: true
+  DT_ATMOS: {g_dt_atmos}
+  LAYOUT_X: {g_layout_x} 
+  LAYOUT_Y: {g_layout_y}
+  BLOCKSIZE: {g_blocksize}
+  WRTCMP_write_groups: {g_write_groups}
+  WRTCMP_write_tasks_per_group: {g_write_tasks_per_group}
+  WRTCMP_output_grid: "lambert_conformal"
+  WRTCMP_cen_lon: {g_cen_lon}
+  WRTCMP_cen_lat: {g_cen_lat} 
+  WRTCMP_stdlat1: {g_cen_lat} 
+  WRTCMP_stdlat2: {g_cen_lat} 
+  WRTCMP_nx: {nx_b}
+  WRTCMP_ny: {ny_b}
+  WRTCMP_lon_lwr_left: {round(lwr_lon_b, 2)} 
+  WRTCMP_lat_lwr_left: {round(lwr_lat_b, 2)}
+  WRTCMP_dx: {res}
+  WRTCMP_dy: {res}
+task_run_post:
+  POST_OUTPUT_DOMAIN_NAME: 'mesnier'
+"""
+    with open(g_output_filename, "w") as file:
+        file.write(config_text)
+    print(f"       YAML file output: {g_output_filename}")
+    print(f"  UFS_domain_selec args: --cen_lon {round(g_cen_lon)} --cen_lat {round(g_cen_lat)} --lon_span {round(lon_span)} --lat_span {round(lat_span)}\n")
 
 def set_write_component(index):
     global g_cen_lon, g_cen_lat
@@ -238,38 +375,33 @@ def on_key_press(event):
     if event.key == 'h':
         show_help()
     elif event.key == '0':
-        print(f"resetting to default settings...")
+        print(f"restored default settings")
         plots_draw("init") #4
     elif event.key == 'y':
         index = "LambertConformal"
-        output_yaml("LambertConformal")
-        x1, x2, y1, y2 = g_axis[index].get_extent()
-        left_lon, left_lat = ccrs.PlateCarree().transform_point(x1, (y1+y2)/2, g_axis[index].projection)
-        right_lon, right_lat = ccrs.PlateCarree().transform_point(x2, (y1+y2)/2, g_axis[index].projection)
-        top_lon, top_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, y2, g_axis[index].projection)
-        bottom_lon, bottom_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, y1, g_axis[index].projection)
-        lon_span = abs(right_lon - left_lon)
-        lat_span = abs(top_lat - bottom_lat)
-        print(f"    UFS_domain_select.py args: "  \
-              f"--cen_lon {int(g_cen_lon)} " \
-              f"--cen_lat {int(g_cen_lat)} " \
-              f"--lon_span {int(lon_span)} " \
-              f"--lat_span {int(lat_span)}")
+        output_config("LambertConformal")
     elif event.key == 'R':
         if g_res == 3000:
             g_res = 13000
         elif g_res == 13000:
             g_res = 25000
-        else:
+        elif g_res == 25000:
+            g_res = -1 
+        elif g_res == -1:
             g_res = 3000
-        print(f"resolution set to {int(g_res/1000)}km")
+        if (g_res == -1):
+            print(f"resolution set to AUTO")
+        else:
+            print(f"resolution set to {int(g_res/1000)}km")
     elif event.key == '+':
         g_compute_grid += .01
-        print(f"set compute grid component to {g_compute_grid}")
+        percent = round(100*(1+g_compute_grid))
+        print(f"set compute grid to {percent}% of write component")
         set_write_component("LambertConformal")
     elif event.key == '-':
         g_compute_grid -= .01
-        print(f"set compute grid component to {g_compute_grid}")
+        percent = round(100*(1+g_compute_grid))
+        print(f"set compute grid to {percent}% of write component")
         set_write_component("LambertConformal")
     elif event.key == ' ':
         print(f"setting write component...")
@@ -306,13 +438,15 @@ def projs_create(mode):
     global g_dim_x, g_dim_y
     global g_compute_grid
     global g_lambert_xspan, g_lambert_yspan
+    global g_res
 
     #print(f"projs_create: mode {mode} g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat}")
 
     if mode == "init":
-        g_cen_lon = g_cen_lon_default
-        g_cen_lat = g_cen_lat_default
-        g_compute_grid = g_compute_grid_default
+        g_cen_lon = g_cen_lon_dflt
+        g_cen_lat = g_cen_lat_dflt
+        g_compute_grid = g_compute_grid_dflt
+        g_res = g_res_dflt
 
     g_cen_lat = cen_lat_adjust(g_cen_lat)
 
@@ -369,18 +503,8 @@ def projs_create(mode):
 
     if mode == "init":
         for p in g_projs:
-
             if p == "LambertConformal":
-                lon_span = g_lon_span_default
-                lat_span = g_lat_span_default
-                nxc, nyc = g_proj[p].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-                nxl, nyl = g_proj[p].transform_point(g_cen_lon-lon_span/2, g_cen_lat, ccrs.Geodetic())
-                nxr, nyr = g_proj[p].transform_point(g_cen_lon+lon_span/2, g_cen_lat, ccrs.Geodetic())
-                nxt, nyt = g_proj[p].transform_point(g_cen_lon, g_cen_lat+lat_span/2, ccrs.Geodetic())
-                nxb, nyb = g_proj[p].transform_point(g_cen_lon, g_cen_lat-lat_span/2, ccrs.Geodetic())
-                g_lambert_xspan = abs(nxr-nxl)
-                g_lambert_yspan = abs(nyt-nyb)
-
+                g_lambert_xspan, g_lambert_yspan = xyspan(p, g_lon_span_dflt, g_lat_span_dflt)
             g_view[p] = "regional"
 
 def plots_draw(mode):
@@ -475,9 +599,9 @@ def draw_box_xy_data(tgt_index, src_index, color):
     cen_lon, cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, _, _ = \
                 get_dims(src_index, color)
     x1, x2, y1, y2 = extent 
-    # Star inside of circle using geodetic coords (just a test)
-    g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
-                           marker='*', ms=10, color='red')
+    if color == "blue":
+        g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
+                               marker='*', ms=10, color='red')
     xs = []
     ys = []
     #left
@@ -519,11 +643,11 @@ def plot_grib():
 
     # Filter out by lat/lon
     if args.cen_lon and args.cen_lat and args.lon_span and args.lat_span: 
-        lat_min, lat_max = round(g_cen_lat-g_lat_span_default/2), \
-                           round(g_cen_lat+g_lat_span_default/2)
+        lat_min, lat_max = round(g_cen_lat-g_lat_span_dflt/2), \
+                           round(g_cen_lat+g_lat_span_dflt/2)
         dim0 = (lat_max-lat_min)*4+1
-        lon_min, lon_max = round(360+g_cen_lon-g_lon_span_default/2), \
-                           round(360+g_cen_lon+g_lon_span_default/2)
+        lon_min, lon_max = round(360+g_cen_lon-g_lon_span_dflt/2), \
+                           round(360+g_cen_lon+g_lon_span_dflt/2)
         dim1 = (lon_max-lon_min)*4+1
         mask = (lats >= lat_min) & (lats <= lat_max) & (lons >= lon_min) & (lons <= lon_max)
         filtered_lats = lats[mask]
