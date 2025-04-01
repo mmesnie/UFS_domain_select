@@ -5,6 +5,7 @@
 #
 # - make sure GFS plots look ok, based on args we generated
 # - FIXME "upper" is still off.  "center" is working ok
+# - FIXME "center" lat span breaks at 62 
 #
 
 #
@@ -149,18 +150,16 @@ def center_xyspan(index, lon_span, lat_span):
     xr, yr = g_proj[index].transform_point(g_cen_lon+lon_span/2, g_cen_lat, ccrs.Geodetic())
     xt, yt = g_proj[index].transform_point(g_cen_lon, g_cen_lat+lat_span/2, ccrs.Geodetic())
     xb, yb = g_proj[index].transform_point(g_cen_lon, g_cen_lat-lat_span/2, ccrs.Geodetic())
-    #print(f"center_xyspan: {abs(xr-xl)} {abs(yt-yb)}")
 
-    return abs(xr-xl), abs(yt-yb)
+    return (xl, xr, yb, yt), abs(xr-xl), abs(yt-yb)
 
 def upper_xyspan(index, lon_span, lat_span):
     xl, yl = g_proj[index].transform_point(g_cen_lon-lon_span/2, g_cen_lat+lat_span/2, ccrs.Geodetic())
     xr, yr = g_proj[index].transform_point(g_cen_lon+lon_span/2, g_cen_lat+lat_span/2, ccrs.Geodetic())
     xt, yt = g_proj[index].transform_point(g_cen_lon, g_cen_lat+lat_span/2, ccrs.Geodetic())
     xb, yb = g_proj[index].transform_point(g_cen_lon, g_cen_lat-lat_span/2, ccrs.Geodetic())
-    #print(f"upper_xyspan: {abs(xr-xl)} {abs(yt-yb)}")
 
-    return abs(xr-xl), abs(yt-yb)
+    return (xl, xr, yb, yt), abs(xr-xl), abs(yt-yb)
 
 def xyspan(index, lon_span, lat_span):
     if g_which == "center":
@@ -184,7 +183,17 @@ def calc_center_lonlat_span(index):
             yc = yc - 1000
     lft_lon, lft_lat = ccrs.PlateCarree().transform_point(x1, yc, g_axis[index].projection)
     rgt_lon, rgt_lat = ccrs.PlateCarree().transform_point(x2, yc, g_axis[index].projection)
-    lon_span = abs(lft_lon-rgt_lon)
+
+    # Convert all west longitudes (negative) to positive
+    if (lft_lon<0):
+        lft_lon += 360
+    if (rgt_lon<0):
+        rgt_lon += 360
+    # Calculate the longitude span
+    lon_span = rgt_lon-lft_lon
+    if lon_span<0:
+        lon_span += 360
+
     top_lon, top_lat = ccrs.PlateCarree().transform_point(xc, y2, g_axis[index].projection)
     btm_lon, btm_lat = ccrs.PlateCarree().transform_point(xc, y1, g_axis[index].projection)
     lat_span = abs(top_lat-btm_lat)
@@ -275,6 +284,7 @@ def output_config(index):
     print(f"     lambert corner lon: {round(lwr_lon_b, 2)}")
     print(f"     lambert corner lat: {round(lwr_lat_b, 2)}")
 
+    # HERE
     if g_which == "center":
         lon_span, lat_span = calc_center_lonlat_span(index)
         print(f"output: calculated center lon_span is {lon_span}")
@@ -504,7 +514,7 @@ def projs_create(mode):
     if mode == "init":
         for p in g_projs:
             if p == "LambertConformal":
-                g_lambert_xspan, g_lambert_yspan = xyspan(p, g_lon_span_dflt, g_lat_span_dflt)
+                lambert_extent, g_lambert_xspan, g_lambert_yspan = xyspan(p, g_lon_span_dflt, g_lat_span_dflt)
             g_view[p] = "regional"
 
 def plots_draw(mode):
@@ -528,6 +538,7 @@ def plots_draw(mode):
         x1, x2, y1, y2 = g_axis["LambertConformal"].get_extent()
         g_lambert_xspan = abs(x2-x1)
         g_lambert_yspan = abs(y2-y1)
+        print(f"removing plots: g_lambert_xspan {g_lambert_xspan} g_lambert_yspan {g_lambert_yspan}")
         for p in g_projs:
             g_axis[p].remove()
 
@@ -559,11 +570,10 @@ def plots_draw(mode):
 
     if not args.file:
 
-        # Set extent of Lambert grid and draw write components in all
-        # projections. Draw compute grid in just the Gnomonic.
-        g_axis["LambertConformal"].set_extent((-g_lambert_xspan/2, g_lambert_xspan/2, 
-                                               -g_lambert_yspan/2, g_lambert_yspan/2), 
-                                               crs=g_proj["LambertConformal"])
+        # Set LambertConformal extent
+        extent = (-g_lambert_xspan/2, g_lambert_xspan/2, -g_lambert_yspan/2, g_lambert_yspan/2)
+        print(f"restoring lambert extent: {extent}")
+        g_axis["LambertConformal"].set_extent(extent, crs=g_proj["LambertConformal"])
 
         # The write component (shown in blue) is taken from the LambertConformal
         # extents and, as such, will be a perfect rectangle when plotted on the
@@ -598,6 +608,7 @@ def plots_draw(mode):
 def draw_box_xy_data(tgt_index, src_index, color):
     cen_lon, cen_lat, lwr_lon, lwr_lat, upr_lon, upr_lat, xspan, yspan, extent, _, _ = \
                 get_dims(src_index, color)
+    print(f"draw_box_xy_data: upr_lon {upr_lon} upr_lat {upr_lat}")
     x1, x2, y1, y2 = extent 
     if color == "blue":
         g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
