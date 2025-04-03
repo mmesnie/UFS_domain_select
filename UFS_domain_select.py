@@ -76,7 +76,7 @@ g_layout_y = 3
 g_write_groups = 1
 g_write_tasks_per_group = 3
 g_date ='20250403'
-g_cycle ='00'
+g_cycle ='12'
 g_fcst_len_hrs = 24
 g_lbc_spec_intvl_hrs = 6
 g_extrn_mdl_source_basedir_ics = f"/home/mmesnie/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
@@ -415,6 +415,8 @@ def plots_draw(mode):
     global g_dim_x, g_dim_y
     global g_xdata_span, g_ydata_span
     global g_mode
+    global g_compute_grid
+    global g_res
 
     # Save mode
     if not mode == "init":
