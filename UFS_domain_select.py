@@ -4,7 +4,8 @@
 # TODO / FIXME
 #
 # - clean up regional vs. global, esp. with settting write compoment when in global view
-# - fix filering for GFS (currently filters based on lon/lat spans)
+# - remove or at least clean up unused projections
+# - fix filtering for GFS (currently filters based on lon/lat spans)
 # - make sure GFS plots look ok, based on args we generated
 #
 
@@ -48,6 +49,35 @@ parser.add_argument("--close", "-x", help="close after saving plot of grib file"
 args = parser.parse_args()
 
 #
+# Internal defaults
+#
+import os
+HOME = f"{os.environ['HOME']}"
+g_res_dflt=-1                                                           # 3000, 13000, 25000, or -1 (auto)
+g_compute_grid_dflt = 0.05                                              # 5% larger than write component grid
+g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
+
+#
+# Default YAML values
+#
+g_dt_atmos = 36
+g_blocksize = 40
+g_layout_x = 3
+g_layout_y = 3
+g_write_groups = 1
+g_write_tasks_per_group = 3
+g_date ='20250403'
+g_cycle ='12'
+g_fcst_len_hrs = 24
+g_lbc_spec_intvl_hrs = 6
+g_extrn_mdl_source_basedir_ics = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
+#g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
+#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
+
+#
 # Imports
 #
 import matplotlib.pyplot as plt
@@ -64,64 +94,41 @@ import numpy as np
 import cartopy
 import matplotlib
 
-g_output_filename = '/home/mmesnie/ufs-srweather-app-v2.2.0/ush/config.yaml'
-
-#
-# Static user config
-#
-g_dt_atmos = 36
-g_blocksize = 40
-g_layout_x = 3
-g_layout_y = 3
-g_write_groups = 1
-g_write_tasks_per_group = 3
-g_date ='20250403'
-g_cycle ='12'
-g_fcst_len_hrs = 24
-g_lbc_spec_intvl_hrs = 6
-g_extrn_mdl_source_basedir_ics = f"/home/mmesnie/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-g_extrn_mdl_source_basedir_lbcs = f"/home/mmesnie/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-
-#
-# Forecast domain defaults (g_res of -1 is "auto" mode)
-#
-g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
-g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
-g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
-
-
-#
-# Internal globals (don't modify)
-#
-g_crn_lon = None
-g_crn_lat = None
-g_res_dflt=-1 #  Auto mode (picks largest resolution)
-g_compute_grid_dflt = 0.05 # Fraction that compute grid is larger than the write compoment
-if args.cen_lon:
-    g_cen_lon_dflt = float(args.cen_lon)
-if args.cen_lat:
-    g_cen_lat_dflt = float(args.cen_lat)
-if args.crn_lon:
-    g_crn_lon_dflt = float(args.crn_lon)
-if args.crn_lat:
-    g_crn_lat_dflt = float(args.crn_lat)
-g_dflt = "regional" # regional or global
-g_cen_lon = g_cen_lon_dflt
-g_cen_lat = g_cen_lat_dflt
-g_crn_lon = g_crn_lon_dflt
-g_crn_lat = g_crn_lat_dflt
-g_res = g_res_dflt
-g_view = {}
-g_axis = {}
-g_proj = {}
-g_projs = {}
-g_extent = {}
-g_mode = None
-
 #
 # Function definitions
 #
+def init():
+    global g_cen_lon, g_cen_lat
+    global g_crn_lon, g_crn_lat
+    global g_compute_grid
+    global g_res
+    global g_view
+    global g_projs
+    global g_extent
+    global g_mode
+
+    if args.cen_lon:
+        g_cen_lon = float(args.cen_lon)
+    else:
+        g_cen_lon = g_cen_lon_dflt
+    if args.cen_lat:
+        g_cen_lat = float(args.cen_lat)
+    else:
+        g_cen_lat = g_cen_lat_dflt
+    if args.crn_lon:
+        g_crn_lon = float(args.crn_lon)
+    else:
+        g_crn_lon = g_crn_lon_dflt
+    if args.crn_lat:
+        g_crn_lat = float(args.crn_lat)
+    else:
+        g_crn_lat = g_crn_lat_dflt
+    g_compute_grid = g_compute_grid_dflt
+    g_res = g_res_dflt
+    g_projs = {}
+    g_view = {}
+    g_extent = {}
+    g_mode = None
 
 def cen_lat_adjust(cen_lat):
     if cen_lat > 80:
@@ -274,9 +281,9 @@ task_run_fcst:
 task_run_post:
   POST_OUTPUT_DOMAIN_NAME: 'mesnier'
 """
-    with open(g_output_filename, "w") as file:
+    with open(g_yaml_file, "w") as file:
         file.write(config_text)
-    print(f"       YAML file output: {g_output_filename}")
+    print(f"       YAML file output: {g_yaml_file}")
     print(f"                    cmd: export DATE={g_date} CYCLE={g_cycle} LEN={g_fcst_len_hrs} LBC={g_lbc_spec_intvl_hrs}; time ./forecast")
 
 def on_key_press(event):
@@ -424,12 +431,7 @@ def plots_draw(mode):
             g_mode = g_axis[p].get_navigate_mode()
 
     if mode == "init":
-        g_cen_lon = g_cen_lon_dflt
-        g_cen_lat = g_cen_lat_dflt
-        g_crn_lon = g_crn_lon_dflt
-        g_crn_lat = g_crn_lat_dflt
-        g_compute_grid = g_compute_grid_dflt
-        g_res = g_res_dflt
+        init()
     elif mode == "set":
         g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims('LambertConformal', 'blue')
         setting_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
@@ -479,9 +481,7 @@ def plots_draw(mode):
     elif mode == "set":
         g_extent['LambertConformal'] = setting_extent
 
-    #print(f"plots_draw: {mode}: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
-
-    if True or not args.file:
+    if not args.file:
 
         # Set LambertConformal extent
         g_axis["LambertConformal"].set_extent(g_extent['LambertConformal'], crs=g_proj["LambertConformal"])
