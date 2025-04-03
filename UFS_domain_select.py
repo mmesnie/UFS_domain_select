@@ -3,9 +3,8 @@
 #
 # TODO / FIXME
 #
-# - resolve g_extent vs. g_lambert_extent. Do we need both??
-# - fix filering for GFS (currently filters based on lon/lat spans)
 # - clean up regional vs. global, esp. with settting write compoment when in global view
+# - fix filering for GFS (currently filters based on lon/lat spans)
 # - make sure GFS plots look ok, based on args we generated
 #
 
@@ -78,7 +77,7 @@ g_write_groups = 1
 g_write_tasks_per_group = 3
 g_date ='20250403'
 g_cycle ='00'
-g_fcst_len_hrs = 6
+g_fcst_len_hrs = 24
 g_lbc_spec_intvl_hrs = 6
 g_extrn_mdl_source_basedir_ics = f"/home/mmesnie/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"/home/mmesnie/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
@@ -95,7 +94,6 @@ g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_
 #
 # Internal globals (don't modify)
 #
-g_lambert_extent = None
 g_crn_lon = None
 g_crn_lat = None
 g_res_dflt=-1 #  Auto mode (picks largest resolution)
@@ -111,6 +109,8 @@ if args.crn_lat:
 g_dflt = "regional" # regional or global
 g_cen_lon = g_cen_lon_dflt
 g_cen_lat = g_cen_lat_dflt
+g_crn_lon = g_crn_lon_dflt
+g_crn_lat = g_crn_lat_dflt
 g_res = g_res_dflt
 g_view = {}
 g_axis = {}
@@ -143,7 +143,6 @@ def on_button_press(event):
     if event.inaxes and event.button is MouseButton.MIDDLE:
         g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata, 
                                                                   event.inaxes.projection)
-        g_cen_lat = cen_lat_adjust(g_cen_lat)
         plots_draw("center") #2
 
 def fmt_tuple(tuple_in):
@@ -345,19 +344,9 @@ def get_index(ax):
 def projs_create(mode):
     global g_proj
     global g_projs
-    global g_cen_lon, g_cen_lat
+    global g_cen_lat
     global g_view
     global g_dim_x, g_dim_y
-    global g_compute_grid
-    global g_res
-
-    #print(f"projs_create: mode {mode} g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat}")
-
-    if mode == "init":
-        g_cen_lon = g_cen_lon_dflt
-        g_cen_lat = g_cen_lat_dflt
-        g_compute_grid = g_compute_grid_dflt
-        g_res = g_res_dflt
 
     g_cen_lat = cen_lat_adjust(g_cen_lat)
 
@@ -422,29 +411,37 @@ def plots_draw(mode):
     global g_axis
     global g_view
     global g_cen_lon, g_cen_lat
+    global g_crn_lon, g_crn_lat
     global g_dim_x, g_dim_y
     global g_xdata_span, g_ydata_span
     global g_mode
-    global g_lambert_extent
-    global g_crn_lon, g_crn_lat
 
     # Save mode
     if not mode == "init":
         for p in g_projs:
             g_mode = g_axis[p].get_navigate_mode()
 
-    # Save new extent info
-    if mode == "set":
-        g_cen_lon, g_cen_lat, g_crn_lon_new, g_crn_lat_new, g_lambert_extent_new = get_dims('LambertConformal', 'blue')
-        g_cen_lat = cen_lat_adjust(g_cen_lat)
-        print(f"plots_draw: set: lwr_lon {g_crn_lon_new} lwr_lat {g_crn_lat_new}")
+    if mode == "init":
+        g_cen_lon = g_cen_lon_dflt
+        g_cen_lat = g_cen_lat_dflt
+        g_crn_lon = g_crn_lon_dflt
+        g_crn_lat = g_crn_lat_dflt
+        g_compute_grid = g_compute_grid_dflt
+        g_res = g_res_dflt
+    elif mode == "set":
+        g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims('LambertConformal', 'blue')
+        print(f"plots_draw: set: NEW: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
+        setting_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
+    elif mode == "center":
+        _, _, _, _, (x1, x2, y1, y2) = get_dims('LambertConformal', 'blue')
+        centering_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
 
     # Remove any old plots
     if g_projs:
         for p in g_projs:
             g_axis[p].remove()
 
-    # Create/recreate projections (recreate needed when the center changes)
+    # Create/recreate projections
     projs_create(mode)
 
     j = 1; g_axis = {}
@@ -470,33 +467,24 @@ def plots_draw(mode):
         j = j + 1
 
     if mode == "init":
-        g_crn_lon = g_crn_lon_dflt
-        g_crn_lat = g_crn_lat_dflt
         xc, yc = g_proj["LambertConformal"].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
         xll, yll = g_proj["LambertConformal"].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
         xlr = xc+(xc-xll); ylr = yc-(yc-yll)
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
-        g_lambert_extent = (xll, xlr, yll, yul)
-        print(f"plots_draw: init: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
+        g_extent['LambertConformal'] = (xll, xlr, yll, yul)
     elif mode == "center":
-        print(f"plots_draw: center: reusing g_lambert_extent = {fmt_tuple(g_lambert_extent)}");
-        print(f"plots_draw: center: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
+        g_extent['LambertConformal'] = centering_extent
     elif mode == "set":
-        g_crn_lon = g_crn_lon_new
-        g_crn_lat = g_crn_lat_new
-        xc, yc = g_proj["LambertConformal"].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-        xll, yll = g_proj["LambertConformal"].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
-        xlr = xc+(xc-xll); ylr = yc-(yc-yll)
-        xul = xll; yul = yc+(yc-yll)
-        xur = xlr; yur = yul
-        g_lambert_extent = (xll, xlr, yll, yul)
-        print(f"plots_draw: set: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
+        g_extent['LambertConformal'] = setting_extent
+
+    print(f"plots_draw: {mode}: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
 
     if True or not args.file:
 
         # Set LambertConformal extent
-        g_axis["LambertConformal"].set_extent(g_lambert_extent, crs=g_proj["LambertConformal"])
+        g_axis["LambertConformal"].set_extent(g_extent['LambertConformal'], crs=g_proj["LambertConformal"])
+        print(f"setting extent to {fmt_tuple(g_extent['LambertConformal'])}")
 
         # The write component (shown in blue) is taken from the LambertConformal
         # extents and, as such, will be a perfect rectangle when plotted on the
@@ -536,7 +524,6 @@ def plots_draw(mode):
 
 def draw_box_xy_data(tgt_index, src_index, color):
     cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(src_index, color)
-    #cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(tgt_index, color)
     x1, x2, y1, y2 = extent 
     if color == "blue":
         g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
