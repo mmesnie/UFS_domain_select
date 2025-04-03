@@ -432,7 +432,6 @@ def plots_draw(mode):
         g_res = g_res_dflt
     elif mode == "set":
         g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims('LambertConformal', 'blue')
-        print(f"plots_draw: set: NEW: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
         setting_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
     elif mode == "center":
         _, _, _, _, (x1, x2, y1, y2) = get_dims('LambertConformal', 'blue')
@@ -480,13 +479,12 @@ def plots_draw(mode):
     elif mode == "set":
         g_extent['LambertConformal'] = setting_extent
 
-    print(f"plots_draw: {mode}: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
+    #print(f"plots_draw: {mode}: g_cen_lon {g_cen_lon} g_cen_lat {g_cen_lat} g_crn_lon {g_crn_lon} g_crn_lat {g_crn_lat}")
 
     if True or not args.file:
 
         # Set LambertConformal extent
         g_axis["LambertConformal"].set_extent(g_extent['LambertConformal'], crs=g_proj["LambertConformal"])
-        print(f"setting extent to {fmt_tuple(g_extent['LambertConformal'])}")
 
         # The write component (shown in blue) is taken from the LambertConformal
         # extents and, as such, will be a perfect rectangle when plotted on the
@@ -506,7 +504,6 @@ def plots_draw(mode):
     if mode == "center":
         x1, x2, y1, y2 = g_axis['LambertConformal'].get_extent()
         g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj['LambertConformal'])
-        print(f"plots_draw: center: new lambert corner is lon {g_crn_lon} lat {g_crn_lat}")
 
     if args.file:
         plot_grib()
