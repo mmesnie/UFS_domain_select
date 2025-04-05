@@ -3,10 +3,13 @@
 #
 # TODO / FIXME
 #
-# - clean up regional vs. global, esp. with settting write compoment when in global view
-# - remove or at least clean up unused projections
+# - settle on regional vs. global
+# - add projections toggle
+# - expand src index to show compute grid??
+# - try to get Rotated Longitude projection, instead of LambertConformal
 # - fix filtering for GFS (currently filters based on lon/lat spans)
 # - make sure GFS plots look ok, based on args we generated
+# - address other FIXME
 #
 
 #
@@ -54,8 +57,9 @@ args = parser.parse_args()
 import os
 HOME = f"{os.environ['HOME']}"
 g_res_dflt=-1                                                           # 3000, 13000, 25000, or -1 (auto)
-g_compute_grid_dflt = 0.05                                              # 5% larger than write component grid
+g_compute_grid_dflt = 0.10                                              # 5% larger than write component grid
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
+g_debug = False
 
 #
 # Default YAML values
@@ -73,9 +77,12 @@ g_lbc_spec_intvl_hrs = 6
 g_extrn_mdl_source_basedir_ics = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 #g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-#g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
 #g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
-g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
+#g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
+g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
+
+# HERE
+g_index_dflt = 'LambertConformal'
 
 #
 # Imports
@@ -105,7 +112,6 @@ def init():
     global g_view
     global g_projs
     global g_extent
-    global g_mode
 
     if args.cen_lon:
         g_cen_lon = float(args.cen_lon)
@@ -128,7 +134,6 @@ def init():
     g_projs = {}
     g_view = {}
     g_extent = {}
-    g_mode = None
 
 def cen_lat_adjust(cen_lat):
     if cen_lat > 80:
@@ -146,8 +151,11 @@ def cen_lat_adjust(cen_lat):
 
 def on_button_press(event):
     global g_cen_lon, g_cen_lat
+    global g_index
 
     if event.inaxes and event.button is MouseButton.MIDDLE:
+        g_index = get_index(event.inaxes)
+        print(f"centering plots at click (source {g_index})")
         g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata, 
                                                                   event.inaxes.projection)
         plots_draw("center") #2
@@ -287,21 +295,22 @@ task_run_post:
     print(f"                    cmd: export DATE={g_date} CYCLE={g_cycle} LEN={g_fcst_len_hrs} LBC={g_lbc_spec_intvl_hrs}; time ./forecast")
 
 def on_key_press(event):
-    global g_cen_lon, g_cen_lat
     global g_compute_grid
     global g_res
     global g_extent
+    global g_index
 
-    ax = event.inaxes
-    index = get_index(ax)
+    g_index = g_index_dflt
+    if event.inaxes:
+        g_index = get_index(event.inaxes)
 
     if event.key == 'h':
         show_help()
     elif event.key == '0':
-        print(f"restored default settings")
+        print(f"restoring default settings")
         plots_draw("init") #3
     elif event.key == 'y':
-        index = "LambertConformal"
+        g_index = "LambertConformal"
         output_config("LambertConformal")
     elif event.key == 'R':
         if g_res == 3000:
@@ -327,19 +336,19 @@ def on_key_press(event):
         print(f"set compute grid to {percent}% of write component")
         plots_draw("set") #5
     elif event.key == ' ':
+        print(f"centering plots (source {g_index})")
         plots_draw("set") #6
     elif event.key == 'g':
-        if index == "Gnomonic":
-            print("global view disabled for Gnomonic")
-        elif index:
-            print(f"toggling global view for {index}...")
-            if g_view[index] == "regional":
-                g_extent[index] = g_axis[index].get_extent()
-                g_view[index] = "global"
-                g_axis[index].set_global()
-            elif g_view[index] == "global": 
-                g_view[index] = "regional"
-                g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+        print(f"toggling global view (source {g_index})")
+        if g_view[g_index] == "regional":
+            g_extent[g_index] = g_axis[g_index].get_extent()
+            g_view[g_index] = "global"
+            g_axis[g_index].set_global()
+            g_axis[g_index].set_title(g_index + " (GLOBAL)")
+        elif g_view[g_index] == "global": 
+            g_view[g_index] = "regional"
+            g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
+            g_axis[g_index].set_title(g_index + " (REGIONAL)")
     elif event.key == 'q':
         exit(0)
 
@@ -402,8 +411,8 @@ def projs_create(mode):
     g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
 
     if args.compute:
-        g_projs = [ "LambertConformal", "Gnomonic" ]
-        g_dim_x = 2; g_dim_y = 1
+        g_projs = [ "Mercator", "LambertConformal", "Gnomonic", "Orthographic" ]
+        g_dim_x = 2; g_dim_y = 2
     else:
         g_projs = [ "LambertConformal" ]
         g_dim_x = 1; g_dim_y = 1
@@ -411,6 +420,11 @@ def projs_create(mode):
     if mode == "init":
         for p in g_projs:
             g_view[p] = "regional"
+
+def plots_remove():
+    if g_projs:
+        for p in g_projs:
+            g_axis[p].remove()
 
 def plots_draw(mode):
     global g_proj
@@ -421,28 +435,36 @@ def plots_draw(mode):
     global g_crn_lon, g_crn_lat
     global g_dim_x, g_dim_y
     global g_xdata_span, g_ydata_span
-    global g_mode
     global g_compute_grid
     global g_res
 
-    # Save mode
-    if not mode == "init":
-        for p in g_projs:
-            g_mode = g_axis[p].get_navigate_mode()
-
     if mode == "init":
+        index = g_index_dflt
+        try:
+            if g_projs:
+                plots_remove()
+        except:
+            if g_debug:
+                print("NO PLOTS TO REMOVE")
         init()
     elif mode == "set":
-        g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims('LambertConformal', 'blue')
-        setting_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
+        index = g_index
+        g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(index, 'blue')
+        if index == "Mercator":
+            xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
+            set_extent = (-abs(x2-x1)/2, +abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+        else:
+            set_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
+        plots_remove()
     elif mode == "center":
-        _, _, _, _, (x1, x2, y1, y2) = get_dims('LambertConformal', 'blue')
-        centering_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
-
-    # Remove any old plots
-    if g_projs:
-        for p in g_projs:
-            g_axis[p].remove()
+        index = g_index
+        _, _, _, _, (x1, x2, y1, y2) = get_dims(index, 'blue')
+        if index == "Mercator":
+            xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
+            center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+        else:
+            center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
+        plots_remove()
 
     # Create/recreate projections
     projs_create(mode)
@@ -457,53 +479,71 @@ def plots_draw(mode):
         g_axis[p].gridlines()
 
         # Set axis view (global or regional/zoomed)
+        if (index == p):
+            paren = 'source'
+        else:
+            paren = 'target'
         if g_view[p] == "global":
-            g_axis[p].set_title(f"{p} global")
+            g_axis[p].set_title(f"{p} GLOBAL ({paren})")
             g_axis[p].set_global()
         else:
             g_view[p] = "regional"
-            g_axis[p].set_title(f"{p}")
+            g_axis[p].set_title(f"{p} REGIONAL ({paren})")
 
-        # Restore mode
-        g_axis[p].set_navigate_mode(g_mode)
-    
         j = j + 1
 
     if mode == "init":
-        xc, yc = g_proj["LambertConformal"].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-        xll, yll = g_proj["LambertConformal"].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
+        xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
+        xll, yll = g_proj[index].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
         xlr = xc+(xc-xll); ylr = yc-(yc-yll)
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
-        g_extent['LambertConformal'] = (xll, xlr, yll, yul)
+        g_extent[index] = (xll, xlr, yll, yul)
+        if g_debug: print(f"init: g_extent[{index}] is {fmt_tuple(g_extent[index])}")
     elif mode == "center":
-        g_extent['LambertConformal'] = centering_extent
+        g_extent[index] = center_extent
     elif mode == "set":
-        g_extent['LambertConformal'] = setting_extent
+        g_extent[index] = set_extent
+
+    if g_debug: 
+        print(f"%8s: g_cen_lon {round(g_cen_lon,2)} g_cen_lat {round(g_cen_lat,2)} extent {fmt_tuple(g_extent[index])}" % mode)
 
     if not args.file:
 
-        # Set LambertConformal extent
-        g_axis["LambertConformal"].set_extent(g_extent['LambertConformal'], crs=g_proj["LambertConformal"])
+        # Set extent of source axis (i.e., g_axis[index])
+        g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+        #print(f"setting g_extent[{index}] to {fmt_tuple(g_extent[index])}")
 
-        # The write component (shown in blue) is taken from the LambertConformal
-        # extents and, as such, will be a perfect rectangle when plotted on the
-        # LambertConformal plot. All other projects will show the transformed
-        # rectangle.
+        # Draw a blue rectangle on each axis. The extent of the source axis
+        # represents the size of the rectangle, so the rectangle will
+        # simply outline the axis and have straight sides when drawn on the
+        # source axis.  On the other axes, the rectangle will be transformed
+        # from the source axis (e.g., from LambertConformal to Gnonomic)
+        # Note that this blue rectangle represents the write component of UFS
+        # when the source axis is LambertConformal and the target axis is
+        # Gnonomic.
         for p_tgt in g_projs:
-            draw_box_xy_data(p_tgt, "LambertConformal", 'blue') # write component
+            draw_box_xy_data(p_tgt, index, 'blue') # write component
 
-        # The compute component (shown in red) is taken from the Gnomonic
-        # extents and, as such, will be a perfect rectangle when plotted on the
-        # Gnomonic plot.  All other projects will show the transformed
-        # rectangle.
+        # The red rectangle uses the specified source axis and will be drawn
+        # some fraction larger than the blue rectangle. The fraction is
+        # g_compute_grid.  When the source axis is Gnomonic, this red
+        # rectangle represents the compute component.
         if args.compute:
             for p_tgt in g_projs:
                 draw_box_xy_data(p_tgt, "Gnomonic", 'red') # compute component
 
+        # FIXME
+        # Adjust source axis so that we can see the red rectangle. Is there a way
+        # to get the extents?
+        #x1, x2, y1, y2 = g_extent[index]
+        #scale = 1+g_compute_grid_dflt*3
+        #x1 = x1*scale; x2 = x2*scale; y1=y1*scale; y2=y2*scale
+        #g_axis[index].set_extent((x1, x2, y1, y2), crs=g_proj[index])
+
     if mode == "center":
-        x1, x2, y1, y2 = g_axis['LambertConformal'].get_extent()
-        g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj['LambertConformal'])
+        x1, x2, y1, y2 = g_axis[index].get_extent()
+        g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj[index])
 
     if args.file:
         plot_grib()
@@ -526,7 +566,7 @@ def draw_box_xy_data(tgt_index, src_index, color):
     x1, x2, y1, y2 = extent 
     if color == "blue":
         g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
-                               marker='*', ms=10, color='red')
+                               marker='*', ms=10, color='orange')
     xs = []
     ys = []
     #left
@@ -627,4 +667,5 @@ g_fig = plt.figure(figsize=(10, 10))
 g_fig.canvas.mpl_connect('button_press_event', on_button_press)
 g_fig.canvas.mpl_connect('key_press_event', on_key_press)
 show_help()
+
 plots_draw("init") #1
