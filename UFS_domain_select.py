@@ -4,7 +4,6 @@
 # TODO / FIXME
 #
 # - settle on regional vs. global
-# - add projections toggle
 # - expand src index to show compute grid??
 # - try to get Rotated Longitude projection, instead of LambertConformal
 # - fix filtering for GFS (currently filters based on lon/lat spans)
@@ -28,6 +27,7 @@ g_help="""
 *        Key +: increment Gnomonic compute grid by 1%                        *
 *        Key R: set resolution (3km, 13km, 25km, AUTO)                       *
 *        Key 0: restore default settings                                     *
+*        Key 1: toggle additional projections                                *
 *        Key h: show this help                                               *
 * Middle Click: center grid                                                  *
 ******************************************************************************
@@ -46,7 +46,6 @@ parser.add_argument("--cen_lon", help="center longitude", required=False)
 parser.add_argument("--cen_lat", help="center latitude", required=False)
 parser.add_argument("--crn_lon", help="lower left corner longitude", required=False)
 parser.add_argument("--crn_lat", help="lower left corner latitude", required=False)
-parser.add_argument("--compute", "-c", help="show compute grid (Gnomonic)", required=False, action="store_true")
 parser.add_argument("--file", "-f", help="grib file to plot", required=False)
 parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
 args = parser.parse_args()
@@ -60,6 +59,7 @@ g_res_dflt=-1                                                           # 3000, 
 g_compute_grid_dflt = 0.10                                              # 5% larger than write component grid
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
 g_debug = False
+g_show_projections = True
 
 #
 # Default YAML values
@@ -158,7 +158,7 @@ def on_button_press(event):
         print(f"centering plots at click (source {g_index})")
         g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata, 
                                                                   event.inaxes.projection)
-        plots_draw("center") #2
+        plots_draw("center")
 
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
@@ -299,6 +299,7 @@ def on_key_press(event):
     global g_res
     global g_extent
     global g_index
+    global g_show_projections
 
     g_index = g_index_dflt
     if event.inaxes:
@@ -308,7 +309,11 @@ def on_key_press(event):
         show_help()
     elif event.key == '0':
         print(f"restoring default settings")
-        plots_draw("init") #3
+        plots_draw("init")
+    elif event.key == '1':
+        print(f"toggling additional projections")
+        g_show_projections = not g_show_projections
+        plots_draw("init")
     elif event.key == 'y':
         g_index = "LambertConformal"
         output_config("LambertConformal")
@@ -329,26 +334,26 @@ def on_key_press(event):
         g_compute_grid += .01
         percent = round(100*(1+g_compute_grid))
         print(f"set compute grid to {percent}% of write component")
-        plots_draw("set") #4
+        plots_draw("set")
     elif event.key == '-':
         g_compute_grid -= .01
         percent = round(100*(1+g_compute_grid))
         print(f"set compute grid to {percent}% of write component")
-        plots_draw("set") #5
+        plots_draw("set")
     elif event.key == ' ':
         print(f"centering plots (source {g_index})")
-        plots_draw("set") #6
+        plots_draw("set")
     elif event.key == 'g':
         print(f"toggling global view (source {g_index})")
         if g_view[g_index] == "regional":
             g_extent[g_index] = g_axis[g_index].get_extent()
             g_view[g_index] = "global"
             g_axis[g_index].set_global()
-            g_axis[g_index].set_title(g_index + " (GLOBAL)")
+            g_axis[g_index].set_title(g_index + " (toggle global)")
         elif g_view[g_index] == "global": 
             g_view[g_index] = "regional"
             g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-            g_axis[g_index].set_title(g_index + " (REGIONAL)")
+            g_axis[g_index].set_title(g_index)
     elif event.key == 'q':
         exit(0)
 
@@ -410,7 +415,7 @@ def projs_create(mode):
     g_projs = [ "PlateCarree", "Orthographic", "LambertConformal", "Gnomonic" ]
     g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
 
-    if args.compute:
+    if g_show_projections:
         g_projs = [ "Mercator", "LambertConformal", "Gnomonic", "Orthographic" ]
         g_dim_x = 2; g_dim_y = 2
     else:
@@ -479,16 +484,12 @@ def plots_draw(mode):
         g_axis[p].gridlines()
 
         # Set axis view (global or regional/zoomed)
-        if (index == p):
-            paren = 'source'
-        else:
-            paren = 'target'
         if g_view[p] == "global":
-            g_axis[p].set_title(f"{p} GLOBAL ({paren})")
+            g_axis[p].set_title(f"{p} ({mode} global)")
             g_axis[p].set_global()
         else:
             g_view[p] = "regional"
-            g_axis[p].set_title(f"{p} REGIONAL ({paren})")
+            g_axis[p].set_title(f"{p}")
 
         j = j + 1
 
@@ -529,7 +530,7 @@ def plots_draw(mode):
         # some fraction larger than the blue rectangle. The fraction is
         # g_compute_grid.  When the source axis is Gnomonic, this red
         # rectangle represents the compute component.
-        if args.compute:
+        if g_show_projections:
             for p_tgt in g_projs:
                 draw_box_xy_data(p_tgt, "Gnomonic", 'red') # compute component
 
@@ -545,6 +546,15 @@ def plots_draw(mode):
         x1, x2, y1, y2 = g_axis[index].get_extent()
         g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj[index])
 
+    # Initalize selected projections to global view
+    if mode == "init":
+        for p in g_projs:
+            if p == "Orthographic":
+                g_extent[p] = g_axis[p].get_extent()
+                g_view[p] = "global"
+                g_axis[p].set_global()
+                g_axis[p].set_title(p + " (initial global view)")
+
     if args.file:
         plot_grib()
         ram = io.BytesIO()
@@ -559,7 +569,7 @@ def plots_draw(mode):
         if args.close:
             exit(0)
 
-    plt.show() # end plots_draw()
+    plt.show()
 
 def draw_box_xy_data(tgt_index, src_index, color):
     cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(src_index, color)
