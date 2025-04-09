@@ -3,9 +3,11 @@
 #
 # TODO / FIXME
 #
-# - settle on regional vs. global
+# - output yaml for rotated latlon
+# - ...
+# - understand and integrate regional_latlon???
+# - make it so "center" is just center :-)
 # - expand src index to show compute grid??
-# - try to get Rotated Longitude projection, instead of LambertConformal
 # - fix filtering for GFS (currently filters based on lon/lat spans)
 # - make sure GFS plots look ok, based on args we generated
 # - address other FIXME
@@ -60,6 +62,7 @@ g_compute_grid_dflt = 0.10                                              # 5% lar
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
 g_debug = False
 g_show_projections = True
+g_color = {}
 
 #
 # Default YAML values
@@ -78,10 +81,9 @@ g_extrn_mdl_source_basedir_ics = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_
 g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 #g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
 #g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
-#g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
 g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
+#g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
 
-# HERE
 g_index_dflt = 'LambertConformal'
 
 #
@@ -196,14 +198,17 @@ def pick_max_delta(xspan, yspan):
         return 25000
 
 def output_config(index):
-    index = "LambertConformal"
     res = g_res
+
     # computational grid
     cen_lon_r, cen_lat_r, lwr_lon_r, lwr_lat_r, extent_r = get_dims(index, "red")
     x1, x2, y1, y2 = extent_r
     xspan_r = abs(x2-x1)
     yspan_r = abs(y2-y1)
-    max_delta = pick_max_delta(xspan_r, yspan_r)
+    if g_index == "RotatedPole":
+        max_delta = pick_max_delta(xspan_r*1852*60, yspan_r*1852*60)
+    else:
+        max_delta = pick_max_delta(xspan_r, yspan_r)
     if g_res == -1:
         res = max_delta
         print(f"             resolution: automatically set to {res} meters")
@@ -212,10 +217,15 @@ def output_config(index):
         print(f"             resolution: forced to max ({res} meters)")
     percent = round(100*(1+g_compute_grid))
     print(f"      compute grid size: {percent}% of write component")
-    nx_r = int(xspan_r/res)
-    ny_r = int(yspan_r/res)
+    if g_index == "RotatedPole":
+        nx_r = int(xspan_r*1852*60/res)
+        ny_r = int(yspan_r*1852*60/res)
+    else:
+        nx_r = int(xspan_r/res)
+        ny_r = int(yspan_r/res)
 
     print(f"  gnomonic compute grid: nx {nx_r} ny {ny_r}")
+
     # write component grid
     cen_lon_b, cen_lat_b, lwr_lon_b, lwr_lat_b, extent_b = get_dims(index, "blue")
     x1, x2, y1, y2 = extent_b
@@ -223,12 +233,6 @@ def output_config(index):
     yspan_b = abs(y2-y1)
     nx_b = int(xspan_b/res)
     ny_b = int(yspan_b/res)
-
-    print(f"lambert write component: nx {nx_b} ny {ny_b}")
-    print(f"       center longitude: {g_cen_lon}")
-    print(f"        center latitude: {g_cen_lat}")
-    print(f"     lambert corner lon: {round(lwr_lon_b, 2)}")
-    print(f"     lambert corner lat: {round(lwr_lat_b, 2)}")
 
     config_text = f"""
 metadata:
@@ -267,6 +271,8 @@ task_get_extrn_lbcs:
   LBC_SPEC_INTVL_HRS: {g_lbc_spec_intvl_hrs} 
   FV3GFS_FILE_FMT_LBCS: grib2
   EXTRN_MDL_SOURCE_BASEDIR_LBCS: {g_extrn_mdl_source_basedir_lbcs}
+task_run_post:
+  POST_OUTPUT_DOMAIN_NAME: 'mesnier'
 task_run_fcst:
   QUILTING: true
   DT_ATMOS: {g_dt_atmos}
@@ -274,7 +280,10 @@ task_run_fcst:
   LAYOUT_Y: {g_layout_y}
   BLOCKSIZE: {g_blocksize}
   WRTCMP_write_groups: {g_write_groups}
-  WRTCMP_write_tasks_per_group: {g_write_tasks_per_group}
+  WRTCMP_write_tasks_per_group: {g_write_tasks_per_group}"""
+
+    if g_index == "LambertConformal":
+        config_text_wrtcmp = f"""
   WRTCMP_output_grid: "lambert_conformal"
   WRTCMP_cen_lon: {g_cen_lon}
   WRTCMP_cen_lat: {g_cen_lat} 
@@ -286,11 +295,26 @@ task_run_fcst:
   WRTCMP_lat_lwr_left: {round(lwr_lat_b, 2)}
   WRTCMP_dx: {res}
   WRTCMP_dy: {res}
-task_run_post:
-  POST_OUTPUT_DOMAIN_NAME: 'mesnier'
 """
+
+    elif g_index == "RotatedPole":
+        config_text_wrtcmp = f"""
+  WRTCMP_output_grid: "rotated_latlon"
+  WRTCMP_cen_lon: {g_cen_lon}
+  WRTCMP_cen_lat: {g_cen_lat} 
+  WRTCMP_lon_lwr_left: {x1} 
+  WRTCMP_lat_lwr_left: {y1} 
+  WRTCMP_lon_upr_rght: {x2} 
+  WRTCMP_lat_upr_rght: {y2}
+  WRTCMP_dlon: {res/(1852*60)} 
+  WRTCMP_dlat: {res/(1852*60)} 
+"""
+
+    print(config_text+config_text_wrtcmp)
+
     with open(g_yaml_file, "w") as file:
         file.write(config_text)
+        file.write(config_text_wrtcmp)
     print(f"       YAML file output: {g_yaml_file}")
     print(f"                    cmd: export DATE={g_date} CYCLE={g_cycle} LEN={g_fcst_len_hrs} LBC={g_lbc_spec_intvl_hrs}; time ./forecast")
 
@@ -315,8 +339,11 @@ def on_key_press(event):
         g_show_projections = not g_show_projections
         plots_draw("init")
     elif event.key == 'y':
-        g_index = "LambertConformal"
-        output_config("LambertConformal")
+        if (g_index == "LambertConformal" or g_index == "RotatedPole"):
+            output_config(g_index)
+        else:
+            print("choose from LambertConformal or RotatedPole")
+            return
     elif event.key == 'R':
         if g_res == 3000:
             g_res = 13000
@@ -368,6 +395,7 @@ def projs_create(mode):
     global g_cen_lat
     global g_view
     global g_dim_x, g_dim_y
+    global g_color
 
     g_cen_lat = cen_lat_adjust(g_cen_lat)
 
@@ -404,23 +432,33 @@ def projs_create(mode):
 
     g_proj["InterruptedGoodeHomolosine"] = ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
 
-    #g_proj["RotatedPole"] = ccrs.RotatedPole(pole_latitude=g_cen_lat, pole_longitude=g_cen_lon)
-    #g_proj["RotatedPole"] = ccrs.RotatedPole()
+    g_proj["RotatedPole"] = ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
 
     g_projs = [ "PlateCarree", "Mercator", "Miller",
                 "EquidistantConic", "LambertConformal", "AlbersEqualArea",
-                "Stereographic", "Gnomonic", "Orthographic",
-                "Robinson", "Mollweide", "Sinusoidal", "InterruptedGoodeHomolosine" ]
+                "Stereographic", "Gnomonic", "RotatedPole",
+                "Robinson", "Mollweide", "Sinusoidal" ]
+    g_dim_x = 4; g_dim_y = 3
 
-    g_projs = [ "PlateCarree", "Orthographic", "LambertConformal", "Gnomonic" ]
-    g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
+    #g_projs = [ "PlateCarree", "Orthographic", "LambertConformal", "Gnomonic" ]
+    #g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
 
     if g_show_projections:
-        g_projs = [ "Mercator", "LambertConformal", "Gnomonic", "Orthographic" ]
+        g_projs = [ "LambertConformal", "RotatedPole", "Orthographic", "Gnomonic" ]
         g_dim_x = 2; g_dim_y = 2
     else:
-        g_projs = [ "LambertConformal" ]
+        g_projs = [ g_index_dflt ]
         g_dim_x = 1; g_dim_y = 1
+
+    # Give each projection a color (brown is the default).  "red" is reserved for
+    # the compute grid and will be larger than the LambertConformal grid by
+    # some factor (g_compute_grid)
+    for p in g_projs:
+        g_color[p] = "brown"
+    g_color["LambertConformal"] = "blue"
+    g_color["RotatedPole"] = "purple"
+    g_color["Orthographic"] = "green"
+    g_color["Gnomonic"] = "red"
 
     if mode == "init":
         for p in g_projs:
@@ -442,6 +480,11 @@ def plots_draw(mode):
     global g_xdata_span, g_ydata_span
     global g_compute_grid
     global g_res
+    global g_index
+
+    if False:
+        print(f"FORCING INDEX TO {g_index_dflt}")
+        g_index = g_index_dflt
 
     if mode == "init":
         index = g_index_dflt
@@ -511,9 +554,12 @@ def plots_draw(mode):
 
     if not args.file:
 
+        # The "source" access is used to select the region.  What you
+        # see in the source axis is exactly 
         # Set extent of source axis (i.e., g_axis[index])
         g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
-        #print(f"setting g_extent[{index}] to {fmt_tuple(g_extent[index])}")
+        if g_debug:
+            print(f"setting g_extent[{index}] to {fmt_tuple(g_extent[index])}")
 
         # Draw a blue rectangle on each axis. The extent of the source axis
         # represents the size of the rectangle, so the rectangle will
@@ -523,14 +569,26 @@ def plots_draw(mode):
         # Note that this blue rectangle represents the write component of UFS
         # when the source axis is LambertConformal and the target axis is
         # Gnonomic.
+
+        # Steps
+        # 1. Get extent of "source" axis to establish the grid size.
+        # 2. Draw a box on the source axis.
+        # 3. Draw the box on the other axes. 
+
         for p_tgt in g_projs:
-            draw_box_xy_data(p_tgt, index, 'blue') # write component
+            draw_box_xy_data(p_tgt, index, g_color[index])
+
+        for p_src in g_projs:
+            if not p_src == index:
+                print(f"doing source {p_src}") 
+                for p_tgt in g_projs:
+                    draw_box_xy_data(p_tgt, p_src, g_color[p_src])
 
         # The red rectangle uses the specified source axis and will be drawn
         # some fraction larger than the blue rectangle. The fraction is
         # g_compute_grid.  When the source axis is Gnomonic, this red
         # rectangle represents the compute component.
-        if g_show_projections:
+        if False and g_show_projections:
             for p_tgt in g_projs:
                 draw_box_xy_data(p_tgt, "Gnomonic", 'red') # compute component
 
@@ -549,7 +607,7 @@ def plots_draw(mode):
     # Initalize selected projections to global view
     if mode == "init":
         for p in g_projs:
-            if p == "Orthographic":
+            if False and p == "Orthographic":
                 g_extent[p] = g_axis[p].get_extent()
                 g_view[p] = "global"
                 g_axis[p].set_global()
