@@ -3,8 +3,9 @@
 #
 # TODO / FIXME
 #
-# - output yaml for rotated latlon
+# - update '1' so that we still show projections on just Lambert/RotatedPole
 # - ...
+# - plot Gnonomic on Lambert, without creating Gnomonic plot
 # - understand and integrate regional_latlon???
 # - make it so "center" is just center :-)
 # - expand src index to show compute grid??
@@ -434,20 +435,18 @@ def projs_create(mode):
 
     g_proj["RotatedPole"] = ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
 
-    g_projs = [ "PlateCarree", "Mercator", "Miller",
-                "EquidistantConic", "LambertConformal", "AlbersEqualArea",
-                "Stereographic", "Gnomonic", "RotatedPole",
-                "Robinson", "Mollweide", "Sinusoidal" ]
-    g_dim_x = 4; g_dim_y = 3
+    #g_projs = [ "PlateCarree", "Mercator", "Miller",
+    #            "EquidistantConic", "LambertConformal", "AlbersEqualArea",
+    #            "Stereographic", "Gnomonic", "RotatedPole",
+    #            "Robinson", "Mollweide", "Sinusoidal" ]
+    #g_dim_x = 4; g_dim_y = 3
 
-    #g_projs = [ "PlateCarree", "Orthographic", "LambertConformal", "Gnomonic" ]
-    #g_projs = [ "LambertConformal", "Gnomonic", "Mercator" ]
-
+    # HERE
     if g_show_projections:
-        g_projs = [ "LambertConformal", "RotatedPole", "Orthographic", "Gnomonic" ]
+        g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic" ]
         g_dim_x = 2; g_dim_y = 2
     else:
-        g_projs = [ g_index_dflt ]
+        g_projs = [ "LambertConformal" ]
         g_dim_x = 1; g_dim_y = 1
 
     # Give each projection a color (brown is the default).  "red" is reserved for
@@ -456,9 +455,10 @@ def projs_create(mode):
     for p in g_projs:
         g_color[p] = "brown"
     g_color["LambertConformal"] = "blue"
+    g_color["Gnomonic"] = "red"
     g_color["RotatedPole"] = "purple"
     g_color["Orthographic"] = "green"
-    g_color["Gnomonic"] = "red"
+    g_color["Mercator"] = "orange"
 
     if mode == "init":
         for p in g_projs:
@@ -468,6 +468,17 @@ def plots_remove():
     if g_projs:
         for p in g_projs:
             g_axis[p].remove()
+
+def find_extent(tx, ty):
+    min_x = tx[0]; max_x = tx[0]
+    min_y = ty[0]; max_y = ty[0]
+    for x in tx:
+        if x < min_x: min_x = x
+        if x > max_x: max_x = x
+    for y in ty:
+        if y < min_y: min_y = y
+        if y > max_y: max_y = y
+    return (min_x, max_x, min_y, max_y)
 
 def plots_draw(mode):
     global g_proj
@@ -554,45 +565,66 @@ def plots_draw(mode):
 
     if not args.file:
 
-        # The "source" access is used to select the region.  What you
-        # see in the source axis is exactly 
-        # Set extent of source axis (i.e., g_axis[index])
+        old_way = False
+        new_way = True
+
+        # Original steps
         g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
         if g_debug:
             print(f"setting g_extent[{index}] to {fmt_tuple(g_extent[index])}")
 
-        # Draw a blue rectangle on each axis. The extent of the source axis
-        # represents the size of the rectangle, so the rectangle will
-        # simply outline the axis and have straight sides when drawn on the
-        # source axis.  On the other axes, the rectangle will be transformed
-        # from the source axis (e.g., from LambertConformal to Gnonomic)
-        # Note that this blue rectangle represents the write component of UFS
-        # when the source axis is LambertConformal and the target axis is
-        # Gnonomic.
-
-        # Steps
-        # 1. Get extent of "source" axis to establish the grid size.
-        # 2. Draw a box on the source axis.
-        # 3. Draw the box on the other axes. 
-
-        for p_tgt in g_projs:
-            draw_box_xy_data(p_tgt, index, g_color[index])
-
-        for p_src in g_projs:
-            if not p_src == index:
-                print(f"doing source {p_src}") 
-                for p_tgt in g_projs:
-                    draw_box_xy_data(p_tgt, p_src, g_color[p_src])
-
-        # The red rectangle uses the specified source axis and will be drawn
-        # some fraction larger than the blue rectangle. The fraction is
-        # g_compute_grid.  When the source axis is Gnomonic, this red
-        # rectangle represents the compute component.
-        if False and g_show_projections:
+        if old_way:
             for p_tgt in g_projs:
-                draw_box_xy_data(p_tgt, "Gnomonic", 'red') # compute component
+                draw_box_xy_data(p_tgt, index, g_color[index])
+            for p_src in g_projs:
+                if not p_src == index:
+                    for p_tgt in g_projs:
+                        draw_box_xy_data(p_tgt, p_src, g_color[p_src])
 
-        # FIXME
+        if new_way:
+
+            # Outline extent of index axis
+            x, y = create_box_xy_data(index, g_color[index])
+            g_axis[index].plot(x, y, color=g_color[index], linewidth=2, alpha=1.0, linestyle='dashed')
+
+            for p in g_projs:
+
+                if old_way and new_way:
+                    g_color[index] = 'black'
+                    g_color[p] = 'black'
+                    style = 'dashed' 
+                else:
+                    style = 'solid' 
+
+                # Transform index outline to target axis
+                pts = g_proj[p].transform_points(g_proj[index], np.array(x), np.array(y))
+                tx = pts[:, 0]; ty = pts[:, 1]
+                g_axis[p].plot(tx, ty, color=g_color[index], linewidth=2, alpha=1.0, linestyle=style)
+    
+                # Outline extent of target axis
+                min_x, max_x, min_y, max_y = find_extent(tx, ty)
+                xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
+                g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+    
+                # Transform target outline to index axis
+                pts = g_proj[index].transform_points(g_proj[p], np.array(xp), np.array(yp))
+                tx = pts[:, 0]; ty = pts[:, 1]
+                g_axis[index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+
+        #for p_tgt in g_projs:
+        #    draw_box_xy_data(p_tgt, "Gnomonic", 'red') # compute component
+
+        # Scrap
+        # Create and plot Mercator box on Mercator
+        #min_x, max_x, min_y, max_y = find_extent(tx, ty)
+        #x, y = create_box_xy((min_x, max_x, min_y, max_y))
+        #g_axis["Mercator"].plot(x, y, color=g_color["Mercator"], linewidth=2, alpha=1.0, linestyle='dashed')
+        # Transform Mercator box to Lambert and plot on Lambert
+        #pts = g_proj["LambertConformal"].transform_points(g_proj["Mercator"], np.array(x), np.array(y))
+        #tx = pts[:, 0]; ty = pts[:, 1]
+        #g_axis["LambertConformal"].plot(tx, ty, color=g_color["Mercator"], linewidth=2, alpha=1.0, linestyle='dashed')
+        #y = [val - g_cen_lat*60*1852 for val in y]
+        #y = [ 0 ] * len(y)
         # Adjust source axis so that we can see the red rectangle. Is there a way
         # to get the extents?
         #x1, x2, y1, y2 = g_extent[index]
@@ -629,6 +661,53 @@ def plots_draw(mode):
 
     plt.show()
 
+def create_box_xy(extent):
+    x1, x2, y1, y2 = extent 
+    xs = []
+    ys = []
+    #left
+    for i in range(0, 33):
+        xs.append(x1)
+        ys.append(y1+i*(y2-y1)/32)
+    #top
+    for i in range(0, 33):
+        xs.append(x1+i*(x2-x1)/32)
+        ys.append(y2)
+    #right
+    for i in range(0, 33):
+        xs.append(x2)
+        ys.append(y2-i*(y2-y1)/32)
+    #bottom
+    for i in range(0, 33):
+        xs.append(x2-i*(x2-x1)/32)
+        ys.append(y1)
+
+    return xs, ys
+
+def create_box_xy_data(src_index, color):
+    cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(src_index, color)
+    x1, x2, y1, y2 = extent 
+    xs = []
+    ys = []
+    #left
+    for i in range(0, 33):
+        xs.append(x1)
+        ys.append(y1+i*(y2-y1)/32)
+    #top
+    for i in range(0, 33):
+        xs.append(x1+i*(x2-x1)/32)
+        ys.append(y2)
+    #right
+    for i in range(0, 33):
+        xs.append(x2)
+        ys.append(y2-i*(y2-y1)/32)
+    #bottom
+    for i in range(0, 33):
+        xs.append(x2-i*(x2-x1)/32)
+        ys.append(y1)
+
+    return xs, ys
+
 def draw_box_xy_data(tgt_index, src_index, color):
     cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(src_index, color)
     x1, x2, y1, y2 = extent 
@@ -656,6 +735,8 @@ def draw_box_xy_data(tgt_index, src_index, color):
 
     g_axis[tgt_index].plot(xs, ys, transform=g_axis[src_index].projection, 
                            color=color, linewidth=2, alpha=1.0, linestyle='solid')
+
+    return xs, ys
 
 def plot_grib():
     global g_title
