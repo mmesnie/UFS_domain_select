@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
 #
-# TODO / FIXME
+# TODO
 #
-# - update '1' so that we still show projections on just Lambert/RotatedPole
-# - ...
-# - plot Gnonomic on Lambert, without creating Gnomonic plot
-# - understand and integrate regional_latlon???
+# - add back source vs. target titles
+# - make sure g_compute_grid is correct (even though we're not showing it)
+# - increase size of Gnomonic plot (red vs. green)
+# - "setting" while in global mode doesn't revert view/title correctly
 # - make it so "center" is just center :-)
-# - expand src index to show compute grid??
+# - make all the global part of an object??
+# - ...
+# - expand src index to show compute grid
 # - fix filtering for GFS (currently filters based on lon/lat spans)
-# - make sure GFS plots look ok, based on args we generated
-# - address other FIXME
+# - understand and integrate regional_latlon
 #
 
 #
@@ -58,12 +59,12 @@ args = parser.parse_args()
 #
 import os
 HOME = f"{os.environ['HOME']}"
-g_res_dflt=-1                                                           # 3000, 13000, 25000, or -1 (auto)
-g_compute_grid_dflt = 0.10                                              # 5% larger than write component grid
+g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
 g_debug = False
 g_show_projections = True
-g_color = {}
+g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
+g_index_dflt = 'LambertConformal'
 
 #
 # Default YAML values
@@ -82,10 +83,8 @@ g_extrn_mdl_source_basedir_ics = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_
 g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 #g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
 #g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
-g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
 #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
-
-g_index_dflt = 'LambertConformal'
+g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
 
 #
 # Imports
@@ -107,14 +106,11 @@ import matplotlib
 #
 # Function definitions
 #
-def init():
+def init_dflts():
     global g_cen_lon, g_cen_lat
     global g_crn_lon, g_crn_lat
     global g_compute_grid
     global g_res
-    global g_view
-    global g_projs
-    global g_extent
 
     if args.cen_lon:
         g_cen_lon = float(args.cen_lon)
@@ -134,9 +130,6 @@ def init():
         g_crn_lat = g_crn_lat_dflt
     g_compute_grid = g_compute_grid_dflt
     g_res = g_res_dflt
-    g_projs = {}
-    g_view = {}
-    g_extent = {}
 
 def cen_lat_adjust(cen_lat):
     if cen_lat > 80:
@@ -393,14 +386,22 @@ def get_index(ax):
 def projs_create(mode):
     global g_proj
     global g_projs
-    global g_cen_lat
+    global g_plotted
     global g_view
+    global g_extent
+    global g_cen_lat
     global g_dim_x, g_dim_y
     global g_color
 
-    g_cen_lat = cen_lat_adjust(g_cen_lat)
-
     g_proj = {}
+    g_projs = {}
+    g_plotted = {}
+    g_extent = {}
+    g_color = {}
+    if mode == "init":
+        g_view = {}
+
+    g_cen_lat = cen_lat_adjust(g_cen_lat)
 
     # Class: Cylindrical, Conic, Planar/Azimuthal
     # Case: Tangent, Secant
@@ -431,8 +432,8 @@ def projs_create(mode):
     g_proj["Mollweide"] = ccrs.Mollweide(central_longitude=g_cen_lon)
     g_proj["Sinusoidal"] = ccrs.Sinusoidal(central_longitude=g_cen_lon)
 
+    # Other
     g_proj["InterruptedGoodeHomolosine"] = ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
-
     g_proj["RotatedPole"] = ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
 
     #g_projs = [ "PlateCarree", "Mercator", "Miller",
@@ -441,33 +442,34 @@ def projs_create(mode):
     #            "Robinson", "Mollweide", "Sinusoidal" ]
     #g_dim_x = 4; g_dim_y = 3
 
-    # HERE
-    if g_show_projections:
-        g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic" ]
-        g_dim_x = 2; g_dim_y = 2
-    else:
-        g_projs = [ "LambertConformal" ]
+    g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic" ]
+    g_dim_x = 2; g_dim_y = 2
+
+    if not g_show_projections:
         g_dim_x = 1; g_dim_y = 1
 
-    # Give each projection a color (brown is the default).  "red" is reserved for
-    # the compute grid and will be larger than the LambertConformal grid by
-    # some factor (g_compute_grid)
+    # Give each projection a color (brown is the default).
     for p in g_projs:
         g_color[p] = "brown"
+        g_plotted[p] = False
     g_color["LambertConformal"] = "blue"
-    g_color["Gnomonic"] = "red"
     g_color["RotatedPole"] = "purple"
-    g_color["Orthographic"] = "green"
-    g_color["Mercator"] = "orange"
+    g_color["Mercator"] = "yellow"
+    g_color["Gnomonic"] = "green"
 
     if mode == "init":
         for p in g_projs:
             g_view[p] = "regional"
 
 def plots_remove():
+    global g_plotted
+
     if g_projs:
         for p in g_projs:
-            g_axis[p].remove()
+            if g_plotted[p]:
+                print(f"REMOVING {p}")
+                g_axis[p].remove()
+                g_plotted[p] = False
 
 def find_extent(tx, ty):
     min_x = tx[0]; max_x = tx[0]
@@ -505,7 +507,7 @@ def plots_draw(mode):
         except:
             if g_debug:
                 print("NO PLOTS TO REMOVE")
-        init()
+        init_dflts()
     elif mode == "set":
         index = g_index
         g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(index, 'blue')
@@ -545,6 +547,11 @@ def plots_draw(mode):
             g_view[p] = "regional"
             g_axis[p].set_title(f"{p}")
 
+        g_plotted[p] = True
+
+        if not g_show_projections:
+            break
+
         j = j + 1
 
     if mode == "init":
@@ -583,11 +590,14 @@ def plots_draw(mode):
 
         if new_way:
 
-            # Outline extent of index axis
+            # Outline the extent of the index's axis
             x, y = create_box_xy_data(index, g_color[index])
             g_axis[index].plot(x, y, color=g_color[index], linewidth=2, alpha=1.0, linestyle='dashed')
+            g_axis[index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
+                               marker='*', ms=10, color='orange')
 
-            for p in g_projs:
+            targets = [t for t in g_projs if not t == index]
+            for p in targets:
 
                 if old_way and new_way:
                     g_color[index] = 'black'
@@ -596,17 +606,19 @@ def plots_draw(mode):
                 else:
                     style = 'solid' 
 
-                # Transform index outline to target axis
+                # Draw the transformed index's extent on the target's axis
                 pts = g_proj[p].transform_points(g_proj[index], np.array(x), np.array(y))
                 tx = pts[:, 0]; ty = pts[:, 1]
-                g_axis[p].plot(tx, ty, color=g_color[index], linewidth=2, alpha=1.0, linestyle=style)
+                if g_show_projections:
+                    g_axis[p].plot(tx, ty, color=g_color[index], linewidth=2, alpha=1.0, linestyle=style)
     
-                # Outline extent of target axis
+                # Outline the extent of the target's axis
                 min_x, max_x, min_y, max_y = find_extent(tx, ty)
                 xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
-                g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+                if g_show_projections:
+                    g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
     
-                # Transform target outline to index axis
+                # Draw the transformed targets's extent on the index's axis
                 pts = g_proj[index].transform_points(g_proj[p], np.array(xp), np.array(yp))
                 tx = pts[:, 0]; ty = pts[:, 1]
                 g_axis[index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
