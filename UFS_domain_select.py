@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
 #
-# TODO
+# TODO/FIXME
 #
-# - add back source vs. target titles
+# - make "center" is just center, or some such...
+# - zooming in on global still thinks it's global
+# ...
+# - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
-# - increase size of Gnomonic plot (red vs. green)
-# - "setting" while in global mode doesn't revert view/title correctly
-# - make it so "center" is just center :-)
-# - make all the global part of an object??
+# - write some status to the screen (e.g., YAML written, res selected, ...)
 # - ...
+# - make all the global part of an object??
 # - expand src index to show compute grid
 # - fix filtering for GFS (currently filters based on lon/lat spans)
 # - understand and integrate regional_latlon
@@ -325,6 +326,10 @@ def on_key_press(event):
 
     if event.key == 'h':
         show_help()
+    elif event.key == '7':
+        print(f"7: setting {g_index} global")
+        g_axis[g_index].set_global()
+        plt.show()
     elif event.key == '0':
         print(f"restoring default settings")
         plots_draw("init")
@@ -393,13 +398,14 @@ def projs_create(mode):
     global g_dim_x, g_dim_y
     global g_color
 
+    if mode == "init":
+        g_extent = {}
+        g_view = {}
+
     g_proj = {}
     g_projs = {}
     g_plotted = {}
-    g_extent = {}
     g_color = {}
-    if mode == "init":
-        g_view = {}
 
     g_cen_lat = cen_lat_adjust(g_cen_lat)
 
@@ -413,14 +419,18 @@ def projs_create(mode):
     g_proj["Miller"] = ccrs.Miller(central_longitude=g_cen_lon)
 
     # Conic
-    g_proj["EquidistantConic"] = ccrs.EquidistantConic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
-    g_proj["AlbersEqualArea"] = ccrs.AlbersEqualArea(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+    g_proj["EquidistantConic"] = ccrs.EquidistantConic(central_longitude=g_cen_lon, 
+                                                       central_latitude=g_cen_lat)
+    g_proj["AlbersEqualArea"] = ccrs.AlbersEqualArea(central_longitude=g_cen_lon, 
+                                                     central_latitude=g_cen_lat)
     if g_cen_lat>0:
         lat_cutoff = -30
     else:
         lat_cutoff = 30
-    g_proj["LambertConformal"] = ccrs.LambertConformal(central_longitude=g_cen_lon, central_latitude=g_cen_lat,
-                                                       standard_parallels=(g_cen_lat, g_cen_lat), cutoff=lat_cutoff)
+    g_proj["LambertConformal"] = ccrs.LambertConformal(central_longitude=g_cen_lon, 
+                                                       central_latitude=g_cen_lat,
+                                                       standard_parallels=(g_cen_lat, g_cen_lat), 
+                                                       cutoff=lat_cutoff)
 
     # Planar/Azimuthal
     g_proj["Stereographic"] = ccrs.Stereographic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
@@ -442,8 +452,11 @@ def projs_create(mode):
     #            "Robinson", "Mollweide", "Sinusoidal" ]
     #g_dim_x = 4; g_dim_y = 3
 
-    g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic" ]
-    g_dim_x = 2; g_dim_y = 2
+    g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic", "Orthographic" ]
+    g_dim_x = 3; g_dim_y = 2
+
+    g_projs = [ "LambertConformal", "Orthographic" ]
+    g_dim_x = 2; g_dim_y = 1
 
     if not g_show_projections:
         g_dim_x = 1; g_dim_y = 1
@@ -519,12 +532,17 @@ def plots_draw(mode):
         plots_remove()
     elif mode == "center":
         index = g_index
-        _, _, _, _, (x1, x2, y1, y2) = get_dims(index, 'blue')
-        if index == "Mercator":
-            xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-            center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+        # FIXME (currently disabling new extent gathering)
+        if False:
+            _, _, _, _, (x1, x2, y1, y2) = get_dims(index, 'blue')
+            if index == "Mercator":
+                xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
+                center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+            else:
+                center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
         else:
-            center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
+                center_extent = g_extent[index]
+                print(f"BEFORE: g_view[{index}] is {g_view[index]}")
         plots_remove()
 
     # Create/recreate projections
@@ -539,13 +557,20 @@ def plots_draw(mode):
         g_axis[p].add_feature(cfeature.STATES)
         g_axis[p].gridlines()
 
+        print(f"AFTER: g_view[{p}] is {g_view[p]}")
+
         # Set axis view (global or regional/zoomed)
         if g_view[p] == "global":
+            print(f"SETTING {p} GLOBAL")
             g_axis[p].set_title(f"{p} ({mode} global)")
             g_axis[p].set_global()
         else:
+            print(f"SETTING {p} REGIONAL")
             g_view[p] = "regional"
-            g_axis[p].set_title(f"{p}")
+            if p == index:
+                g_axis[p].set_title(f"*** {p} ***")
+            else:
+                g_axis[p].set_title(f"{p}")
 
         g_plotted[p] = True
 
@@ -576,6 +601,8 @@ def plots_draw(mode):
         new_way = True
 
         # Original steps
+        # FIXME (this undoes our "global" setting)
+        print(f"RESETTING EXTENT on {p}")
         g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
         if g_debug:
             print(f"setting g_extent[{index}] to {fmt_tuple(g_extent[index])}")
@@ -651,7 +678,8 @@ def plots_draw(mode):
     # Initalize selected projections to global view
     if mode == "init":
         for p in g_projs:
-            if False and p == "Orthographic":
+            if p == "Orthographic":
+                print(f"INITIALIZING g_view[{p}] GLOBAL")
                 g_extent[p] = g_axis[p].get_extent()
                 g_view[p] = "global"
                 g_axis[p].set_global()
