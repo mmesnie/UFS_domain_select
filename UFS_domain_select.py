@@ -3,8 +3,7 @@
 #
 # TODO/FIXME
 #
-# - make "center" is just center, or some such...
-# - zooming in on global still thinks it's global
+# FIXME: work on the middle click!
 # ...
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
@@ -326,10 +325,6 @@ def on_key_press(event):
 
     if event.key == 'h':
         show_help()
-    elif event.key == '7':
-        print(f"7: setting {g_index} global")
-        g_axis[g_index].set_global()
-        plt.show()
     elif event.key == '0':
         print(f"restoring default settings")
         plots_draw("init")
@@ -379,7 +374,7 @@ def on_key_press(event):
         elif g_view[g_index] == "global": 
             g_view[g_index] = "regional"
             g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-            g_axis[g_index].set_title(g_index)
+            g_axis[g_index].set_title(g_index + " (toggle regional)")
     elif event.key == 'q':
         exit(0)
 
@@ -508,6 +503,17 @@ def plots_draw(mode):
     global g_res
     global g_index
 
+    # Remember which axes were in global mode
+    if not mode == "init":
+        restore_global = {}
+        for p in g_projs:
+            if not p == g_index:
+                print(f"before restore: extent is {g_extent[p]}")
+                g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+                if g_view[p] == "global":
+                    restore_global[p] = True
+                g_view[p] = "regional"
+
     if False:
         print(f"FORCING INDEX TO {g_index_dflt}")
         g_index = g_index_dflt
@@ -532,8 +538,8 @@ def plots_draw(mode):
         plots_remove()
     elif mode == "center":
         index = g_index
-        # FIXME (currently disabling new extent gathering)
-        if False:
+        # FIXME
+        if g_view[index] == "regional":
             _, _, _, _, (x1, x2, y1, y2) = get_dims(index, 'blue')
             if index == "Mercator":
                 xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
@@ -560,7 +566,9 @@ def plots_draw(mode):
         print(f"AFTER: g_view[{p}] is {g_view[p]}")
 
         # Set axis view (global or regional/zoomed)
-        if g_view[p] == "global":
+        print(f"p is {p}, mode is {mode}, g_view[p] is {g_view[p]}")
+
+        if ((p != index) and g_view[p] == "global"):
             print(f"SETTING {p} GLOBAL")
             g_axis[p].set_title(f"{p} ({mode} global)")
             g_axis[p].set_global()
@@ -592,31 +600,30 @@ def plots_draw(mode):
     elif mode == "set":
         g_extent[index] = set_extent
 
-    if g_debug: 
-        print(f"%8s: g_cen_lon {round(g_cen_lon,2)} g_cen_lat {round(g_cen_lat,2)} extent {fmt_tuple(g_extent[index])}" % mode)
-
     if not args.file:
 
-        old_way = False
-        new_way = True
+        if g_view[index] == "regional" or mode == "set":
+            print(f"RESETTING EXTENT on {index}")
+            g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+            g_axis[index].set_title(index + " (reset regional)")
+            g_view[index] = "regional"
+        else:
+            print(f"RESETTING GLOBAL on {index}")
+            g_axis[index].set_title(index + " (reset global)")
+            g_view[index] = "global"
 
-        # Original steps
-        # FIXME (this undoes our "global" setting)
-        print(f"RESETTING EXTENT on {p}")
-        g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
-        if g_debug:
-            print(f"setting g_extent[{index}] to {fmt_tuple(g_extent[index])}")
-
-        if old_way:
-            for p_tgt in g_projs:
-                draw_box_xy_data(p_tgt, index, g_color[index])
-            for p_src in g_projs:
-                if not p_src == index:
-                    for p_tgt in g_projs:
-                        draw_box_xy_data(p_tgt, p_src, g_color[p_src])
-
-        if new_way:
-
+        # FIXME
+        if False and mode == "center":
+            print("CENTER CASE")
+            for p in g_projs:
+                if g_view[p] == "regional":
+                    print(f"RESETTING EXTENT on {index}")
+                    g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+                    g_axis[p].set_title(p + " (centering regional)")
+                else:
+                    print(f"RESETTING GLOBAL on {index}")
+                    g_axis[p].set_title(p + " (centering global)")
+        else:
             # Outline the extent of the index's axis
             x, y = create_box_xy_data(index, g_color[index])
             g_axis[index].plot(x, y, color=g_color[index], linewidth=2, alpha=1.0, linestyle='dashed')
@@ -626,12 +633,7 @@ def plots_draw(mode):
             targets = [t for t in g_projs if not t == index]
             for p in targets:
 
-                if old_way and new_way:
-                    g_color[index] = 'black'
-                    g_color[p] = 'black'
-                    style = 'dashed' 
-                else:
-                    style = 'solid' 
+                style = 'solid' 
 
                 # Draw the transformed index's extent on the target's axis
                 pts = g_proj[p].transform_points(g_proj[index], np.array(x), np.array(y))
@@ -644,32 +646,12 @@ def plots_draw(mode):
                 xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
                 if g_show_projections:
                     g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
-    
+
                 # Draw the transformed targets's extent on the index's axis
                 pts = g_proj[index].transform_points(g_proj[p], np.array(xp), np.array(yp))
                 tx = pts[:, 0]; ty = pts[:, 1]
                 g_axis[index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
 
-        #for p_tgt in g_projs:
-        #    draw_box_xy_data(p_tgt, "Gnomonic", 'red') # compute component
-
-        # Scrap
-        # Create and plot Mercator box on Mercator
-        #min_x, max_x, min_y, max_y = find_extent(tx, ty)
-        #x, y = create_box_xy((min_x, max_x, min_y, max_y))
-        #g_axis["Mercator"].plot(x, y, color=g_color["Mercator"], linewidth=2, alpha=1.0, linestyle='dashed')
-        # Transform Mercator box to Lambert and plot on Lambert
-        #pts = g_proj["LambertConformal"].transform_points(g_proj["Mercator"], np.array(x), np.array(y))
-        #tx = pts[:, 0]; ty = pts[:, 1]
-        #g_axis["LambertConformal"].plot(tx, ty, color=g_color["Mercator"], linewidth=2, alpha=1.0, linestyle='dashed')
-        #y = [val - g_cen_lat*60*1852 for val in y]
-        #y = [ 0 ] * len(y)
-        # Adjust source axis so that we can see the red rectangle. Is there a way
-        # to get the extents?
-        #x1, x2, y1, y2 = g_extent[index]
-        #scale = 1+g_compute_grid_dflt*3
-        #x1 = x1*scale; x2 = x2*scale; y1=y1*scale; y2=y2*scale
-        #g_axis[index].set_extent((x1, x2, y1, y2), crs=g_proj[index])
 
     if mode == "center":
         x1, x2, y1, y2 = g_axis[index].get_extent()
@@ -698,6 +680,13 @@ def plots_draw(mode):
         im2.save(args.file + ".png", format="PNG")
         if args.close:
             exit(0)
+
+    # Restore any axes that were in global mode
+    if not mode == "init":
+        for p in restore_global:
+            g_extent[p] =  g_axis[p].get_extent()
+            g_axis[p].set_global()
+            g_view[p] = "global"
 
     plt.show()
 
