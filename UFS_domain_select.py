@@ -3,6 +3,7 @@
 #
 # TODO
 #
+# - update input args to accepted RotatedPole
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
 # - write some status to the screen (e.g., YAML written, res selected, ...)
@@ -48,6 +49,7 @@ parser.add_argument("--cen_lat", help="center latitude", required=False)
 parser.add_argument("--crn_lon", help="lower left corner longitude", required=False)
 parser.add_argument("--crn_lat", help="lower left corner latitude", required=False)
 parser.add_argument("--file", "-f", help="grib file to plot", required=False)
+parser.add_argument("--proj", "-p", help="LambertConformal or RotatedPole (required with -f)", required=False)
 parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
 args = parser.parse_args()
 
@@ -126,9 +128,13 @@ def init_dflts():
         g_crn_lat = float(args.crn_lat)
     else:
         g_crn_lat = g_crn_lat_dflt
+    if args.proj:
+        g_index = args.proj
+    else:
+        g_index = g_index_dflt
+
     g_compute_grid = g_compute_grid_dflt
     g_res = g_res_dflt
-    g_index = g_index_dflt
 
 def cen_lat_adjust(cen_lat):
     if cen_lat > 80:
@@ -587,11 +593,14 @@ def plots_draw(mode):
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
         g_extent[g_index] = (xll, xlr, yll, yul)
-        if g_debug: print(f"init: g_extent[{g_index}] is {fmt_tuple(g_extent[g_index])}")
+        if args.file:
+            g_extent[g_index] = (-g_crn_lon, g_crn_lon, -g_crn_lat, g_crn_lat)
+
+        print(f"init: g_extent[{g_index}] is {fmt_tuple(g_extent[g_index])}")
     else:
         g_extent[g_index] = new_extent
 
-    if not args.file:
+    if True or not args.file:
 
         if g_view[g_index] == "regional" or mode == "set":
             try:
