@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
 #
-# TODO/FIXME
+# TODO
 #
-# FIXME: work on the middle click!
-# ...
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
 # - write some status to the screen (e.g., YAML written, res selected, ...)
-# - ...
 # - make all the global part of an object??
 # - expand src index to show compute grid
 # - fix filtering for GFS (currently filters based on lon/lat spans)
@@ -62,7 +59,7 @@ HOME = f"{os.environ['HOME']}"
 g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
 g_debug = False
-g_show_projections = True
+g_show_all_projections = True
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 g_index_dflt = 'LambertConformal'
 
@@ -111,6 +108,7 @@ def init_dflts():
     global g_crn_lon, g_crn_lat
     global g_compute_grid
     global g_res
+    global g_index
 
     if args.cen_lon:
         g_cen_lon = float(args.cen_lon)
@@ -130,6 +128,7 @@ def init_dflts():
         g_crn_lat = g_crn_lat_dflt
     g_compute_grid = g_compute_grid_dflt
     g_res = g_res_dflt
+    g_index = g_index_dflt
 
 def cen_lat_adjust(cen_lat):
     if cen_lat > 80:
@@ -317,7 +316,7 @@ def on_key_press(event):
     global g_res
     global g_extent
     global g_index
-    global g_show_projections
+    global g_show_all_projections
 
     g_index = g_index_dflt
     if event.inaxes:
@@ -330,7 +329,7 @@ def on_key_press(event):
         plots_draw("init")
     elif event.key == '1':
         print(f"toggling additional projections")
-        g_show_projections = not g_show_projections
+        g_show_all_projections = not g_show_all_projections
         plots_draw("init")
     elif event.key == 'y':
         if (g_index == "LambertConformal" or g_index == "RotatedPole"):
@@ -447,13 +446,13 @@ def projs_create(mode):
     #            "Robinson", "Mollweide", "Sinusoidal" ]
     #g_dim_x = 4; g_dim_y = 3
 
-    g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic", "Orthographic" ]
+    g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic", "Orthographic", "Miller" ]
     g_dim_x = 3; g_dim_y = 2
 
-    g_projs = [ "LambertConformal", "Orthographic" ]
-    g_dim_x = 2; g_dim_y = 1
+    #g_projs = [ "LambertConformal", "Orthographic" ]
+    #g_dim_x = 2; g_dim_y = 1
 
-    if not g_show_projections:
+    if not g_show_all_projections:
         g_dim_x = 1; g_dim_y = 1
 
     # Give each projection a color (brown is the default).
@@ -475,7 +474,6 @@ def plots_remove():
     if g_projs:
         for p in g_projs:
             if g_plotted[p]:
-                print(f"REMOVING {p}")
                 g_axis[p].remove()
                 g_plotted[p] = False
 
@@ -503,58 +501,56 @@ def plots_draw(mode):
     global g_res
     global g_index
 
-    # Remember which axes were in global mode
+    #
+    # Notes on global variables:
+    #
+    # g_index is the index of the source axis that we're trransforming from.
+    # g_projs is the list of projections, only one of which is g_index.
+    #
+
+    # Change all target axes to regional view. Any target
+    # axis in global view will be returned to global view
+    # at the end of this procedure.
     if not mode == "init":
         restore_global = {}
         for p in g_projs:
-            if not p == g_index:
-                print(f"before restore: extent is {g_extent[p]}")
-                g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+            if p == g_index:
+                g_extent[p] = g_axis[p].get_extent()
+            elif not p == g_index and g_plotted[p]:
+                try:
+                    g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+                except:
+                    print(f"*** CASE 1: FAILED TO SET EXTENT ({p}) ***")
                 if g_view[p] == "global":
                     restore_global[p] = True
                 g_view[p] = "regional"
 
-    if False:
-        print(f"FORCING INDEX TO {g_index_dflt}")
-        g_index = g_index_dflt
-
     if mode == "init":
-        index = g_index_dflt
-        try:
-            if g_projs:
-                plots_remove()
-        except:
-            if g_debug:
-                print("NO PLOTS TO REMOVE")
         init_dflts()
-    elif mode == "set":
-        index = g_index
-        g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(index, 'blue')
-        if index == "Mercator":
-            xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-            set_extent = (-abs(x2-x1)/2, +abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+    else:
+        if mode == "set":
+            g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
+        elif mode == "center":
+            _, _, _, _, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
+        if g_index == "Mercator" or g_index == "Miller":
+            xc, yc = g_proj[g_index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
+            new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
         else:
-            set_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
-        plots_remove()
-    elif mode == "center":
-        index = g_index
-        # FIXME
-        if g_view[index] == "regional":
-            _, _, _, _, (x1, x2, y1, y2) = get_dims(index, 'blue')
-            if index == "Mercator":
-                xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-                center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
-            else:
-                center_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, -abs(y2-y1)/2, abs(y2-y1)/2)
-        else:
-                center_extent = g_extent[index]
-                print(f"BEFORE: g_view[{index}] is {g_view[index]}")
-        plots_remove()
+            new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2,   -abs(y2-y1)/2,    abs(y2-y1)/2)
 
-    # Create/recreate projections
+    # Remove old plots (the try will fail on the first "init", as g_projs hasn't
+    # yet been defined via projs_create()
+    try:
+        plots_remove()
+    except:
+        print("NO PLOTS TO REMOVE")
+
+    # Create projections
     projs_create(mode)
 
-    j = 1; g_axis = {}
+    # Create plots
+    g_axis = {}
+    j = 1
     for p in g_projs:
         g_axis[p] = g_fig.add_subplot(g_dim_x, g_dim_y, j, projection=g_proj[p])
         g_axis[p].margins(x=0.0, y=0.0)
@@ -563,115 +559,108 @@ def plots_draw(mode):
         g_axis[p].add_feature(cfeature.STATES)
         g_axis[p].gridlines()
 
-        print(f"AFTER: g_view[{p}] is {g_view[p]}")
-
         # Set axis view (global or regional/zoomed)
-        print(f"p is {p}, mode is {mode}, g_view[p] is {g_view[p]}")
+        if g_debug:
+            print(f"p is {p}, mode is {mode}, g_view[p] is {g_view[p]}")
 
-        if ((p != index) and g_view[p] == "global"):
-            print(f"SETTING {p} GLOBAL")
+        if ((p != g_index) and g_view[p] == "global"):
             g_axis[p].set_title(f"{p} ({mode} global)")
             g_axis[p].set_global()
         else:
-            print(f"SETTING {p} REGIONAL")
             g_view[p] = "regional"
-            if p == index:
+            if p == g_index:
                 g_axis[p].set_title(f"*** {p} ***")
             else:
                 g_axis[p].set_title(f"{p}")
 
         g_plotted[p] = True
 
-        if not g_show_projections:
+        if not g_show_all_projections:
             break
 
         j = j + 1
 
     if mode == "init":
-        xc, yc = g_proj[index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-        xll, yll = g_proj[index].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
+        xc, yc = g_proj[g_index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
+        xll, yll = g_proj[g_index].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
         xlr = xc+(xc-xll); ylr = yc-(yc-yll)
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
-        g_extent[index] = (xll, xlr, yll, yul)
-        if g_debug: print(f"init: g_extent[{index}] is {fmt_tuple(g_extent[index])}")
-    elif mode == "center":
-        g_extent[index] = center_extent
-    elif mode == "set":
-        g_extent[index] = set_extent
+        g_extent[g_index] = (xll, xlr, yll, yul)
+        if g_debug: print(f"init: g_extent[{g_index}] is {fmt_tuple(g_extent[g_index])}")
+    else:
+        g_extent[g_index] = new_extent
 
     if not args.file:
 
-        if g_view[index] == "regional" or mode == "set":
-            print(f"RESETTING EXTENT on {index}")
-            g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
-            g_axis[index].set_title(index + " (reset regional)")
-            g_view[index] = "regional"
+        if g_view[g_index] == "regional" or mode == "set":
+            try:
+                g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
+                g_axis[g_index].set_title(g_index + " (reset regional)")
+                g_view[g_index] = "regional"
+            except:
+                print(f"*** CASE 2: FAILED TO SET EXTENT ({g_index}) ***")
         else:
-            print(f"RESETTING GLOBAL on {index}")
-            g_axis[index].set_title(index + " (reset global)")
-            g_view[index] = "global"
+            g_axis[g_index].set_title(g_index + " (reset global)")
+            g_view[g_index] = "global"
 
-        # FIXME
-        if False and mode == "center":
-            print("CENTER CASE")
-            for p in g_projs:
-                if g_view[p] == "regional":
-                    print(f"RESETTING EXTENT on {index}")
-                    g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
-                    g_axis[p].set_title(p + " (centering regional)")
-                else:
-                    print(f"RESETTING GLOBAL on {index}")
-                    g_axis[p].set_title(p + " (centering global)")
-        else:
-            # Outline the extent of the index's axis
-            x, y = create_box_xy_data(index, g_color[index])
-            g_axis[index].plot(x, y, color=g_color[index], linewidth=2, alpha=1.0, linestyle='dashed')
-            g_axis[index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
+        # Outline the extent of the index's axis
+        x, y = create_box_xy_data(g_index, g_color[g_index])
+        g_axis[g_index].plot(x, y, color=g_color[g_index], linewidth=2, alpha=1.0, linestyle='dashed')
+        g_axis[g_index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
                                marker='*', ms=10, color='orange')
 
-            targets = [t for t in g_projs if not t == index]
-            for p in targets:
+        targets = [t for t in g_projs if not t == g_index]
+        for p in targets:
 
-                style = 'solid' 
+            style = 'solid' 
 
-                # Draw the transformed index's extent on the target's axis
-                pts = g_proj[p].transform_points(g_proj[index], np.array(x), np.array(y))
-                tx = pts[:, 0]; ty = pts[:, 1]
-                if g_show_projections:
-                    g_axis[p].plot(tx, ty, color=g_color[index], linewidth=2, alpha=1.0, linestyle=style)
-    
-                # Outline the extent of the target's axis
-                min_x, max_x, min_y, max_y = find_extent(tx, ty)
-                xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
-                if g_show_projections:
-                    g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+            # Draw the transformed index's extent on the target's axis
+            pts = g_proj[p].transform_points(g_proj[g_index], np.array(x), np.array(y))
+            tx = pts[:, 0]; ty = pts[:, 1]
+            if g_show_all_projections:
+                g_axis[p].plot(tx, ty, color=g_color[g_index], linewidth=2, alpha=1.0, linestyle=style)
 
-                # Draw the transformed targets's extent on the index's axis
-                pts = g_proj[index].transform_points(g_proj[p], np.array(xp), np.array(yp))
-                tx = pts[:, 0]; ty = pts[:, 1]
-                g_axis[index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+            # Outline the extent of the target's axis
+            min_x, max_x, min_y, max_y = find_extent(tx, ty)
+            xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
+            if g_show_all_projections:
+                g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
 
+            # Draw the transformed targets's extent on the index's axis
+            pts = g_proj[g_index].transform_points(g_proj[p], np.array(xp), np.array(yp))
+            tx = pts[:, 0]; ty = pts[:, 1]
+            g_axis[g_index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
 
     if mode == "center":
-        x1, x2, y1, y2 = g_axis[index].get_extent()
-        g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj[index])
+        x1, x2, y1, y2 = g_axis[g_index].get_extent()
+        g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj[g_index])
 
-    # Initalize selected projections to global view
+    # Set/restore view
     if mode == "init":
         for p in g_projs:
-            if p == "Orthographic":
-                print(f"INITIALIZING g_view[{p}] GLOBAL")
-                g_extent[p] = g_axis[p].get_extent()
-                g_view[p] = "global"
-                g_axis[p].set_global()
-                g_axis[p].set_title(p + " (initial global view)")
+            if g_plotted[p]:
+                if p == "Orthographic":
+                    print(f"INITIALIZING g_view[{p}] GLOBAL")
+                    g_extent[p] = g_axis[p].get_extent()
+                    g_view[p] = "global"
+                    g_axis[p].set_global()
+                    g_axis[p].set_title(p + " (initial global view)")
+                else:
+                    g_extent[p] = g_axis[p].get_extent()
+    else:
+        for p in restore_global:
+            g_extent[p] =  g_axis[p].get_extent()
+            g_axis[p].set_global()
+            g_view[p] = "global"
+            g_axis[p].set_title(p + " (restored global)")
 
     if args.file:
         plot_grib()
         ram = io.BytesIO()
         for p in g_projs:
-            g_axis[p].set_title(p)
+            if g_plotted[p]:
+                g_axis[p].set_title(p)
         g_fig.suptitle(g_title)
         plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
         ram.seek(0)
@@ -681,34 +670,28 @@ def plots_draw(mode):
         if args.close:
             exit(0)
 
-    # Restore any axes that were in global mode
-    if not mode == "init":
-        for p in restore_global:
-            g_extent[p] =  g_axis[p].get_extent()
-            g_axis[p].set_global()
-            g_view[p] = "global"
-
     plt.show()
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
     xs = []
     ys = []
+    steps = 64
     #left
-    for i in range(0, 33):
+    for i in range(0, steps+1):
         xs.append(x1)
-        ys.append(y1+i*(y2-y1)/32)
+        ys.append(y1+i*(y2-y1)/steps)
     #top
-    for i in range(0, 33):
-        xs.append(x1+i*(x2-x1)/32)
+    for i in range(0, steps+1):
+        xs.append(x1+i*(x2-x1)/steps)
         ys.append(y2)
     #right
-    for i in range(0, 33):
+    for i in range(0, steps+1):
         xs.append(x2)
-        ys.append(y2-i*(y2-y1)/32)
+        ys.append(y2-i*(y2-y1)/steps)
     #bottom
-    for i in range(0, 33):
-        xs.append(x2-i*(x2-x1)/32)
+    for i in range(0, steps+1):
+        xs.append(x2-i*(x2-x1)/steps)
         ys.append(y1)
 
     return xs, ys
@@ -812,10 +795,11 @@ def plot_grib():
     z500 = zdata * 0.1
     z500 = scipy.ndimage.gaussian_filter(z500, 6.89)
     for p in g_projs:
-        contours = g_axis[p].contour(lons, lats, z500, 
-                                     np.arange(0, 900, 6), 
-                                     colors="blue", linewidths=1, 
-                                     transform=cartopy.crs.PlateCarree(), alpha=0.25)
+        if g_plotted[p]:
+            contours = g_axis[p].contour(lons, lats, z500, 
+                                         np.arange(0, 900, 6), 
+                                         colors="blue", linewidths=1, 
+                                         transform=cartopy.crs.PlateCarree(), alpha=0.25)
     plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
 
     # Vorticity
@@ -827,9 +811,10 @@ def plot_grib():
     cm = matplotlib.colors.ListedColormap(colorlist)
     norm = matplotlib.colors.BoundaryNorm(vortlevs, cm.N)
     for p in g_projs:
-        cs1_a = g_axis[p].pcolormesh(lons, lats,
-                                     vort500, transform=cartopy.crs.PlateCarree(),
-                                     cmap=cm, norm=norm)
+        if g_plotted[p]:
+            cs1_a = g_axis[p].pcolormesh(lons, lats,
+                                         vort500, transform=cartopy.crs.PlateCarree(),
+                                         cmap=cm, norm=norm)
     cs1_a.cmap.set_under("none")   # under 16
     cs1_a.cmap.set_over("darkred") # above 40
 
@@ -846,4 +831,4 @@ g_fig.canvas.mpl_connect('button_press_event', on_button_press)
 g_fig.canvas.mpl_connect('key_press_event', on_key_press)
 show_help()
 
-plots_draw("init") #1
+plots_draw("init")
