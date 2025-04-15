@@ -101,6 +101,8 @@ import scipy
 import numpy as np
 import cartopy
 import matplotlib
+from matplotlib.widgets import RadioButtons
+from matplotlib.widgets import CheckButtons
 
 #
 # Function definitions
@@ -397,13 +399,13 @@ def projs_create(mode):
     global g_cen_lat
     global g_dim_x, g_dim_y
     global g_color
+    global g_enabled
 
     if mode == "init":
         g_extent = {}
         g_view = {}
 
     g_proj = {}
-    g_projs = {}
     g_plotted = {}
     g_color = {}
 
@@ -443,20 +445,26 @@ def projs_create(mode):
     g_proj["Sinusoidal"] = ccrs.Sinusoidal(central_longitude=g_cen_lon)
 
     # Other
-    g_proj["InterruptedGoodeHomolosine"] = ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
+    #g_proj["InterruptedGoodeHomolosine"] = ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
     g_proj["RotatedPole"] = ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
 
-    #g_projs = [ "PlateCarree", "Mercator", "Miller",
-    #            "EquidistantConic", "LambertConformal", "AlbersEqualArea",
-    #            "Stereographic", "Gnomonic", "RotatedPole",
-    #            "Robinson", "Mollweide", "Sinusoidal" ]
-    #g_dim_x = 4; g_dim_y = 3
+    if mode == "init":
+        print(f"*** INIT g_enabled ***")
+        g_enabled = {}
+        for p in g_proj:
+            g_enabled[p] = False
+        g_enabled['LambertConformal'] = True
+        g_enabled['Mercator'] = True
 
-    g_projs = [ "LambertConformal", "RotatedPole", "Mercator", "Gnomonic", "Orthographic", "Miller" ]
-    g_dim_x = 3; g_dim_y = 2
+    g_projs = []
 
-    #g_projs = [ "LambertConformal", "Orthographic" ]
-    #g_dim_x = 2; g_dim_y = 1
+    for p in g_proj:
+        if g_enabled[p]:
+            g_projs.append(p)
+
+    print(f"PROJS: {g_projs}")
+
+    g_dim_x = 2; g_dim_y = 2
 
     if not g_show_all_projections:
         g_dim_x = 1; g_dim_y = 1
@@ -469,14 +477,16 @@ def projs_create(mode):
     g_color["RotatedPole"] = "purple"
     g_color["Mercator"] = "yellow"
     g_color["Gnomonic"] = "green"
+    g_color["Orthographic"] = "orange"
 
     if mode == "init":
-        for p in g_projs:
+        for p in g_proj:
             g_view[p] = "regional"
 
 def plots_remove():
     global g_plotted
 
+    g_axis['menu'].remove()
     if g_projs:
         for p in g_projs:
             if g_plotted[p]:
@@ -506,6 +516,8 @@ def plots_draw(mode):
     global g_compute_grid
     global g_res
     global g_index
+    global g_enabled
+    global g_check
 
     #
     # Notes on global variables:
@@ -554,10 +566,17 @@ def plots_draw(mode):
     # Create projections
     projs_create(mode)
 
-    # Create plots
     g_axis = {}
+
+    # Check buttons
+    #g_axis['menu'] = g_fig.add_subplot(g_dim_x, g_dim_y, 1)
+    g_axis['menu'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
+
+
+    # Create plots
     j = 1
     for p in g_projs:
+
         g_axis[p] = g_fig.add_subplot(g_dim_x, g_dim_y, j, projection=g_proj[p])
         g_axis[p].margins(x=0.0, y=0.0)
         g_axis[p].add_feature(cfeature.COASTLINE)
@@ -595,8 +614,7 @@ def plots_draw(mode):
         g_extent[g_index] = (xll, xlr, yll, yul)
         if args.file:
             g_extent[g_index] = (-g_crn_lon, g_crn_lon, -g_crn_lat, g_crn_lat)
-
-        print(f"init: g_extent[{g_index}] is {fmt_tuple(g_extent[g_index])}")
+        #print(f"init: g_extent[{g_index}] is {fmt_tuple(g_extent[g_index])}")
     else:
         g_extent[g_index] = new_extent
 
@@ -679,7 +697,25 @@ def plots_draw(mode):
         if args.close:
             exit(0)
 
+    status = []
+    for p in g_proj:
+        if g_enabled[p]:
+            status.append(True)
+        else:
+            status.append(False)
+    g_check = CheckButtons(g_axis['menu'], g_proj, status)
+    g_check.on_clicked(checkfunc)
+
+    print(f"g_enabled is {g_enabled}")
+
     plt.show()
+
+def checkfunc(label):
+    global g_enabled
+
+    g_enabled[label] = not g_enabled[label]
+    print(f"g_enabled[{label}] = {g_enabled[label]}")
+    plt.draw()
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
