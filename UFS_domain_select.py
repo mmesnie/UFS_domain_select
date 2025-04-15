@@ -29,7 +29,6 @@ g_help="""
 *        Key +: increment Gnomonic compute grid by 1%                        *
 *        Key R: set resolution (3km, 13km, 25km, AUTO)                       *
 *        Key 0: restore default settings                                     *
-*        Key 1: toggle additional projections                                *
 *        Key h: show this help                                               *
 * Middle Click: center grid                                                  *
 ******************************************************************************
@@ -61,7 +60,6 @@ HOME = f"{os.environ['HOME']}"
 g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
 g_debug = False
-g_show_all_projections = True
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 g_index_dflt = 'LambertConformal'
 
@@ -324,7 +322,6 @@ def on_key_press(event):
     global g_res
     global g_extent
     global g_index
-    global g_show_all_projections
 
     g_index = g_index_dflt
     if event.inaxes:
@@ -334,10 +331,6 @@ def on_key_press(event):
         show_help()
     elif event.key == '0':
         print(f"restoring default settings")
-        plots_draw("init")
-    elif event.key == '1':
-        print(f"toggling additional projections")
-        g_show_all_projections = not g_show_all_projections
         plots_draw("init")
     elif event.key == 'y':
         if (g_index == "LambertConformal" or g_index == "RotatedPole"):
@@ -454,20 +447,40 @@ def projs_create(mode):
         for p in g_proj:
             g_enabled[p] = False
         g_enabled['LambertConformal'] = True
-        g_enabled['Mercator'] = True
+        g_enabled['RotatedPole'] = True
+        g_enabled['Gnomonic'] = True
+        g_enabled['Orthographic'] = True
 
     g_projs = []
 
+    count = 0
     for p in g_proj:
         if g_enabled[p]:
             g_projs.append(p)
+            count += 1
 
-    print(f"PROJS: {g_projs}")
-
-    g_dim_x = 2; g_dim_y = 2
-
-    if not g_show_all_projections:
-        g_dim_x = 1; g_dim_y = 1
+    print(f"PROJ COUNT: {count}")
+    match count:
+        case 1:
+            g_dim_x = 1; g_dim_y = 1
+        case 2:
+            g_dim_x = 2; g_dim_y = 1
+        case 3:
+            g_dim_x = 3; g_dim_y = 1
+        case 4:
+            g_dim_x = 2; g_dim_y = 2
+        case 5 | 6:
+            g_dim_x = 2; g_dim_y = 3
+        case 7 | 8:
+            g_dim_x = 4; g_dim_y = 2
+        case 9:
+            g_dim_x = 3; g_dim_y = 3
+        case 10:
+            g_dim_x = 5; g_dim_y = 2
+        case 11 | 12:
+            g_dim_x = 4; g_dim_y = 3
+        case 13 | 14:
+            g_dim_x = 4; g_dim_y = 4
 
     # Give each projection a color (brown is the default).
     for p in g_projs:
@@ -486,7 +499,8 @@ def projs_create(mode):
 def plots_remove():
     global g_plotted
 
-    g_axis['menu'].remove()
+    g_axis['menu1'].remove()
+    g_axis['menu2'].remove()
     if g_projs:
         for p in g_projs:
             if g_plotted[p]:
@@ -517,7 +531,8 @@ def plots_draw(mode):
     global g_res
     global g_index
     global g_enabled
-    global g_check
+    global g_check1
+    global g_check2
 
     #
     # Notes on global variables:
@@ -569,9 +584,8 @@ def plots_draw(mode):
     g_axis = {}
 
     # Check buttons
-    #g_axis['menu'] = g_fig.add_subplot(g_dim_x, g_dim_y, 1)
-    g_axis['menu'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
-
+    g_axis['menu1'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
+    g_axis['menu2'] = g_fig.add_axes([0.85, 0.0, 0.2, 0.2], frameon=False)
 
     # Create plots
     j = 1
@@ -599,9 +613,6 @@ def plots_draw(mode):
                 g_axis[p].set_title(f"{p}")
 
         g_plotted[p] = True
-
-        if not g_show_all_projections:
-            break
 
         j = j + 1
 
@@ -645,14 +656,12 @@ def plots_draw(mode):
             # Draw the transformed index's extent on the target's axis
             pts = g_proj[p].transform_points(g_proj[g_index], np.array(x), np.array(y))
             tx = pts[:, 0]; ty = pts[:, 1]
-            if g_show_all_projections:
-                g_axis[p].plot(tx, ty, color=g_color[g_index], linewidth=2, alpha=1.0, linestyle=style)
+            g_axis[p].plot(tx, ty, color=g_color[g_index], linewidth=2, alpha=1.0, linestyle=style)
 
             # Outline the extent of the target's axis
             min_x, max_x, min_y, max_y = find_extent(tx, ty)
             xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
-            if g_show_all_projections:
-                g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+            g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
 
             # Draw the transformed targets's extent on the index's axis
             pts = g_proj[g_index].transform_points(g_proj[p], np.array(xp), np.array(yp))
@@ -677,10 +686,11 @@ def plots_draw(mode):
                     g_extent[p] = g_axis[p].get_extent()
     else:
         for p in restore_global:
-            g_extent[p] =  g_axis[p].get_extent()
-            g_axis[p].set_global()
-            g_view[p] = "global"
-            g_axis[p].set_title(p + " (restored global)")
+            if g_enabled[p]:
+                g_extent[p] =  g_axis[p].get_extent()
+                g_axis[p].set_global()
+                g_view[p] = "global"
+                g_axis[p].set_title(p + " (restored global)")
 
     if args.file:
         plot_grib()
@@ -697,14 +707,34 @@ def plots_draw(mode):
         if args.close:
             exit(0)
 
-    status = []
+
+    proj1 = []
+    proj2 = []
+    status1 = []
+    status2 = []
+    count = 0
     for p in g_proj:
-        if g_enabled[p]:
-            status.append(True)
+        if count<len(g_proj)/2:
+            if g_enabled[p]:
+                status1.append(True)
+            else:
+                status1.append(False)
+            proj1.append(p)
         else:
-            status.append(False)
-    g_check = CheckButtons(g_axis['menu'], g_proj, status)
-    g_check.on_clicked(checkfunc)
+            if g_enabled[p]:
+                status2.append(True)
+            else:
+                status2.append(False)
+            proj2.append(p)
+        count += 1
+    print(f"proj1: {proj1}")
+    print(f"proj2: {proj2}")
+    print(f"status1: {status1}")
+    print(f"status2: {status2}")
+    g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
+    g_check1.on_clicked(checkfunc)
+    g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
+    g_check2.on_clicked(checkfunc)
 
     print(f"g_enabled is {g_enabled}")
 
@@ -715,7 +745,7 @@ def checkfunc(label):
 
     g_enabled[label] = not g_enabled[label]
     print(f"g_enabled[{label}] = {g_enabled[label]}")
-    plt.draw()
+    plots_draw("set")
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
