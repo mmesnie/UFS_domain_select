@@ -81,7 +81,8 @@ g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g
 #g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
 #g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
 #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
-g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
+#g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
+g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
 
 #
 # Imports
@@ -156,7 +157,6 @@ def on_button_press(event):
 
     if event.inaxes and event.button is MouseButton.MIDDLE:
         g_index = get_index(event.inaxes)
-        print(f"centering plots at click (source {g_index})")
         g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata, 
                                                                   event.inaxes.projection)
         plots_draw("center")
@@ -442,7 +442,6 @@ def projs_create(mode):
     g_proj["RotatedPole"] = ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
 
     if mode == "init":
-        print(f"*** INIT g_enabled ***")
         g_enabled = {}
         for p in g_proj:
             g_enabled[p] = False
@@ -459,7 +458,6 @@ def projs_create(mode):
             g_projs.append(p)
             count += 1
 
-    print(f"PROJ COUNT: {count}")
     match count:
         case 1:
             g_dim_x = 1; g_dim_y = 1
@@ -549,11 +547,11 @@ def plots_draw(mode):
         for p in g_projs:
             if p == g_index:
                 g_extent[p] = g_axis[p].get_extent()
-            elif not p == g_index and g_plotted[p]:
+            elif (not p == g_index) and g_plotted[p] and g_enabled[p]:
                 try:
                     g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
                 except:
-                    print(f"*** CASE 1: FAILED TO SET EXTENT ({p}) ***")
+                    print(f"*** WARN: FAILED TO SET EXTENT ({p}) ***")
                 if g_view[p] == "global":
                     restore_global[p] = True
                 g_view[p] = "regional"
@@ -581,13 +579,8 @@ def plots_draw(mode):
     # Create projections
     projs_create(mode)
 
-    g_axis = {}
-
-    # Check buttons
-    g_axis['menu1'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
-    g_axis['menu2'] = g_fig.add_axes([0.85, 0.0, 0.2, 0.2], frameon=False)
-
     # Create plots
+    g_axis = {}
     j = 1
     for p in g_projs:
 
@@ -623,13 +616,10 @@ def plots_draw(mode):
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
         g_extent[g_index] = (xll, xlr, yll, yul)
-        if args.file:
-            g_extent[g_index] = (-g_crn_lon, g_crn_lon, -g_crn_lat, g_crn_lat)
-        #print(f"init: g_extent[{g_index}] is {fmt_tuple(g_extent[g_index])}")
     else:
         g_extent[g_index] = new_extent
 
-    if True or not args.file:
+    if True:
 
         if g_view[g_index] == "regional" or mode == "set":
             try:
@@ -692,21 +682,29 @@ def plots_draw(mode):
                 g_view[p] = "global"
                 g_axis[p].set_title(p + " (restored global)")
 
-    if args.file:
+    if True and args.file:
         plot_grib()
         ram = io.BytesIO()
         for p in g_projs:
             if g_plotted[p]:
                 g_axis[p].set_title(p)
         g_fig.suptitle(g_title)
-        plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
-        ram.seek(0)
-        im = PIL.Image.open(ram)
-        im2 = im.convert("RGB")
-        im2.save(args.file + ".png", format="PNG")
+
+        if False:
+            plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
+            ram.seek(0)
+            im = PIL.Image.open(ram)
+            im2 = im.convert("RGB")
+            im2.save(args.file + ".png", format="PNG")
+        else:
+            print("*** NOT ACTUALLY SAVING (RACE CONDITION) ***")
+
         if args.close:
             exit(0)
 
+    # Check buttons
+    g_axis['menu1'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
+    g_axis['menu2'] = g_fig.add_axes([0.85, 0.0, 0.2, 0.2], frameon=False)
 
     proj1 = []
     proj2 = []
@@ -727,16 +725,10 @@ def plots_draw(mode):
                 status2.append(False)
             proj2.append(p)
         count += 1
-    print(f"proj1: {proj1}")
-    print(f"proj2: {proj2}")
-    print(f"status1: {status1}")
-    print(f"status2: {status2}")
     g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
     g_check1.on_clicked(checkfunc)
     g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
     g_check2.on_clicked(checkfunc)
-
-    print(f"g_enabled is {g_enabled}")
 
     plt.show()
 
@@ -744,7 +736,6 @@ def checkfunc(label):
     global g_enabled
 
     g_enabled[label] = not g_enabled[label]
-    print(f"g_enabled[{label}] = {g_enabled[label]}")
     plots_draw("set")
 
 def create_box_xy(extent):
