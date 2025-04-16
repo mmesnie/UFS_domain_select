@@ -3,11 +3,10 @@
 #
 # TODO
 #
-# - update input args to accepted RotatedPole
+# - settle on menu FIXME
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
 # - write some status to the screen (e.g., YAML written, res selected, ...)
-# - make all the global part of an object??
 # - expand src index to show compute grid
 # - fix filtering for GFS (currently filters based on lon/lat spans)
 # - understand and integrate regional_latlon
@@ -480,6 +479,10 @@ def projs_create(mode):
         case 13 | 14:
             g_dim_x = 4; g_dim_y = 4
 
+    # FIXME
+    g_dim_x+=1
+    g_dim_y+=1
+
     # Give each projection a color (brown is the default).
     for p in g_projs:
         g_color[p] = "brown"
@@ -497,6 +500,7 @@ def projs_create(mode):
 def plots_remove():
     global g_plotted
 
+    # FIXME
     g_axis['menu1'].remove()
     g_axis['menu2'].remove()
     if g_projs:
@@ -582,6 +586,15 @@ def plots_draw(mode):
     # Create plots
     g_axis = {}
     j = 1
+
+    # FIXME
+    #g_axis['menu1'] = g_fig.add_subplot(g_dim_x, g_dim_y, j)
+    g_axis['menu1'] = g_fig.add_subplot(8, 2, 15)
+    #j = j + 1
+    #g_axis['menu2'] = g_fig.add_subplot(g_dim_x, g_dim_y, j)
+    g_axis['menu2'] = g_fig.add_subplot(8, 2, 16)
+    #j = j + 1
+
     for p in g_projs:
 
         g_axis[p] = g_fig.add_subplot(g_dim_x, g_dim_y, j, projection=g_proj[p])
@@ -608,6 +621,7 @@ def plots_draw(mode):
         g_plotted[p] = True
 
         j = j + 1
+
 
     if mode == "init":
         xc, yc = g_proj[g_index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
@@ -702,9 +716,10 @@ def plots_draw(mode):
         if args.close:
             exit(0)
 
+    # FIXME
     # Check buttons
-    g_axis['menu1'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
-    g_axis['menu2'] = g_fig.add_axes([0.85, 0.0, 0.2, 0.2], frameon=False)
+    #g_axis['menu1'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
+    #g_axis['menu2'] = g_fig.add_axes([0.85, 0.0, 0.2, 0.2], frameon=False)
 
     proj1 = []
     proj2 = []
@@ -725,6 +740,7 @@ def plots_draw(mode):
                 status2.append(False)
             proj2.append(p)
         count += 1
+    # FIXME
     g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
     g_check1.on_clicked(checkfunc)
     g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
