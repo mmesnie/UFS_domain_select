@@ -3,7 +3,7 @@
 #
 # TODO
 #
-# - settle on menu FIXME
+# - keep from removing last one (make first/last one the "index")
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
 # - write some status to the screen (e.g., YAML written, res selected, ...)
@@ -369,11 +369,13 @@ def on_key_press(event):
             g_extent[g_index] = g_axis[g_index].get_extent()
             g_view[g_index] = "global"
             g_axis[g_index].set_global()
-            g_axis[g_index].set_title(g_index + " (toggle global)")
+            #g_axis[g_index].set_title(g_index + " (toggle global)")
+            g_axis[g_index].set_title(g_index + " (global)")
         elif g_view[g_index] == "global": 
             g_view[g_index] = "regional"
             g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-            g_axis[g_index].set_title(g_index + " (toggle regional)")
+            #g_axis[g_index].set_title(g_index + " (toggle regional)")
+            g_axis[g_index].set_title(g_index)
     elif event.key == 'q':
         exit(0)
 
@@ -413,8 +415,8 @@ def projs_create(mode):
     g_proj["Miller"] = ccrs.Miller(central_longitude=g_cen_lon)
 
     # Conic
-    g_proj["EquidistantConic"] = ccrs.EquidistantConic(central_longitude=g_cen_lon, 
-                                                       central_latitude=g_cen_lat)
+    #g_proj["EquidistantConic"] = ccrs.EquidistantConic(central_longitude=g_cen_lon, 
+    #                                                   central_latitude=g_cen_lat)
     g_proj["AlbersEqualArea"] = ccrs.AlbersEqualArea(central_longitude=g_cen_lon, 
                                                      central_latitude=g_cen_lat)
     if g_cen_lat>0:
@@ -465,11 +467,11 @@ def projs_create(mode):
         case 3:
             g_dim_x = 3; g_dim_y = 1
         case 4:
-            g_dim_x = 2; g_dim_y = 2
+            g_dim_x = 2+1; g_dim_y = 2
         case 5 | 6:
             g_dim_x = 2; g_dim_y = 3
         case 7 | 8:
-            g_dim_x = 4; g_dim_y = 2
+            g_dim_x = 3; g_dim_y = 3
         case 9:
             g_dim_x = 3; g_dim_y = 3
         case 10:
@@ -478,10 +480,6 @@ def projs_create(mode):
             g_dim_x = 4; g_dim_y = 3
         case 13 | 14:
             g_dim_x = 4; g_dim_y = 4
-
-    # FIXME
-    g_dim_x+=1
-    g_dim_y+=1
 
     # Give each projection a color (brown is the default).
     for p in g_projs:
@@ -500,7 +498,6 @@ def projs_create(mode):
 def plots_remove():
     global g_plotted
 
-    # FIXME
     g_axis['menu1'].remove()
     g_axis['menu2'].remove()
     if g_projs:
@@ -587,14 +584,6 @@ def plots_draw(mode):
     g_axis = {}
     j = 1
 
-    # FIXME
-    #g_axis['menu1'] = g_fig.add_subplot(g_dim_x, g_dim_y, j)
-    g_axis['menu1'] = g_fig.add_subplot(8, 2, 15)
-    #j = j + 1
-    #g_axis['menu2'] = g_fig.add_subplot(g_dim_x, g_dim_y, j)
-    g_axis['menu2'] = g_fig.add_subplot(8, 2, 16)
-    #j = j + 1
-
     for p in g_projs:
 
         g_axis[p] = g_fig.add_subplot(g_dim_x, g_dim_y, j, projection=g_proj[p])
@@ -638,7 +627,8 @@ def plots_draw(mode):
         if g_view[g_index] == "regional" or mode == "set":
             try:
                 g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-                g_axis[g_index].set_title(g_index + " (reset regional)")
+                #g_axis[g_index].set_title(g_index + " (reset regional)")
+                g_axis[g_index].set_title(g_index)
                 g_view[g_index] = "regional"
             except:
                 print(f"*** CASE 2: FAILED TO SET EXTENT ({g_index}) ***")
@@ -685,7 +675,8 @@ def plots_draw(mode):
                     g_extent[p] = g_axis[p].get_extent()
                     g_view[p] = "global"
                     g_axis[p].set_global()
-                    g_axis[p].set_title(p + " (initial global view)")
+                    #g_axis[p].set_title(p + " (initial global view)")
+                    g_axis[p].set_title(p + " (global)")
                 else:
                     g_extent[p] = g_axis[p].get_extent()
     else:
@@ -694,7 +685,8 @@ def plots_draw(mode):
                 g_extent[p] =  g_axis[p].get_extent()
                 g_axis[p].set_global()
                 g_view[p] = "global"
-                g_axis[p].set_title(p + " (restored global)")
+                #g_axis[p].set_title(p + " (restored global)")
+                g_axis[p].set_title(p)
 
     if True and args.file:
         plot_grib()
@@ -716,10 +708,9 @@ def plots_draw(mode):
         if args.close:
             exit(0)
 
-    # FIXME
     # Check buttons
-    #g_axis['menu1'] = g_fig.add_axes([0.0, 0.0, 0.2, 0.2], frameon=False)
-    #g_axis['menu2'] = g_fig.add_axes([0.85, 0.0, 0.2, 0.2], frameon=False)
+    g_axis['menu1'] = g_fig.add_axes([0.25, 0.0, 0.1, 0.1], frameon=False)
+    g_axis['menu2'] = g_fig.add_axes([0.65, 0.0, 0.1, 0.1], frameon=False)
 
     proj1 = []
     proj2 = []
@@ -740,7 +731,6 @@ def plots_draw(mode):
                 status2.append(False)
             proj2.append(p)
         count += 1
-    # FIXME
     g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
     g_check1.on_clicked(checkfunc)
     g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
