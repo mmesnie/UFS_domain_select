@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+g_menu = True
+
 #
 # TODO
 #
@@ -464,19 +466,15 @@ def projs_create(mode):
             g_dim_x = 1; g_dim_y = 1
         case 2:
             g_dim_x = 2; g_dim_y = 1
-        case 3:
-            g_dim_x = 3; g_dim_y = 1
-        case 4:
-            g_dim_x = 2+1; g_dim_y = 2
+        case 3 | 4:
+            g_dim_x = 2; g_dim_y = 2
         case 5 | 6:
             g_dim_x = 2; g_dim_y = 3
         case 7 | 8:
             g_dim_x = 3; g_dim_y = 3
         case 9:
             g_dim_x = 3; g_dim_y = 3
-        case 10:
-            g_dim_x = 5; g_dim_y = 2
-        case 11 | 12:
+        case 10 | 11 | 12:
             g_dim_x = 4; g_dim_y = 3
         case 13 | 14:
             g_dim_x = 4; g_dim_y = 4
@@ -498,8 +496,9 @@ def projs_create(mode):
 def plots_remove():
     global g_plotted
 
-    g_axis['menu1'].remove()
-    g_axis['menu2'].remove()
+    if (g_menu):
+        g_axis['menu1'].remove()
+        g_axis['menu2'].remove()
     if g_projs:
         for p in g_projs:
             if g_plotted[p]:
@@ -709,8 +708,9 @@ def plots_draw(mode):
             exit(0)
 
     # Check buttons
-    g_axis['menu1'] = g_fig.add_axes([0.25, 0.0, 0.1, 0.1], frameon=False)
-    g_axis['menu2'] = g_fig.add_axes([0.65, 0.0, 0.1, 0.1], frameon=False)
+    if (g_menu):
+        g_axis['menu1'] = g_fig.add_axes([0.25, 0.0, 0.1, 0.1], frameon=False)
+        g_axis['menu2'] = g_fig.add_axes([0.65, 0.0, 0.1, 0.1], frameon=False)
 
     proj1 = []
     proj2 = []
@@ -731,10 +731,11 @@ def plots_draw(mode):
                 status2.append(False)
             proj2.append(p)
         count += 1
-    g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
-    g_check1.on_clicked(checkfunc)
-    g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
-    g_check2.on_clicked(checkfunc)
+    if (g_menu):
+        g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
+        g_check1.on_clicked(checkfunc)
+        g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
+        g_check2.on_clicked(checkfunc)
 
     plt.show()
 
