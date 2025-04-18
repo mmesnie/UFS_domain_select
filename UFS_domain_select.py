@@ -5,7 +5,7 @@ g_menu = True
 #
 # TODO
 #
-# - keep from removing last one (make first/last one the "index")
+# - check "centering" correctness for each projection Add cases, like Miller and Mercator...
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
 # - write some status to the screen (e.g., YAML written, res selected, ...)
@@ -417,8 +417,8 @@ def projs_create(mode):
     g_proj["Miller"] = ccrs.Miller(central_longitude=g_cen_lon)
 
     # Conic
-    #g_proj["EquidistantConic"] = ccrs.EquidistantConic(central_longitude=g_cen_lon, 
-    #                                                   central_latitude=g_cen_lat)
+    g_proj["EquidistantConic"] = ccrs.EquidistantConic(central_longitude=g_cen_lon, 
+                                                       central_latitude=g_cen_lat)
     g_proj["AlbersEqualArea"] = ccrs.AlbersEqualArea(central_longitude=g_cen_lon, 
                                                      central_latitude=g_cen_lat)
     if g_cen_lat>0:
@@ -716,8 +716,10 @@ def plots_draw(mode):
     proj2 = []
     status1 = []
     status2 = []
-    count = 0
+    count = 1
     for p in g_proj:
+        if p == g_index_dflt:
+            continue
         if count<len(g_proj)/2:
             if g_enabled[p]:
                 status1.append(True)
@@ -741,9 +743,18 @@ def plots_draw(mode):
 
 def checkfunc(label):
     global g_enabled
+    global g_index
 
-    g_enabled[label] = not g_enabled[label]
-    plots_draw("set")
+    if label == g_index_dflt:
+        print("NOT DISABLING DEFAULT INDEX")
+    elif label == g_index:
+        print("DISABLING CURRENT INDEX")
+        g_enabled[label] = not g_enabled[label]
+        g_index = g_index_dflt
+        plots_draw("set")
+    else:
+        g_enabled[label] = not g_enabled[label]
+        plots_draw("set")
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
