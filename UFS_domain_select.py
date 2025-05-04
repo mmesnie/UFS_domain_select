@@ -63,6 +63,7 @@ g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML out
 g_debug = False
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 g_index_dflt = 'LambertConformal'
+g_index_dflt = 'RotatedPole'
 
 #
 # Default YAML values
@@ -79,11 +80,13 @@ g_fcst_len_hrs = 24
 g_lbc_spec_intvl_hrs = 6
 g_extrn_mdl_source_basedir_ics = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+
+g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
+
 #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
 #g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
-g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
+#g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
+#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
 
 #
 # Imports
@@ -166,6 +169,7 @@ def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
 
 def get_dims(index, color):
+    print(f"GET EXTENT A {index}")
     extent = g_axis[index].get_extent()
     x1, x2, y1, y2 = extent
 
@@ -368,6 +372,7 @@ def on_key_press(event):
     elif event.key == 'g':
         print(f"toggling global view (source {g_index})")
         if g_view[g_index] == "regional":
+            print(f"GET+SAVE EXTENT A ({g_index})")
             g_extent[g_index] = g_axis[g_index].get_extent()
             g_view[g_index] = "global"
             g_axis[g_index].set_global()
@@ -375,6 +380,7 @@ def on_key_press(event):
             g_axis[g_index].set_title(g_index + " (global)")
         elif g_view[g_index] == "global": 
             g_view[g_index] = "regional"
+            print(f"SET EXTENT A ({g_index}, toggle global to regional)")
             g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
             #g_axis[g_index].set_title(g_index + " (toggle regional)")
             g_axis[g_index].set_title(g_index)
@@ -546,9 +552,11 @@ def plots_draw(mode):
         restore_global = {}
         for p in g_projs:
             if p == g_index:
+                print(f"GET+SAVE EXTENT B ({p})")
                 g_extent[p] = g_axis[p].get_extent()
             elif (not p == g_index) and g_plotted[p] and g_enabled[p]:
                 try:
+                    print(f"SET EXTENT B ({p} non-init, forcing regional)")
                     g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
                 except:
                     print(f"*** WARN: FAILED TO SET EXTENT ({p}) ***")
@@ -610,22 +618,31 @@ def plots_draw(mode):
 
         j = j + 1
 
-
     if mode == "init":
         xc, yc = g_proj[g_index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
         xll, yll = g_proj[g_index].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
         xlr = xc+(xc-xll); ylr = yc-(yc-yll)
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
+        print(f"SAVE EXTENT A ({g_index} init)")
         g_extent[g_index] = (xll, xlr, yll, yul)
     else:
+        print(f"SAVE EXTENT B ({g_index} non-init)")
         g_extent[g_index] = new_extent
+
+    if args.file:
+        print("PREMATURE PLOT - FIXES THE ISSUE!")
+        plot_grib()
 
     if True:
 
         if g_view[g_index] == "regional" or mode == "set":
             try:
-                g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
+                if not args.file:
+                    print(f"SET EXTENT C: {g_extent[g_index]}")
+                    g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
+                else:
+                    print(f"GRIB FILE SPECIFIED: not setting extent for {p}")
                 #g_axis[g_index].set_title(g_index + " (reset regional)")
                 g_axis[g_index].set_title(g_index)
                 g_view[g_index] = "regional"
@@ -662,6 +679,7 @@ def plots_draw(mode):
             g_axis[g_index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
 
     if mode == "center":
+        print(f"GET EXTENT B {g_index}")
         x1, x2, y1, y2 = g_axis[g_index].get_extent()
         g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj[g_index])
 
@@ -671,23 +689,26 @@ def plots_draw(mode):
             if g_plotted[p]:
                 if p == "Orthographic":
                     print(f"INITIALIZING g_view[{p}] GLOBAL")
+                    print(f"GET+SAVE EXTENT C ({p})")
                     g_extent[p] = g_axis[p].get_extent()
                     g_view[p] = "global"
                     g_axis[p].set_global()
                     #g_axis[p].set_title(p + " (initial global view)")
                     g_axis[p].set_title(p + " (global)")
                 else:
+                    print(f"GET+SAVE EXTENT D ({p})")
                     g_extent[p] = g_axis[p].get_extent()
     else:
         for p in restore_global:
             if g_enabled[p]:
+                print(f"GET+SAVE EXTENT E ({p})")
                 g_extent[p] =  g_axis[p].get_extent()
                 g_axis[p].set_global()
                 g_view[p] = "global"
                 #g_axis[p].set_title(p + " (restored global)")
                 g_axis[p].set_title(p)
 
-    if True and args.file:
+    if False and args.file:
         plot_grib()
         ram = io.BytesIO()
         for p in g_projs:
@@ -706,6 +727,8 @@ def plots_draw(mode):
 
         if args.close:
             exit(0)
+    else:
+        print("NOT PLOTTING POST")
 
     # Check buttons
     if (g_menu):
@@ -785,6 +808,9 @@ def create_box_xy_data(src_index, color):
     x1, x2, y1, y2 = extent 
     xs = []
     ys = []
+
+    #print(f"cen_lon {cen_lon} cen_lat {cen_lat} lwr_lon {lwr_lon} lwr_lat {lwr_lat}")
+
     #left
     for i in range(0, 33):
         xs.append(x1)
