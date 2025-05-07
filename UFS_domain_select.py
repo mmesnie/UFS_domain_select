@@ -62,8 +62,8 @@ g_res_dflt=-1                                             # 3000, 13000, 25000, 
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
 g_debug = False
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
-g_index_dflt = 'LambertConformal'
 g_index_dflt = 'RotatedPole'
+g_index_dflt = 'LambertConformal'
 
 #
 # Default YAML values
@@ -163,7 +163,24 @@ def on_button_press(event):
         g_index = get_index(event.inaxes)
         g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata, 
                                                                   event.inaxes.projection)
-        plots_draw("center")
+        if True:
+            print(f"DOING NEW CENTER MODE (current view {g_view[g_index]})")
+            g_axis[g_index].remove()
+            g_proj[g_index] = proj_create(g_index)
+            g_axis[g_index] = g_fig.add_subplot(g_dim_x, g_dim_y, g_loc[g_index], projection=g_proj[g_index])
+            g_axis[g_index].margins(x=0.0, y=0.0)
+            g_axis[g_index].add_feature(cfeature.COASTLINE)
+            g_axis[g_index].add_feature(cfeature.BORDERS)
+            g_axis[g_index].add_feature(cfeature.STATES)
+            g_axis[g_index].gridlines()
+            match g_view[g_index]:
+                case "regional":
+                    g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
+                case "global":
+                    g_axis[g_index].set_global()
+            plt.show()
+        else:
+            plots_draw("center")
 
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
@@ -392,6 +409,44 @@ def get_index(ax):
         if g_axis[p] == ax:
             return p
 
+def proj_create(index):
+    match index:
+        case "PlateCarree":
+            return ccrs.PlateCarree(central_longitude=g_cen_lon)
+        case "Mercator":
+            return ccrs.Mercator(central_longitude=g_cen_lon)
+        case "Miller":
+            return ccrs.Miller(central_longitude=g_cen_lon)
+        case "EquidistantConic":
+            return ccrs.EquidistantConic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+        case "AlbersEqualArea":
+            return ccrs.AlbersEqualArea(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+        case "LambertConformal":
+            if g_cen_lat>0:
+                lat_cutoff = -30
+            else:
+                lat_cutoff = 30
+            return ccrs.LambertConformal(central_longitude=g_cen_lon, 
+                                         central_latitude=g_cen_lat,
+                                         standard_parallels=(g_cen_lat, g_cen_lat), 
+                                         cutoff=lat_cutoff)
+        case "Stereographic":
+            return ccrs.Stereographic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+        case "Orthographic":
+            return ccrs.Orthographic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+        case "Gnomonic":
+            return ccrs.Gnomonic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+        case "Robinson":
+            return ccrs.Robinson(central_longitude=g_cen_lon)
+        case "Mollweide":
+            return ccrs.Mollweide(central_longitude=g_cen_lon)
+        case "Sinusoidal":
+            return ccrs.Sinusoidal(central_longitude=g_cen_lon)
+        case "RotatedPole":
+            return ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
+        case "InterruptedGoodeHomolosine":
+            return ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
+
 def projs_create(mode):
     global g_proj
     global g_projs
@@ -418,45 +473,36 @@ def projs_create(mode):
     # Aspect: Normal, Transverse, Oblique
 
     # Cylindrical
-    g_proj["PlateCarree"] = ccrs.PlateCarree(central_longitude=g_cen_lon)
-    g_proj["Mercator"] = ccrs.Mercator(central_longitude=g_cen_lon)
-    g_proj["Miller"] = ccrs.Miller(central_longitude=g_cen_lon)
+    g_proj["PlateCarree"] = proj_create("PlateCarree")
+    g_proj["Mercator"] = proj_create("Mercator")
+    g_proj["Miller"] = proj_create("Miller")
 
     # Conic
-    g_proj["EquidistantConic"] = ccrs.EquidistantConic(central_longitude=g_cen_lon, 
-                                                       central_latitude=g_cen_lat)
-    g_proj["AlbersEqualArea"] = ccrs.AlbersEqualArea(central_longitude=g_cen_lon, 
-                                                     central_latitude=g_cen_lat)
-    if g_cen_lat>0:
-        lat_cutoff = -30
-    else:
-        lat_cutoff = 30
-    g_proj["LambertConformal"] = ccrs.LambertConformal(central_longitude=g_cen_lon, 
-                                                       central_latitude=g_cen_lat,
-                                                       standard_parallels=(g_cen_lat, g_cen_lat), 
-                                                       cutoff=lat_cutoff)
+    g_proj["EquidistantConic"] = proj_create("EquidistantConic") 
+    g_proj["AlbersEqualArea"] = proj_create("AlbersEqualArea")
+    g_proj["LambertConformal"] = proj_create("LambertConformal")
 
     # Planar/Azimuthal
-    g_proj["Stereographic"] = ccrs.Stereographic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
-    g_proj["Orthographic"] = ccrs.Orthographic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
-    g_proj["Gnomonic"] = ccrs.Gnomonic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+    g_proj["Stereographic"] = proj_create("Stereographic")
+    g_proj["Orthographic"] = proj_create("Orthographic")
+    g_proj["Gnomonic"] = proj_create("Gnomonic")
 
     # Pseudo-cylindrical
-    g_proj["Robinson"] = ccrs.Robinson(central_longitude=g_cen_lon)
-    g_proj["Mollweide"] = ccrs.Mollweide(central_longitude=g_cen_lon)
-    g_proj["Sinusoidal"] = ccrs.Sinusoidal(central_longitude=g_cen_lon)
+    g_proj["Robinson"] = proj_create("Robinson")
+    g_proj["Mollweide"] = proj_create("Mollweide")
+    g_proj["Sinusoidal"] = proj_create("Sinusoidal")
 
     # Other
-    #g_proj["InterruptedGoodeHomolosine"] = ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
-    g_proj["RotatedPole"] = ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
+    g_proj["RotatedPole"] = proj_create("RotatedPole")
+    g_proj["InterruptedGoodeHomolosine"] = proj_create("InterruptedGoodeHomolosine")
 
     if mode == "init":
         g_enabled = {}
         for p in g_proj:
             g_enabled[p] = False
         g_enabled['LambertConformal'] = True
-        g_enabled['RotatedPole'] = True
-        g_enabled['Gnomonic'] = True
+        g_enabled['RotatedPole'] = False
+        g_enabled['Gnomonic'] = False
         g_enabled['Orthographic'] = True
 
     g_projs = []
@@ -537,6 +583,7 @@ def plots_draw(mode):
     global g_enabled
     global g_check1
     global g_check2
+    global g_loc
 
     #
     # Notes on global variables:
@@ -589,6 +636,7 @@ def plots_draw(mode):
 
     # Create plots
     g_axis = {}
+    g_loc = {}
     j = 1
 
     for p in g_projs:
@@ -599,6 +647,7 @@ def plots_draw(mode):
         g_axis[p].add_feature(cfeature.BORDERS)
         g_axis[p].add_feature(cfeature.STATES)
         g_axis[p].gridlines()
+        g_loc[p] = j
 
         # Set axis view (global or regional/zoomed)
         if g_debug:
