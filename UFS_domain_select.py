@@ -5,6 +5,7 @@ g_menu = True
 #
 # TODO
 #
+# - address FIXME's for not removing last grid
 # - check "centering" correctness for each projection Add cases, like Miller and Mercator...
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
@@ -62,7 +63,11 @@ g_res_dflt=-1                                             # 3000, 13000, 25000, 
 g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
 g_debug = False
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
+
 g_index_dflt = 'RotatedPole'
+g_index_dflt = 'PlateCarree'
+g_index_dflt = 'InterruptedGoodeHomolosine'
+g_index_dflt = 'Mercator'
 g_index_dflt = 'LambertConformal'
 
 #
@@ -82,11 +87,12 @@ g_extrn_mdl_source_basedir_ics = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_
 g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
 g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-
 #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
 #g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
 #g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
 #g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+#g_cen_lon_dflt=-83.23; g_cen_lat_dflt=27.86; g_crn_lon_dflt=-85; g_crn_lat_dflt=24  # Florida
+
 
 #
 # Imports
@@ -157,36 +163,53 @@ def cen_lat_adjust(cen_lat):
 
 def on_button_press(event):
     global g_cen_lon, g_cen_lat
-    global g_index
+    global g_crn_lon, g_crn_lat
 
-    if event.inaxes and event.button is MouseButton.MIDDLE:
-        g_index = get_index(event.inaxes)
-        g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata, 
-                                                                  event.inaxes.projection)
-        if True:
-            print(f"DOING NEW CENTER MODE (current view {g_view[g_index]})")
-            g_axis[g_index].remove()
-            g_proj[g_index] = proj_create(g_index)
-            g_axis[g_index] = g_fig.add_subplot(g_dim_x, g_dim_y, g_loc[g_index], projection=g_proj[g_index])
-            g_axis[g_index].margins(x=0.0, y=0.0)
-            g_axis[g_index].add_feature(cfeature.COASTLINE)
-            g_axis[g_index].add_feature(cfeature.BORDERS)
-            g_axis[g_index].add_feature(cfeature.STATES)
-            g_axis[g_index].gridlines()
-            match g_view[g_index]:
-                case "regional":
-                    g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-                case "global":
-                    g_axis[g_index].set_global()
-            plt.show()
-        else:
-            plots_draw("center")
+    if not (event.inaxes and event.button is MouseButton.MIDDLE):
+        return
+
+    index = get_index(event.inaxes)
+
+    if g_view[index] == "global":
+        g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+        restore = True
+    else:
+        restore = False
+
+    g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata,
+                                                              event.inaxes.projection)
+    extent = g_axis[index].get_extent()
+    x1, x2, y1, y2 = extent
+
+    if no_cen_lat(index):
+        yc = event.ydata
+        g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, yc-(y2-y1)/2, yc+(y2-y1)/2
+    else:
+        g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, -(y2-y1)/2, +(y2-y1)/2
+
+    g_axis[index].remove()
+    g_proj[index] = proj_create(index)
+    g_axis[index] = g_fig.add_subplot(g_dim_x, g_dim_y, g_loc[index], projection=g_proj[index])
+    g_axis[index].margins(x=0.0, y=0.0)
+    g_axis[index].add_feature(cfeature.COASTLINE)
+    g_axis[index].add_feature(cfeature.BORDERS)
+    g_axis[index].add_feature(cfeature.STATES)
+    g_axis[index].gridlines()
+    g_axis[index].set_title(index + " (centered)")
+    g_axis[index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
+                         marker='*', ms=10, color='green')
+    g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+
+    if restore:
+        g_axis[g_index].set_global()
+        g_axis[g_index].set_title(g_index + " (global center restored)")
+
+    plt.show()
 
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
 
 def get_dims(index, color):
-    print(f"GET EXTENT A {index}")
     extent = g_axis[index].get_extent()
     x1, x2, y1, y2 = extent
 
@@ -389,18 +412,14 @@ def on_key_press(event):
     elif event.key == 'g':
         print(f"toggling global view (source {g_index})")
         if g_view[g_index] == "regional":
-            print(f"GET+SAVE EXTENT A ({g_index})")
             g_extent[g_index] = g_axis[g_index].get_extent()
             g_view[g_index] = "global"
             g_axis[g_index].set_global()
-            #g_axis[g_index].set_title(g_index + " (toggle global)")
-            g_axis[g_index].set_title(g_index + " (global)")
+            g_axis[g_index].set_title(g_index + " (global T)")
         elif g_view[g_index] == "global": 
             g_view[g_index] = "regional"
-            print(f"SET EXTENT A ({g_index}, toggle global to regional)")
             g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-            #g_axis[g_index].set_title(g_index + " (toggle regional)")
-            g_axis[g_index].set_title(g_index)
+            g_axis[g_index].set_title(g_index + " (regional T)")
     elif event.key == 'q':
         exit(0)
 
@@ -446,6 +465,14 @@ def proj_create(index):
             return ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
         case "InterruptedGoodeHomolosine":
             return ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
+
+def no_cen_lat(index):
+    if index == "Mercator" or index == "Miller" or index == "PlateCarree" \
+            or index == "Robinson" or index == "Sinusoidal" \
+            or index == "Mollweide" or index == "InterruptedGoodeHomolosine":
+            return True
+    else:
+            return False
 
 def projs_create(mode):
     global g_proj
@@ -500,10 +527,13 @@ def projs_create(mode):
         g_enabled = {}
         for p in g_proj:
             g_enabled[p] = False
+        g_enabled['Mercator'] = True
         g_enabled['LambertConformal'] = True
-        g_enabled['RotatedPole'] = False
-        g_enabled['Gnomonic'] = False
-        g_enabled['Orthographic'] = True
+        g_enabled['PlateCarree'] = True
+        #g_enabled['InterruptedGoodeHomolosine'] = True
+        #g_enabled['RotatedPole'] = True
+        #g_enabled['Gnomonic'] = True
+        #g_enabled['Orthographic'] = True
 
     g_projs = []
 
@@ -599,11 +629,9 @@ def plots_draw(mode):
         restore_global = {}
         for p in g_projs:
             if p == g_index:
-                print(f"GET+SAVE EXTENT B ({p})")
                 g_extent[p] = g_axis[p].get_extent()
             elif (not p == g_index) and g_plotted[p] and g_enabled[p]:
                 try:
-                    print(f"SET EXTENT B ({p} non-init, forcing regional)")
                     g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
                 except:
                     print(f"*** WARN: FAILED TO SET EXTENT ({p}) ***")
@@ -616,13 +644,22 @@ def plots_draw(mode):
     else:
         if mode == "set":
             g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
+            print(f"CASE A: dim extent is {x1, x2, y1, y2}")
         elif mode == "center":
             _, _, _, _, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
-        if g_index == "Mercator" or g_index == "Miller":
+
+        if no_cen_lat(g_index):
             xc, yc = g_proj[g_index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-            new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+            # This calculation doesn't work for InterruptedGoodeHomolosine
+            if g_index == "InterruptedGoodeHomolosine":
+                print(f"SPECIAL CASE FOR InterruptedGoodeHomolosine (set)")
+                new_extent = (xc-abs(x2-x1)/2, xc+abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+            else:
+                new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
+            print(f"CASE A: new_extent is {new_extent}")
         else:
             new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2,   -abs(y2-y1)/2,    abs(y2-y1)/2)
+            print("CASE B")
 
     # Remove old plots (the try will fail on the first "init", as g_projs hasn't
     # yet been defined via projs_create()
@@ -638,6 +675,8 @@ def plots_draw(mode):
     g_axis = {}
     g_loc = {}
     j = 1
+
+    print(f"CREATING PLOTS w/ INDEX {g_index}")
 
     for p in g_projs:
 
@@ -659,9 +698,9 @@ def plots_draw(mode):
         else:
             g_view[p] = "regional"
             if p == g_index:
-                g_axis[p].set_title(f"*** {p} ***")
+                g_axis[p].set_title(f"{p} (regional index)")
             else:
-                g_axis[p].set_title(f"{p}")
+                g_axis[p].set_title(f"{p} (regional non-index)")
 
         g_plotted[p] = True
 
@@ -673,11 +712,14 @@ def plots_draw(mode):
         xlr = xc+(xc-xll); ylr = yc-(yc-yll)
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
-        print(f"SAVE EXTENT A ({g_index} init)")
         g_extent[g_index] = (xll, xlr, yll, yul)
+        print(f"CASE 1: g_cen_lon {g_cen_lon} g_crn_lon {g_crn_lon} diff {g_cen_lon - g_crn_lon}")
+        print(f"CASE 1: g_cen_lat {g_cen_lat} g_crn_lat {g_crn_lat} diff {g_cen_lat - g_crn_lat}")
     else:
-        print(f"SAVE EXTENT B ({g_index} non-init)")
         g_extent[g_index] = new_extent
+        print("CASE 2")
+
+    print(f"A: set g_extent to {g_extent[g_index]}")
 
     if args.file:
         print("PREMATURE PLOT - FIXES THE ISSUE!")
@@ -688,17 +730,16 @@ def plots_draw(mode):
         if g_view[g_index] == "regional" or mode == "set":
             try:
                 if not args.file:
-                    print(f"SET EXTENT C: {g_extent[g_index]}")
                     g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
+                    print(f"A:   set extent to {g_extent[g_index]}")
                 else:
                     print(f"GRIB FILE SPECIFIED: not setting extent for {p}")
-                #g_axis[g_index].set_title(g_index + " (reset regional)")
-                g_axis[g_index].set_title(g_index)
+                g_axis[g_index].set_title(f"{g_index} (regional R)")
                 g_view[g_index] = "regional"
             except:
                 print(f"*** CASE 2: FAILED TO SET EXTENT ({g_index}) ***")
         else:
-            g_axis[g_index].set_title(g_index + " (reset global)")
+            g_axis[g_index].set_title(g_index + " (global R)")
             g_view[g_index] = "global"
 
         # Outline the extent of the index's axis
@@ -728,7 +769,6 @@ def plots_draw(mode):
             g_axis[g_index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
 
     if mode == "center":
-        print(f"GET EXTENT B {g_index}")
         x1, x2, y1, y2 = g_axis[g_index].get_extent()
         g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj[g_index])
 
@@ -738,24 +778,19 @@ def plots_draw(mode):
             if g_plotted[p]:
                 if p == "Orthographic":
                     print(f"INITIALIZING g_view[{p}] GLOBAL")
-                    print(f"GET+SAVE EXTENT C ({p})")
                     g_extent[p] = g_axis[p].get_extent()
                     g_view[p] = "global"
                     g_axis[p].set_global()
-                    #g_axis[p].set_title(p + " (initial global view)")
-                    g_axis[p].set_title(p + " (global)")
+                    g_axis[p].set_title(p + " (global view I)")
                 else:
-                    print(f"GET+SAVE EXTENT D ({p})")
                     g_extent[p] = g_axis[p].get_extent()
     else:
         for p in restore_global:
             if g_enabled[p]:
-                print(f"GET+SAVE EXTENT E ({p})")
                 g_extent[p] =  g_axis[p].get_extent()
                 g_axis[p].set_global()
                 g_view[p] = "global"
-                #g_axis[p].set_title(p + " (restored global)")
-                g_axis[p].set_title(p)
+                g_axis[p].set_title(p + " (restored global)")
 
     if False and args.file:
         plot_grib()
@@ -776,8 +811,6 @@ def plots_draw(mode):
 
         if args.close:
             exit(0)
-    else:
-        print("NOT PLOTTING POST")
 
     # Check buttons
     if (g_menu):
@@ -790,8 +823,9 @@ def plots_draw(mode):
     status2 = []
     count = 1
     for p in g_proj:
-        if p == g_index_dflt:
-            continue
+        # FIXME 1
+        #if p == g_index_dflt:
+        #    continue
         if count<len(g_proj)/2:
             if g_enabled[p]:
                 status1.append(True)
@@ -817,16 +851,23 @@ def checkfunc(label):
     global g_enabled
     global g_index
 
-    if label == g_index_dflt:
-        print("NOT DISABLING DEFAULT INDEX")
-    elif label == g_index:
-        print("DISABLING CURRENT INDEX")
-        g_enabled[label] = not g_enabled[label]
-        g_index = g_index_dflt
-        plots_draw("set")
+    if not g_enabled[label]:
+        g_enabled[label] =  True
     else:
-        g_enabled[label] = not g_enabled[label]
-        plots_draw("set")
+        if len(g_projs) == 1:
+            print("CANNOT REMOVE LAST PROJECTON")
+            plots_draw("set")
+            return
+        elif label == g_index:
+            g_enabled[label] =  False
+            g_index = g_projs[0]
+            print(f"CHANGED INDEX to {g_index}")
+            if label == g_index:
+                g_index = g_projs[1]
+                print(f"CHANGED INDEX AGAIN to {g_index}")
+        g_enabled[label] = False
+
+    plots_draw("set")
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
