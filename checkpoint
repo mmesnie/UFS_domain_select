@@ -1,0 +1,4 @@
+#!/bin/bash
+
+git commit -a -m checkpoint
+git push
