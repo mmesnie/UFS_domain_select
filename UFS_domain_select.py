@@ -59,8 +59,9 @@ args = parser.parse_args()
 #
 import os
 HOME = f"{os.environ['HOME']}"
+UFS_DOMAIN_SELECT_HOME = f"{os.environ['UFS_DOMAIN_SELECT_HOME']}"
 g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
-g_yaml_file = f"{HOME}/ufs-srweather-app/ush/config.yaml" # Location of YAML output
+g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_debug = False
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 
@@ -79,12 +80,12 @@ g_layout_x = 3
 g_layout_y = 3
 g_write_groups = 1
 g_write_tasks_per_group = 3
-g_date ='20250403'
-g_cycle ='12'
-g_fcst_len_hrs = 24
+g_date ='20190615'
+g_cycle ='18'
+g_fcst_len_hrs = 12
 g_lbc_spec_intvl_hrs = 6
-g_extrn_mdl_source_basedir_ics = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-g_extrn_mdl_source_basedir_lbcs = f"{HOME}/DATA/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
 g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
 #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
@@ -204,7 +205,7 @@ def on_button_press(event):
         g_axis[g_index].set_global()
         g_axis[g_index].set_title(g_index + " (global center restored)")
 
-    plt.show()
+    plt.draw()
 
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
@@ -287,7 +288,7 @@ user:
   MACHINE: linux
   ACCOUNT: an_account
 workflow:
-  EXPT_SUBDIR: /home/mmesnie/expt-2.2.0/test_community
+  EXPT_SUBDIR: {UFS_DOMAIN_SELECT_HOME}/build/expt-2.2.0/test_community
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
   DATE_FIRST_CYCL: '{g_date}{g_cycle}'

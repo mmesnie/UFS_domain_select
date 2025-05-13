@@ -1,5 +1,8 @@
---> Zooming in on Global should change it to regional!
+=======
+The app
+=======
 
+--> Zooming in on Global should change it to regional!
 --> InterruptedGoodeHomolosine shifts on center
 --> InterruptedGoodeHomolosine creeps on set
 
@@ -12,3 +15,13 @@
 - Output args for recreating the plot (on 'y' press) and make
   it so that it can be copy-pasted as one of the default grids.
   Eventually, we can add an option to "save" as predefined. ;-)
+
+====
+TODO
+====
+  - Remove the need to sudo apt install pip + pip install h5py
+  - Uninstall h5py and add it to the conda environment!
+    Note: pip show pip refers to our regional workflow!
+  - Reintegrate Makefile that downloads the data, please!
+
+UFS_DOMAIN_SELECT_HOME
