@@ -1,0 +1,24 @@
+#!/bin/bash
+
+DIR=${UFS_DOMAIN_SELECT_HOME}/forecast
+
+cent_lon=`python $DIR/hdf5-meta.py -f ../phyf000.nc | grep cen_lon | awk '{print $3}' | sed 's/\[//' | sed 's/\]//' | sed 's/\.$//'`
+cent_lat=`python $DIR/hdf5-meta.py -f ../phyf000.nc | grep cen_lat | awk '{print $3}' | sed 's/\[//' | sed 's/\]//' | sed 's/\.$//'`
+ crn_lon=`python $DIR/hdf5-meta.py -f ../phyf000.nc | grep lon1 | head -n 1 | awk '{print $3}' | sed 's/\[//' | sed 's/\]//' | sed 's/\.$//'`
+ crn_lat=`python $DIR/hdf5-meta.py -f ../phyf000.nc | grep lat1 | head -n 1 | awk '{print $3}' | sed 's/\[//' | sed 's/\]//' | sed 's/\.$//'`
+rm -f *.png
+
+if python $DIR/hdf5-meta.py -f ../phyf000.nc | grep rotated >/dev/null 2>&1; then
+	echo "ROTATED";
+	proj="RotatedPole"
+else
+	echo "LAMBERT";
+	proj="LambertConformal"
+fi
+
+for i in `ls PRSLEV*`; do
+	cmd="$HOME/UFS_domain_select/UFS_domain_select.py -f $i --cen_lon $cent_lon --cen_lat $cent_lat --crn_lon $crn_lon --crn_lat $crn_lat -p $proj";
+	cmd="$HOME/UFS_domain_select/UFS_domain_select.py -f $i --cen_lon $cent_lon --cen_lat $cent_lat -p $proj";
+	echo $cmd
+	$cmd
+done; 
