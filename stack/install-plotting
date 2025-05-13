@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#
+# For plotting
+# 
+# Make sure "conda activate regional_workflow" was run first
+#
+
+conda config --add channels conda-forge
+#conda install pygrib scipy matplotlib cartopy pillow
+conda install -y pygrib cartopy scipy
+sudo apt install ristretto -y

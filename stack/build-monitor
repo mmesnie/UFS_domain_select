@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.1.0|2.2.0>"
+        exit 1
+fi
+
+VER=$1
+
+source /usr/local/lmod/lmod/init/profile
+module use ${UFS_DOMAIN_SELECT_HOME}/build/opt-$VER/modulefiles/stack
+module load hpc hpc-gnu hpc-openmpi
+watch -d -n 1 module avail
+#watch -d -n 1 module overview

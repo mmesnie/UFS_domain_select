@@ -1,0 +1,69 @@
+#!/bin/bash
+
+#export PATH=`echo $PATH | sed 's/\/home\/mmesnie\/anaconda3\/bin:\/home\/mmesnie\/anaconda3\/condabin://'`
+
+if [ $# != 1 ]; then
+	echo "usage: build-stack <2.1.0|2.2.0|latest>"
+	exit 1
+fi
+
+VER=$1
+
+top=`pwd`
+
+sudo apt update
+sudo apt install git -y
+sudo apt install make cmake -y
+sudo apt install gcc g++ gfortran -y
+sudo apt install openmpi-bin -y
+sudo apt install openmpi-common libopenmpi-dev -y
+sudo apt install libssl-dev -y
+sudo apt install curl -y
+sudo apt-get install lua5.3 liblua5.3-0 liblua5.3-dev lua-filesystem-dev lua-posix-dev -y
+sudo apt-get install tcl tcl8.6-dev libtcl8.6 -y
+
+cd
+git clone https://github.com/TACC/Lmod.git
+cd Lmod
+./configure --with-lua=/usr/bin/lua  --with-luac=/usr/bin/luac
+sudo make install
+cd ..
+\rm -rf Lmod
+
+#echo 'export BASH_ENV=/usr/local/lmod/lmod/init/profile' >> ~/.bashrc
+#echo 'source $BASH_ENV' >> ~/.bashrc
+
+sudo ln -sf /bin/bash /bin/sh
+
+#git clone https://github.com/NOAA-EMC/hpc-stack.git -b release/public-v2
+#cd ~/hpc-stack
+#git checkout v1.0.0-beta1-305-gfa37037
+#cp ~/trunk/attic/NOAA-2024/build_* ~/hpc-stack/libs
+#cp ~/trunk/attic/NOAA-2024/stack_custom.yaml ~/hpc-stack/stack
+
+git clone https://github.com/NOAA-EMC/hpc-stack.git -b develop ${UFS_DOMAIN_SELECT_HOME}/build/hpc-stack-$VER
+if [ $VER == "latest" ]; then
+	read -p "<Enter> for stock hpc-stack build"
+else
+	echo "### COPYING PATCH FILES FROM ${UFS_DOMAIN_SELECT_HOME}/patch TO ${UFS_DOMAIN_SELECT_HOME}/build/hpc-stack-$VER ###"
+	(cd ${UFS_DOMAIN_SELECT_HOME}/build/hpc-stack-$VER; git reset fa37037)
+	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/build_* ${UFS_DOMAIN_SELECT_HOME}/build/hpc-stack-$VER/libs
+	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/config_custom-$VER.sh ${UFS_DOMAIN_SELECT_HOME}/build/hpc-stack-$VER/config/config_custom.sh
+	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/stack_custom-$VER.yaml ${UFS_DOMAIN_SELECT_HOME}/build/hpc-stack-$VER/stack//stack_custom.yaml
+fi
+cd ${UFS_DOMAIN_SELECT_HOME}/build/hpc-stack-$VER
+
+#cd
+#git clone https://github.com/NOAA-EMC/hpc-stack.git
+#cd ~/hpc-stack
+#cp ~/trunk/attic/NOAA-2024/build_* ~/hpc-stack/libs
+#cp ~/trunk/attic/NOAA-2024/stack_custom.yaml ~/hpc-stack/stack
+#cp ~/trunk/attic/NOAA-2024/config_custom.sh ~/hpc-stack/config
+
+source /usr/local/lmod/lmod/init/profile
+
+#read -p "<Enter> to configure"
+yes YES | ./setup_modules.sh -p ${UFS_DOMAIN_SELECT_HOME}/build/opt-$VER -c ./config/config_custom.sh
+
+read -p "<Enter> to build"
+./build_stack.sh -p ${UFS_DOMAIN_SELECT_HOME}/build/opt-$VER -c ./config/config_custom.sh -y stack/stack_custom.yaml -m
