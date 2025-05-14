@@ -17,8 +17,8 @@ else
 fi
 
 for i in `ls PRSLEV*`; do
-	cmd="$HOME/UFS_domain_select/UFS_domain_select.py -f $i --cen_lon $cent_lon --cen_lat $cent_lat --crn_lon $crn_lon --crn_lat $crn_lat -p $proj";
-	cmd="$HOME/UFS_domain_select/UFS_domain_select.py -f $i --cen_lon $cent_lon --cen_lat $cent_lat -p $proj";
+	cmd="$UFS_DOMAIN_SELECT_HOME/UFS_domain_select.py -f $i --cen_lon $cent_lon --cen_lat $cent_lat --crn_lon $crn_lon --crn_lat $crn_lat -p $proj";
+	cmd="$UFS_DOMAIN_SELECT_HOME/UFS_domain_select.py -f $i --cen_lon $cent_lon --cen_lat $cent_lat -p $proj";
 	echo $cmd
 	$cmd
 done; 

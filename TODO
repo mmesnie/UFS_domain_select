@@ -5,6 +5,7 @@ The app
 --> Zooming in on Global should change it to regional!
 --> InterruptedGoodeHomolosine shifts on center
 --> InterruptedGoodeHomolosine creeps on set
+--> Look into draw vs. show
 
 - Remove uneeded abs calls
 - Keep selected grids on reset ('0')
@@ -19,9 +20,6 @@ The app
 ====
 TODO
 ====
-  - Remove the need to sudo apt install pip + pip install h5py
-  - Uninstall h5py and add it to the conda environment!
-    Note: pip show pip refers to our regional workflow!
+  - pip install h5py (be sure to "conda activate regional_workflow-2.2.0")
+  - resolve "leonard" for data download
   - Reintegrate Makefile that downloads the data, please!
-
-UFS_DOMAIN_SELECT_HOME
