@@ -5,6 +5,7 @@ g_menu = True
 #
 # TODO
 #
+# - update to latest date
 # - check "centering" correctness for each projection. Add cases, like Miller and Mercator, if needed
 #
 # - show Gnomonic plot (red vs. green) and use scale factor
@@ -83,18 +84,17 @@ g_write_groups = 1
 g_write_tasks_per_group = 3
 g_date ='20190615'
 g_cycle ='18'
-g_fcst_len_hrs = 12
-g_lbc_spec_intvl_hrs = 6
+g_fcst_len_hrs = 1
+g_lbc_spec_intvl_hrs = 1
 g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
-g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
+#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
 #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
 #g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
 #g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
-#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
 #g_cen_lon_dflt=-83.23; g_cen_lat_dflt=27.86; g_crn_lon_dflt=-85; g_crn_lat_dflt=24  # Florida
-
 
 #
 # Imports
