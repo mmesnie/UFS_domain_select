@@ -12,18 +12,18 @@ workflow:
   CCPP_PHYS_SUITE: FV3_GFS_v16
   DATE_FIRST_CYCL: '2019061518'
   DATE_LAST_CYCL: '2019061518'
-  FCST_LEN_HRS: 12
+  FCST_LEN_HRS: 1
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
   COMPILER: gnu
   GRID_GEN_METHOD: "ESGgrid"
 task_make_grid:
-  ESGgrid_LON_CTR: -59.5
-  ESGgrid_LAT_CTR: -51.7
-  ESGgrid_NX: 122 
-  ESGgrid_NY: 92
-  ESGgrid_DELX: 3000
-  ESGgrid_DELY: 3000 
+  ESGgrid_LON_CTR: -141.87
+  ESGgrid_LAT_CTR: 40.48
+  ESGgrid_NX: 185 
+  ESGgrid_NY: 219
+  ESGgrid_DELX: 25000
+  ESGgrid_DELY: 25000 
   ESGgrid_PAZI: 0.0
   ESGgrid_WIDE_HALO_WIDTH: 6
 task_get_extrn_ics:
@@ -32,7 +32,7 @@ task_get_extrn_ics:
   EXTRN_MDL_SOURCE_BASEDIR_ICS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
 task_get_extrn_lbcs:
   EXTRN_MDL_NAME_LBCS: FV3GFS
-  LBC_SPEC_INTVL_HRS: 6 
+  LBC_SPEC_INTVL_HRS: 1 
   FV3GFS_FILE_FMT_LBCS: grib2
   EXTRN_MDL_SOURCE_BASEDIR_LBCS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
 task_run_post:
@@ -46,13 +46,13 @@ task_run_fcst:
   WRTCMP_write_groups: 1
   WRTCMP_write_tasks_per_group: 3
   WRTCMP_output_grid: "lambert_conformal"
-  WRTCMP_cen_lon: -59.5
-  WRTCMP_cen_lat: -51.7 
-  WRTCMP_stdlat1: -51.7 
-  WRTCMP_stdlat2: -51.7 
-  WRTCMP_nx: 111
-  WRTCMP_ny: 84
-  WRTCMP_lon_lwr_left: -61.98 
-  WRTCMP_lat_lwr_left: -52.81
-  WRTCMP_dx: 3000
-  WRTCMP_dy: 3000
+  WRTCMP_cen_lon: -141.87
+  WRTCMP_cen_lat: 40.48 
+  WRTCMP_stdlat1: 40.48 
+  WRTCMP_stdlat2: 40.48 
+  WRTCMP_nx: 169
+  WRTCMP_ny: 199
+  WRTCMP_lon_lwr_left: -160.29 
+  WRTCMP_lat_lwr_left: 16.64
+  WRTCMP_dx: 25000
+  WRTCMP_dy: 25000

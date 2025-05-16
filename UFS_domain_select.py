@@ -5,8 +5,8 @@ g_menu = True
 #
 # TODO
 #
-# - update to latest date
 # - check "centering" correctness for each projection. Add cases, like Miller and Mercator, if needed
+# - update to latest date (integrate download feature, to be placed in build ;-)
 #
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
