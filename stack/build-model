@@ -19,6 +19,7 @@ cd $SRC
 ./manage_externals/checkout_externals
 
 cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/lmod-setup.sh etc
+cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/config.yaml ush
 
 #cp ~/trunk/attic/NOAA-2024/srw_common.lua modulefiles
 

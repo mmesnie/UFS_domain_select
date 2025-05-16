@@ -59,7 +59,8 @@ args = parser.parse_args()
 #
 import os
 HOME = f"{os.environ['HOME']}"
-UFS_DOMAIN_SELECT_HOME = f"{os.environ['UFS_DOMAIN_SELECT_HOME']}"
+UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
+
 g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_debug = False
