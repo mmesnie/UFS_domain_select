@@ -5,8 +5,8 @@ g_menu = True
 #
 # TODO
 #
-# - address FIXME's for not removing last grid
-# - check "centering" correctness for each projection Add cases, like Miller and Mercator...
+# - check "centering" correctness for each projection. Add cases, like Miller and Mercator, if needed
+#
 # - show Gnomonic plot (red vs. green) and use scale factor
 # - make sure g_compute_grid is correct (even though we're not showing it)
 # - write some status to the screen (e.g., YAML written, res selected, ...)
@@ -529,13 +529,13 @@ def projs_create(mode):
         g_enabled = {}
         for p in g_proj:
             g_enabled[p] = False
-        g_enabled['Mercator'] = True
         g_enabled['LambertConformal'] = True
-        g_enabled['PlateCarree'] = True
-        #g_enabled['InterruptedGoodeHomolosine'] = True
-        #g_enabled['RotatedPole'] = True
-        #g_enabled['Gnomonic'] = True
-        #g_enabled['Orthographic'] = True
+        g_enabled['Mercator'] = False
+        g_enabled['PlateCarree'] = False
+        #g_enabled['InterruptedGoodeHomolosine'] = False
+        #g_enabled['RotatedPole'] = False
+        #g_enabled['Gnomonic'] = False
+        #g_enabled['Orthographic'] = False
 
     g_projs = []
 
@@ -814,9 +814,6 @@ def plots_draw(mode):
     status2 = []
     count = 1
     for p in g_proj:
-        # FIXME 1
-        #if p == g_index_dflt:
-        #    continue
         if count<len(g_proj)/2:
             if g_enabled[p]:
                 status1.append(True)
