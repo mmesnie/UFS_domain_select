@@ -53,15 +53,15 @@ fi
 
 read -p "<[y]|n> generate forecast?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./do-forecast $VER
+	time ../forecast/do-forecast $VER
 fi
 
 read -p "<[y]|n> generate plots?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./do-plot $VER
+	time ../forecast/do-plot $VER
 fi
 
-read -p "<[y]|n> view plots?" val
-if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	ristretto ~/expt-$VER/test_community/2024121518/postprd/*.png
-fi
+#read -p "<[y]|n> view plots?" val
+#if [ "$val" == "y" ] || [ "$val" == "" ]; then
+#	ristretto ~/expt-$VER/test_community/2024121518/postprd/*.png
+#fi

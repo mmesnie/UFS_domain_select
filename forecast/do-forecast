@@ -7,6 +7,8 @@ fi
 
 VER=$1
 
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
 # UFS_domain_select will write this directly
 #cp ~/config.yaml ~/ufs-srweather-app-v$VER/ush/config.yaml
 

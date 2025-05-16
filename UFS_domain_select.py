@@ -668,7 +668,7 @@ def plots_draw(mode):
     try:
         plots_remove()
     except:
-        print("NO PLOTS TO REMOVE")
+        if g_debug: print("NO PLOTS TO REMOVE")
 
     # Create projections
     projs_create(mode)
@@ -678,7 +678,7 @@ def plots_draw(mode):
     g_loc = {}
     j = 1
 
-    print(f"CREATING PLOTS w/ INDEX {g_index}")
+    if g_debug: print(f"CREATING PLOTS w/ INDEX {g_index}")
 
     for p in g_projs:
 
@@ -715,17 +715,26 @@ def plots_draw(mode):
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
         g_extent[g_index] = (xll, xlr, yll, yul)
-        print(f"CASE 1: g_cen_lon {g_cen_lon} g_crn_lon {g_crn_lon} diff {g_cen_lon - g_crn_lon}")
-        print(f"CASE 1: g_cen_lat {g_cen_lat} g_crn_lat {g_crn_lat} diff {g_cen_lat - g_crn_lat}")
     else:
         g_extent[g_index] = new_extent
         print("CASE 2")
 
-    print(f"A: set g_extent to {g_extent[g_index]}")
+    #print(f"A: set g_extent to {g_extent[g_index]}")
 
     if args.file:
-        print("PREMATURE PLOT - FIXES THE ISSUE!")
         plot_grib()
+        ram = io.BytesIO()
+        for p in g_projs:
+            if g_plotted[p]:
+                g_axis[p].set_title(p)
+        g_fig.suptitle(g_title)
+        plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
+        ram.seek(0)
+        im = PIL.Image.open(ram)
+        im2 = im.convert("RGB")
+        im2.save(args.file + ".png", format="PNG")
+        if args.close:
+            exit(0)
 
     if True:
 
@@ -793,26 +802,6 @@ def plots_draw(mode):
                 g_axis[p].set_global()
                 g_view[p] = "global"
                 g_axis[p].set_title(p + " (restored global)")
-
-    if False and args.file:
-        plot_grib()
-        ram = io.BytesIO()
-        for p in g_projs:
-            if g_plotted[p]:
-                g_axis[p].set_title(p)
-        g_fig.suptitle(g_title)
-
-        if False:
-            plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
-            ram.seek(0)
-            im = PIL.Image.open(ram)
-            im2 = im.convert("RGB")
-            im2.save(args.file + ".png", format="PNG")
-        else:
-            print("*** NOT ACTUALLY SAVING (RACE CONDITION) ***")
-
-        if args.close:
-            exit(0)
 
     # Check buttons
     if (g_menu):
