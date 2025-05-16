@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
 \rm -rf $HOME/.conda
 cd ${UFS_DOMAIN_SELECT_HOME}/build
 \rm -rf anaconda3/ Anaconda3-2023.07-2-Linux-x86_64.sh

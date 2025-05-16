@@ -6,6 +6,8 @@
 # Make sure "conda activate regional_workflow" was run first
 #
 
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
 conda config --add channels conda-forge
 #conda install pygrib scipy matplotlib cartopy pillow
 conda install -y pygrib cartopy scipy

@@ -1,13 +1,15 @@
 #!/bin/bash
 
-export UFS_DOMAIN_SELECT_HOME=`pwd`/..
-
 if [ $# != 1 ]; then
         echo "usage: $0 <2.1.0|2.2.0>"
         exit 1
 fi
 
 VER=$1
+
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
+cd $UFS_DOMAIN_SELECT_HOME/stack
 
 read -p "<[y]|n> build stack?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
