@@ -84,8 +84,8 @@ g_write_groups = 1
 g_write_tasks_per_group = 3
 g_date ='20190615'
 g_cycle ='18'
-g_fcst_len_hrs = 1
-g_lbc_spec_intvl_hrs = 1
+g_fcst_len_hrs = 6
+g_lbc_spec_intvl_hrs = 6
 g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
