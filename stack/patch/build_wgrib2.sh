@@ -39,13 +39,16 @@ cd ${HPC_STACK_ROOT}/${PKGDIR:-"pkg"}
 
 URL="https://www.ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz.v${version}"
 
-# MESNIER FIX (fixing inline, see other FIX below)
+# MESNIER FIX_1 (fixing inline instead, see FIX_2 below)
 [[ -d $software ]] || ( $WGET $URL; tar -xf wgrib2.tgz.v${version} )
 #[[ -d $software ]] || ( cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/wgrib2.tgz.v2.0.8 . )
 
 # wgrib2 is untarred as 'grib2'. Give a name with version.
 [[ -d $software ]] || mkdir $software && tar -xf wgrib2.tgz.v${version} -C $software --strip-components 1
 [[ ${DOWNLOAD_ONLY} =~ [yYtT] ]] && exit 0
+
+# MESNIER FIX_2
+sed 's/\\#/#/g' -i wgrib2-2.0.8/makefile
 
 [[ -d $software ]] && cd $software || ( echo "$software does not exist, ABORT!"; exit 1 )
 
@@ -62,11 +65,6 @@ fi
 if [[ $($CC --version | grep Intel) ]]; then
     export COMP_SYS=intel_linux
 fi
-
-# MESNIER FIX
-echo "MESNIER FIXING..."
-sleep 3
-sed -i 's/^\\#/#/' ip2lib_d/config.h
 
 # Wgrib2 uses an in-source build. Clean before starting.
 make clean

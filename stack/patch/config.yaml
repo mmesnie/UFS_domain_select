@@ -12,7 +12,7 @@ workflow:
   CCPP_PHYS_SUITE: FV3_GFS_v16
   DATE_FIRST_CYCL: '2019061518'
   DATE_LAST_CYCL: '2019061518'
-  FCST_LEN_HRS: 1
+  FCST_LEN_HRS: 6
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
   COMPILER: gnu
@@ -32,7 +32,7 @@ task_get_extrn_ics:
   EXTRN_MDL_SOURCE_BASEDIR_ICS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
 task_get_extrn_lbcs:
   EXTRN_MDL_NAME_LBCS: FV3GFS
-  LBC_SPEC_INTVL_HRS: 1 
+  LBC_SPEC_INTVL_HRS: 6
   FV3GFS_FILE_FMT_LBCS: grib2
   EXTRN_MDL_SOURCE_BASEDIR_LBCS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
 task_run_post:
