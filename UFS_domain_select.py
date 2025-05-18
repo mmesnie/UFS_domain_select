@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 g_menu = True
+g_debug = False
 
 #
 # TODO
 #
-# - check "centering" correctness for each projection. Add cases, like Miller and Mercator, if needed
+# - don't allow setting while in global mode!
 # - update to latest date (integrate download feature, to be placed in build ;-)
 #
 # - show Gnomonic plot (red vs. green) and use scale factor
@@ -64,7 +65,6 @@ UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
 
 g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
-g_debug = False
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 
 g_index_dflt = 'RotatedPole'
@@ -89,11 +89,11 @@ g_lbc_spec_intvl_hrs = 6
 g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
-#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
+g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
 #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
 #g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
 #g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
-g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
 #g_cen_lon_dflt=-83.23; g_cen_lat_dflt=27.86; g_crn_lon_dflt=-85; g_crn_lat_dflt=24  # Florida
 
 #
@@ -201,10 +201,12 @@ def on_button_press(event):
     g_axis[index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
                          marker='*', ms=10, color='green')
     g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+    #g_axis[index].callbacks.connect('xlim_changed', on_xlim_changed)
+    #g_axis[index].callbacks.connect('ylim_changed', on_ylim_changed)
 
     if restore:
-        g_axis[g_index].set_global()
-        g_axis[g_index].set_title(g_index + " (global center restored)")
+        g_axis[index].set_global()
+        g_axis[index].set_title(index + " (global center restored)")
 
     plt.draw()
 
@@ -530,12 +532,12 @@ def projs_create(mode):
         for p in g_proj:
             g_enabled[p] = False
         g_enabled['LambertConformal'] = True
-        g_enabled['Mercator'] = False
-        g_enabled['PlateCarree'] = False
-        #g_enabled['InterruptedGoodeHomolosine'] = False
-        #g_enabled['RotatedPole'] = False
-        #g_enabled['Gnomonic'] = False
-        #g_enabled['Orthographic'] = False
+        #g_enabled['Mercator'] = True
+        #g_enabled['PlateCarree'] = True
+        #g_enabled['InterruptedGoodeHomolosine'] = True
+        #g_enabled['RotatedPole'] = True
+        #g_enabled['Gnomonic'] = True
+        g_enabled['Orthographic'] = True
 
     g_projs = []
 
@@ -646,7 +648,7 @@ def plots_draw(mode):
     else:
         if mode == "set":
             g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
-            print(f"CASE A: dim extent is {x1, x2, y1, y2}")
+            debug(f"CASE A: dim extent is {x1, x2, y1, y2}")
         elif mode == "center":
             _, _, _, _, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
 
@@ -661,14 +663,14 @@ def plots_draw(mode):
             print(f"CASE A: new_extent is {new_extent}")
         else:
             new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2,   -abs(y2-y1)/2,    abs(y2-y1)/2)
-            print("CASE B")
+            debug("CASE B")
 
     # Remove old plots (the try will fail on the first "init", as g_projs hasn't
     # yet been defined via projs_create()
     try:
         plots_remove()
     except:
-        if g_debug: print("NO PLOTS TO REMOVE")
+        debug("NO PLOTS TO REMOVE")
 
     # Create projections
     projs_create(mode)
@@ -678,7 +680,7 @@ def plots_draw(mode):
     g_loc = {}
     j = 1
 
-    if g_debug: print(f"CREATING PLOTS w/ INDEX {g_index}")
+    debug(f"CREATING PLOTS w/ INDEX {g_index}")
 
     for p in g_projs:
 
@@ -688,11 +690,12 @@ def plots_draw(mode):
         g_axis[p].add_feature(cfeature.BORDERS)
         g_axis[p].add_feature(cfeature.STATES)
         g_axis[p].gridlines()
+        #g_axis[p].callbacks.connect('xlim_changed', on_xlim_changed)
+        #g_axis[p].callbacks.connect('ylim_changed', on_ylim_changed)
         g_loc[p] = j
 
         # Set axis view (global or regional/zoomed)
-        if g_debug:
-            print(f"p is {p}, mode is {mode}, g_view[p] is {g_view[p]}")
+        debug(f"p is {p}, mode is {mode}, g_view[p] is {g_view[p]}")
 
         if ((p != g_index) and g_view[p] == "global"):
             g_axis[p].set_title(f"{p} ({mode} global)")
@@ -717,22 +720,22 @@ def plots_draw(mode):
         g_extent[g_index] = (xll, xlr, yll, yul)
     else:
         g_extent[g_index] = new_extent
-        print("CASE 2")
+        debug("CASE 2")
 
     #print(f"A: set g_extent to {g_extent[g_index]}")
 
     if args.file:
         plot_grib()
-        ram = io.BytesIO()
-        for p in g_projs:
-            if g_plotted[p]:
-                g_axis[p].set_title(p)
-        g_fig.suptitle(g_title)
-        plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
-        ram.seek(0)
-        im = PIL.Image.open(ram)
-        im2 = im.convert("RGB")
-        im2.save(args.file + ".png", format="PNG")
+        #ram = io.BytesIO()
+        #for p in g_projs:
+        #    if g_plotted[p]:
+        #        g_axis[p].set_title(p)
+        #g_fig.suptitle(g_title)
+        #plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
+        #ram.seek(0)
+        #im = PIL.Image.open(ram)
+        #im2 = im.convert("RGB")
+        #im2.save(args.file + ".png", format="PNG")
         if args.close:
             exit(0)
 
@@ -742,7 +745,7 @@ def plots_draw(mode):
             try:
                 if not args.file:
                     g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-                    print(f"A:   set extent to {g_extent[g_index]}")
+                    debug(f"A:   set extent to {g_extent[g_index]}")
                 else:
                     print(f"GRIB FILE SPECIFIED: not setting extent for {p}")
                 g_axis[g_index].set_title(f"{g_index} (regional R)")
@@ -788,7 +791,7 @@ def plots_draw(mode):
         for p in g_projs:
             if g_plotted[p]:
                 if p == "Orthographic":
-                    print(f"INITIALIZING g_view[{p}] GLOBAL")
+                    debug(f"INITIALIZING g_view[{p}] GLOBAL")
                     g_extent[p] = g_axis[p].get_extent()
                     g_view[p] = "global"
                     g_axis[p].set_global()
@@ -1009,6 +1012,19 @@ def plot_grib():
 def show_help():
     print(g_help)
 
+#def on_resize(event):
+#    print(f"Figure resized: width={event.width}, height={event.height}")
+
+#def on_xlim_changed(axes):
+#    print("X-axis limits changed:", axes.get_xlim())
+
+#def on_ylim_changed(axes):
+#    print("Y-axis limits changed:", axes.get_ylim())
+
+def debug(format):
+    if g_debug:
+        print(format)
+
 #
 # Main
 #
@@ -1017,6 +1033,6 @@ plt.rcParams["figure.raise_window"] = False
 g_fig = plt.figure(figsize=(10, 10))
 g_fig.canvas.mpl_connect('button_press_event', on_button_press)
 g_fig.canvas.mpl_connect('key_press_event', on_key_press)
+#g_fig.canvas.mpl_connect('resize_event', on_resize)
 show_help()
-
 plots_draw("init")
