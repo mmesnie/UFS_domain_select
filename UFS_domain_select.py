@@ -6,14 +6,12 @@ g_debug = False
 #
 # TODO
 #
-# - don't allow setting while in global mode!
-# - update to latest date (integrate download feature, to be placed in build ;-)
-#
-# - show Gnomonic plot (red vs. green) and use scale factor
-# - make sure g_compute_grid is correct (even though we're not showing it)
-# - write some status to the screen (e.g., YAML written, res selected, ...)
-# - expand src index to show compute grid
-# - fix filtering for GFS (currently filters based on lon/lat spans)
+# - do another validation pass, and don't allow "set" while in global view
+# ...
+# - update Makefile to download latest cycle and integrate into GUI
+# - make sure g_compute_grid (gnomonic) is correct and add option to show it
+# - write status to screen (e.g., YAML written, res selected, ...)
+# - test w/ GFS files (currently filters based on lon/lat spans)
 # - understand and integrate regional_latlon
 #
 
