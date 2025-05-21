@@ -6,7 +6,7 @@ g_debug = False
 #
 # TODO
 #
-# - do another validation pass, and don't allow "set" while in global view
+# - do validation pass, and don't allow "set" while in global view
 # ...
 # - update Makefile to download latest cycle and integrate into GUI
 # - make sure g_compute_grid (gnomonic) is correct and add option to show it
@@ -82,8 +82,8 @@ g_write_groups = 1
 g_write_tasks_per_group = 3
 g_date ='20190615'
 g_cycle ='18'
-g_fcst_len_hrs = 6
-g_lbc_spec_intvl_hrs = 6
+g_fcst_len_hrs = 1
+g_lbc_spec_intvl_hrs = 1
 g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
