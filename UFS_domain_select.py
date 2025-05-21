@@ -67,10 +67,10 @@ g_res_dflt=-1                                             # 3000, 13000, 25000, 
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 
-g_index_dflt = 'RotatedPole'
 g_index_dflt = 'PlateCarree'
 g_index_dflt = 'InterruptedGoodeHomolosine'
 g_index_dflt = 'Mercator'
+g_index_dflt = 'RotatedPole'
 g_index_dflt = 'LambertConformal'
 
 #
@@ -89,12 +89,11 @@ g_lbc_spec_intvl_hrs = 6
 g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
-g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-#g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
+#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
+g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
 #g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
 #g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
 #g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
-#g_cen_lon_dflt=-83.23; g_cen_lat_dflt=27.86; g_crn_lon_dflt=-85; g_crn_lat_dflt=24  # Florida
 
 #
 # Imports
@@ -191,7 +190,8 @@ def on_button_press(event):
 
     g_axis[index].remove()
     g_proj[index] = proj_create(index)
-    g_axis[index] = g_fig.add_subplot(g_dim_x, g_dim_y, g_loc[index], projection=g_proj[index])
+    g_axis[index] = g_fig.add_subplot(g_dim_x, g_dim_y, g_loc[index], 
+                                      projection=g_proj[index])
     g_axis[index].margins(x=0.0, y=0.0)
     g_axis[index].add_feature(cfeature.COASTLINE)
     g_axis[index].add_feature(cfeature.BORDERS)
@@ -531,13 +531,16 @@ def projs_create(mode):
         g_enabled = {}
         for p in g_proj:
             g_enabled[p] = False
-        g_enabled['LambertConformal'] = True
-        #g_enabled['Mercator'] = True
-        #g_enabled['PlateCarree'] = True
-        #g_enabled['InterruptedGoodeHomolosine'] = True
-        #g_enabled['RotatedPole'] = True
-        #g_enabled['Gnomonic'] = True
-        g_enabled['Orthographic'] = True
+        if args.file:
+            g_enabled[g_index_dflt] = True
+        else:
+            g_enabled['LambertConformal'] = True
+            g_enabled['RotatedPole'] = True
+            #g_enabled['Mercator'] = True
+            #g_enabled['PlateCarree'] = True
+            #g_enabled['InterruptedGoodeHomolosine'] = True
+            #g_enabled['Gnomonic'] = True
+            #g_enabled['Orthographic'] = True
 
     g_projs = []
 
@@ -551,7 +554,7 @@ def projs_create(mode):
         case 1:
             g_dim_x = 1; g_dim_y = 1
         case 2:
-            g_dim_x = 2; g_dim_y = 1
+            g_dim_x = 1; g_dim_y = 2
         case 3 | 4:
             g_dim_x = 2; g_dim_y = 2
         case 5 | 6:
@@ -725,17 +728,18 @@ def plots_draw(mode):
     #print(f"A: set g_extent to {g_extent[g_index]}")
 
     if args.file:
+        print(f"SAVING IMAGE to {args.file}")
         plot_grib()
-        #ram = io.BytesIO()
-        #for p in g_projs:
-        #    if g_plotted[p]:
-        #        g_axis[p].set_title(p)
-        #g_fig.suptitle(g_title)
-        #plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
-        #ram.seek(0)
-        #im = PIL.Image.open(ram)
-        #im2 = im.convert("RGB")
-        #im2.save(args.file + ".png", format="PNG")
+        ram = io.BytesIO()
+        for p in g_projs:
+            if g_plotted[p]:
+                g_axis[p].set_title(p)
+        g_fig.suptitle(g_title)
+        plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
+        ram.seek(0)
+        im = PIL.Image.open(ram)
+        im2 = im.convert("RGB")
+        im2.save(args.file + ".png", format="PNG")
         if args.close:
             exit(0)
 
@@ -744,6 +748,7 @@ def plots_draw(mode):
         if g_view[g_index] == "regional" or mode == "set":
             try:
                 if not args.file:
+                    print(f"GRIB FILE NOT SPECIFIED: setting default extent for {p}")
                     g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
                     debug(f"A:   set extent to {g_extent[g_index]}")
                 else:
@@ -760,7 +765,7 @@ def plots_draw(mode):
         x, y = create_box_xy_data(g_index, g_color[g_index])
         g_axis[g_index].plot(x, y, color=g_color[g_index], linewidth=2, alpha=1.0, linestyle='dashed')
         g_axis[g_index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
-                               marker='*', ms=10, color='orange')
+                               marker='*', ms=10, color='purple')
 
         targets = [t for t in g_projs if not t == g_index]
         for p in targets:
@@ -1028,6 +1033,31 @@ def debug(format):
 #
 # Main
 #
+
+#if args.file and not (args.cen_lon and args.cen_lat and args.proj):
+#    print("--file requires --cen_lon, --cen_lat, and --proj")
+#    exit(1)
+#else:
+
+if args.file:
+    g_data = pygrib.open(args.file)
+    msg = g_data[1]
+    debug(f"params: {msg.projparams}")
+    match msg.projparams['proj']:
+        case "lcc":
+            g_index_dflt = 'LambertConformal'
+            g_cen_lon_dflt = msg.projparams['lon_0']
+            g_cen_lat_dflt = msg.projparams['lat_0']
+            print(f"lon_0: {msg.projparams['lon_0']}")
+            print(f"lat_0: {msg.projparams['lat_0']}")
+        case "ob_tran":
+            g_index_dflt = 'RotatedPole'
+            g_cen_lon_dflt = msg.projparams['lon_0']
+            g_cen_lat_dflt = 90 - msg.projparams['o_lat_p']
+        case _:
+            print(f"unsupported projection {msg.projparams['proj']}")
+            exit(1)
+    print(f" proj: {msg.projparams['proj']} --> {g_index_dflt}")
 
 plt.rcParams["figure.raise_window"] = False
 g_fig = plt.figure(figsize=(10, 10))
