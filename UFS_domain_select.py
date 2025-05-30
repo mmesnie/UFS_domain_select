@@ -170,6 +170,8 @@ def on_button_press(event):
 
     index = get_index(event.inaxes)
 
+    print(f"centering projection ({index})")
+
     if g_view[index] == "global":
         g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
         restore = True
@@ -208,9 +210,7 @@ def on_button_press(event):
         g_axis[index].set_title(index + " (global center restored)")
         debug(f"restore: global extent is {g_axis[index].get_extent()}")
 
-    print("DRAWING...")
     plt.draw()
-    print("DONE DRAWING...")
 
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
@@ -413,7 +413,7 @@ def on_key_press(event):
         print(f"set compute grid to {percent}% of write component")
         plots_draw("set")
     elif event.key == ' ':
-        print(f"centering plots (source {g_index})")
+        print(f"setting source projection ({g_index})")
         if (g_axis[g_index].get_extent() == g_global[g_index]):
             print(f"SORRY - ATTEMPT TO SET WITH GLOBAL EXTENT")
             return
@@ -425,23 +425,10 @@ def on_key_press(event):
             g_view[g_index] = "global"
             g_axis[g_index].set_global()
             g_axis[g_index].set_title(g_index + " (global toggle)")
-
-            # FIXME E
-            #x1, x2, y1, y2 = g_axis[g_index].get_extent()
-            #lon1, lat1 = ccrs.PlateCarree().transform_point(x1, y1, g_axis[g_index].projection)
-            #lon2, lat2 = ccrs.PlateCarree().transform_point(x2, y2, g_axis[g_index].projection)
-            #print(f"E: global extent is {x1, x2, y1, y2} = {fmt_tuple((lon1, lon2, lat1, lat2))}")
-
         elif g_view[g_index] == "global": 
             g_view[g_index] = "regional"
             g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
             g_axis[g_index].set_title(g_index + " (regional toggle)")
-
-            # FIXME F
-            #x1, x2, y1, y2 = g_axis[g_index].get_extent()
-            #lon1, lat1 = ccrs.PlateCarree().transform_point(x1, y1, g_axis[g_index].projection)
-            #lon2, lat2 = ccrs.PlateCarree().transform_point(x2, y2, g_axis[g_index].projection)
-            #print(f"F: regional extent is {x1, x2, y1, y2} = {fmt_tuple((lon1, lon2, lat1, lat2))}")
 
     elif event.key == 'q':
         exit(0)
@@ -678,7 +665,6 @@ def plots_draw(mode):
     else:
         if mode == "set":
             g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
-            debug(f"CASE A: dim extent is {x1, x2, y1, y2}")
         elif mode == "center":
             _, _, _, _, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
 
@@ -690,10 +676,8 @@ def plots_draw(mode):
                 new_extent = (xc-abs(x2-x1)/2, xc+abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
             else:
                 new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
-            print(f"CASE A: new_extent is {new_extent}")
         else:
             new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2,   -abs(y2-y1)/2,    abs(y2-y1)/2)
-            debug("CASE B")
 
     # Remove old plots (the try will fail on the first "init", as g_projs hasn't
     # yet been defined via projs_create()
@@ -730,12 +714,6 @@ def plots_draw(mode):
         if ((p != g_index) and g_view[p] == "global"):
             g_axis[p].set_title(f"{p} ({mode} global)")
             g_axis[p].set_global()
-
-            # FIXME A
-            #print(f"A: global extent is {g_axis[p].get_extent()}")
-            #x1, x2, y1, y2 = g_axis[p].get_extent()
-            #lon1, lat1 = ccrs.PlateCarree().transform_point(x1, y1, g_axis[p].projection)
-            #lon2, lat2 = ccrs.PlateCarree().transform_point(x2, y2, g_axis[p].projection)
 
         else:
             g_view[p] = "regional"
@@ -832,7 +810,7 @@ def plots_draw(mode):
         for p in g_projs:
             if g_plotted[p]:
                 if p == "Orthographic":
-                    debug(f"INITIALIZING g_view[{p}] GLOBAL")
+                    print(f"special case: initializing global view for Orthographic")
                     g_extent[p] = g_axis[p].get_extent()
                     g_view[p] = "global"
                     g_axis[p].set_global()
@@ -840,7 +818,7 @@ def plots_draw(mode):
     else:
         for p in restore_global:
             if g_enabled[p]:
-                print(f"*** RESTORING GLOBAL FOR {p} ***")
+                debug(f"restoring global view for {p} ***")
                 g_extent[p] =  g_axis[p].get_extent()
                 g_axis[p].set_global()
                 g_view[p] = "global"
