@@ -6,7 +6,10 @@ g_debug = False
 #
 # TODO
 #
-# - do validation pass, and don't allow "set" while in global view
+# - limit domain by square nautical miles??
+#   we can potentially eliminate any "global" checks, which may catch
+#   the same thing
+# - fix "-" and "+" when LambertConformal isn't enabled
 # ...
 # - update Makefile to download latest cycle and integrate into GUI
 # - make sure g_compute_grid (gnomonic) is correct and add option to show it
@@ -66,11 +69,11 @@ g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/conf
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 
 g_index_dflt = 'InterruptedGoodeHomolosine'
-g_index_dflt = 'PlateCarree'
-g_index_dflt = 'Mercator'
-g_index_dflt = 'Orthographic'
 g_index_dflt = 'RotatedPole'
 g_index_dflt = 'LambertConformal'
+g_index_dflt = 'Orthographic'
+g_index_dflt = 'PlateCarree'
+g_index_dflt = 'Mercator'
 
 #
 # Default YAML values
@@ -172,20 +175,39 @@ def on_button_press(event):
 
     print(f"centering projection ({index})")
 
+    if g_view[index] == "regional" and g_global[index] == g_axis[index].get_extent():
+        print(f"EXTENT IS REGIONAL BUT GLOBAL: {g_axis[index].get_extent()}")
+        #g_axis[index].set_global()
+        force_global = True
+    else:
+        force_global = False
+
     if g_view[index] == "global":
-        g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+        try:
+            g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+            print(f"on_button_press: A: set extent for {index}: {g_extent[index]}")
+        except:
+            print(f"on_button_press: A: failed to set extent for {index}: {g_extent[index]} -- setting global")
+            g_axis[index].set_global()
         restore = True
     else:
         restore = False
 
     g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata,
                                                               event.inaxes.projection)
-    extent = g_axis[index].get_extent()
-    x1, x2, y1, y2 = extent
-
+    x1, x2, y1, y2 = g_axis[index].get_extent()
     if no_cen_lat(index):
         yc = event.ydata
-        g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, yc-(y2-y1)/2, yc+(y2-y1)/2
+        _, _, lower, upper = g_global[index]
+        if yc-(y2-y1)/2>=lower and yc+(y2-y1)/2<=upper:
+            g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, yc-(y2-y1)/2, yc+(y2-y1)/2
+        else:
+            if yc-(y2-y1)/2<lower:
+                print(f"HIT BOTTOM EDGE: {index}")
+            if yc+(y2-y1)/2>upper:
+                print(f"HIT TOP EDGE: {index}")
+            print(f"g_global{index} = {g_global[index]}")
+            g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, y1, y2
     else:
         g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, -(y2-y1)/2, +(y2-y1)/2
 
@@ -200,8 +222,18 @@ def on_button_press(event):
     g_axis[index].gridlines()
     g_axis[index].set_title(index + " (centered)")
     g_axis[index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
-                         marker='*', ms=10, color='green')
-    g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+                         marker='*', ms=20, color='green')
+    if force_global:
+        g_axis[index].set_global()
+        g_axis[index].set_title(index + " (centered forced global)")
+    else:
+        try:
+            g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
+            #print(f"on_button_press: B: set extent for {index}: {g_extent[index]}")
+        except:
+            print(f"on_button_press: B: failed to set extent for {index}: {g_extent[index]} -- setting global")
+            g_axis[index].set_global()
+
     #g_axis[index].callbacks.connect('xlim_changed', on_xlim_changed)
     #g_axis[index].callbacks.connect('ylim_changed', on_ylim_changed)
 
@@ -211,6 +243,13 @@ def on_button_press(event):
         debug(f"restore: global extent is {g_axis[index].get_extent()}")
 
     plt.draw()
+
+    # Now overlay the actual center
+    x1, x2, y1, y2 = g_axis[index].get_extent()
+    cen_lon, cen_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, (y1+y2)/2,
+                                                           g_axis[index].projection)
+    g_axis[index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
+                         marker='*', ms=10, color='red')
 
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
@@ -415,7 +454,7 @@ def on_key_press(event):
     elif event.key == ' ':
         print(f"setting source projection ({g_index})")
         if (g_axis[g_index].get_extent() == g_global[g_index]):
-            print(f"SORRY - ATTEMPT TO SET WITH GLOBAL EXTENT")
+            print(f"SORRY - ATTEMPT TO SET WITH GLOBAL EXTENT: {g_global[g_index]}")
             return
         plots_draw("set")
     elif event.key == 'g':
@@ -547,14 +586,14 @@ def projs_create(mode):
         if args.file:
             g_enabled[g_index_dflt] = True
         else:
-            #g_enabled['Mercator'] = True
+            g_enabled['Mercator'] = True
             #g_enabled['PlateCarree'] = True
             #g_enabled['Miller'] = True
-            g_enabled['LambertConformal'] = True
-            g_enabled['RotatedPole'] = True
+            #g_enabled['LambertConformal'] = True
+            #g_enabled['RotatedPole'] = True
             #g_enabled['InterruptedGoodeHomolosine'] = True
             #g_enabled['Gnomonic'] = True
-            g_enabled['Orthographic'] = True
+            #g_enabled['Orthographic'] = True
 
     g_projs = []
 
@@ -833,7 +872,10 @@ def plots_draw(mode):
                 g_extent[p] = g_axis[p].get_extent()
                 g_axis[p].set_global()
                 g_global[p] = g_axis[p].get_extent()
-                g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+                try:
+                    g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+                except:
+                    print(f"FAILED TO SET EXTENT FOR {p}: {g_extent[p]}")
 
     # Check buttons
     if (g_menu):
