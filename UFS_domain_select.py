@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-g_menu = True
-g_debug = False
-
 #
 # TODO
 #
@@ -57,6 +54,22 @@ parser.add_argument("--proj", "-p", help="LambertConformal or RotatedPole (requi
 parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
 args = parser.parse_args()
 
+#####################
+# Class definitions #
+#####################
+
+class ufs_domain_select:
+    menu = True
+    debug = False
+    grib_initialized = False
+    initialized = False
+
+    def __init__(self):
+        pass
+
+    def say_hello(self):
+        print("Hello, World!")
+
 #
 # Internal defaults
 #
@@ -71,8 +84,8 @@ g_compute_grid_dflt = 0.1                                 # 5% larger than write
 g_index_dflt = 'InterruptedGoodeHomolosine'
 g_index_dflt = 'RotatedPole'
 g_index_dflt = 'LambertConformal'
-g_index_dflt = 'Orthographic'
 g_index_dflt = 'PlateCarree'
+g_index_dflt = 'Orthographic'
 g_index_dflt = 'Mercator'
 
 #
@@ -185,9 +198,9 @@ def on_button_press(event):
     if g_view[index] == "global":
         try:
             g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
-            print(f"on_button_press: A: set extent for {index}: {g_extent[index]}")
+            debug(f"on_button_press: A: set extent for {index}: {g_extent[index]}")
         except:
-            print(f"on_button_press: A: failed to set extent for {index}: {g_extent[index]} -- setting global")
+            debug(f"on_button_press: A: failed to set extent for {index}: {g_extent[index]} -- setting global")
             g_axis[index].set_global()
         restore = True
     else:
@@ -229,9 +242,9 @@ def on_button_press(event):
     else:
         try:
             g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
-            #print(f"on_button_press: B: set extent for {index}: {g_extent[index]}")
+            debug(f"on_button_press: B: set extent for {index}: {g_extent[index]}")
         except:
-            print(f"on_button_press: B: failed to set extent for {index}: {g_extent[index]} -- setting global")
+            debug(f"on_button_press: B: failed to set extent for {index}: {g_extent[index]} -- setting global")
             g_axis[index].set_global()
 
     #g_axis[index].callbacks.connect('xlim_changed', on_xlim_changed)
@@ -242,14 +255,16 @@ def on_button_press(event):
         g_axis[index].set_title(index + " (global center restored)")
         debug(f"restore: global extent is {g_axis[index].get_extent()}")
 
-    plt.draw()
-
     # Now overlay the actual center
     x1, x2, y1, y2 = g_axis[index].get_extent()
     cen_lon, cen_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, (y1+y2)/2,
                                                            g_axis[index].projection)
     g_axis[index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
                          marker='*', ms=10, color='red')
+
+    print("on_buttom_press: DRAWING...")
+    plt.draw()
+    print("on_buttom_press: DONE DRAWING")
 
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
@@ -540,10 +555,13 @@ def projs_create(mode):
     global g_enabled
     global g_global
 
+    print(f"projs_create(mode {mode})")
+
     if mode == "init":
         g_extent = {}
         g_view = {}
         g_global = {}
+        g_enabled = {}
 
     g_proj = {}
     g_plotted = {}
@@ -580,20 +598,17 @@ def projs_create(mode):
     g_proj["RotatedPole"] = proj_create("RotatedPole")
 
     if mode == "init":
-        g_enabled = {}
         for p in g_proj:
             g_enabled[p] = False
-        if args.file:
-            g_enabled[g_index_dflt] = True
-        else:
-            g_enabled['Mercator'] = True
-            #g_enabled['PlateCarree'] = True
-            #g_enabled['Miller'] = True
-            #g_enabled['LambertConformal'] = True
-            #g_enabled['RotatedPole'] = True
-            #g_enabled['InterruptedGoodeHomolosine'] = True
-            #g_enabled['Gnomonic'] = True
-            #g_enabled['Orthographic'] = True
+        g_enabled[g_index_dflt] = True
+        #g_enabled['Mercator'] = True
+        #g_enabled['PlateCarree'] = True
+        #g_enabled['Miller'] = True
+        #g_enabled['LambertConformal'] = True
+        #g_enabled['RotatedPole'] = True
+        #g_enabled['InterruptedGoodeHomolosine'] = True
+        #g_enabled['Gnomonic'] = True
+        #g_enabled['Orthographic'] = True
 
     g_projs = []
 
@@ -638,7 +653,7 @@ def projs_create(mode):
 def plots_remove():
     global g_plotted
 
-    if (g_menu):
+    if (g.menu):
         g_axis['menu1'].remove()
         g_axis['menu2'].remove()
     if g_projs:
@@ -776,17 +791,17 @@ def plots_draw(mode):
         g_extent[g_index] = new_extent
         debug("CASE 2")
 
-    #print(f"A: set g_extent to {g_extent[g_index]}")
-
     if args.file:
-        print(f"PLOTTING GRIB FILE {args.file}")
+        if not g.grib_initialized:
+            print(f"processing GRIB file {args.file}...")
+            init_grib()
+        print(f"plotting GRIB...")
         plot_grib()
-        print(f"DONE PLOTTING GRIB FILE {args.file}")
         for p in g_projs:
             if g_plotted[p]:
                 g_axis[p].set_title(p)
         g_fig.suptitle(g_title)
-        if False:
+        if args.close:
             ram = io.BytesIO()
             print(f"SAVING GRIB PLOT TO {args.file}")
             plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
@@ -795,7 +810,6 @@ def plots_draw(mode):
             im2 = im.convert("RGB")
             im2.save(args.file + ".png", format="PNG")
             print(f"DONE SAVING GRIB PLOT TO {args.file}")
-        if args.close:
             exit(0)
 
     if True:
@@ -878,7 +892,7 @@ def plots_draw(mode):
                     print(f"FAILED TO SET EXTENT FOR {p}: {g_extent[p]}")
 
     # Check buttons
-    if (g_menu):
+    if (g.menu):
         g_axis['menu1'] = g_fig.add_axes([0.25, 0.0, 0.1, 0.1], frameon=False)
         g_axis['menu2'] = g_fig.add_axes([0.65, 0.0, 0.1, 0.1], frameon=False)
 
@@ -901,13 +915,20 @@ def plots_draw(mode):
                 status2.append(False)
             proj2.append(p)
         count += 1
-    if (g_menu):
+    if (g.menu):
         g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
         g_check1.on_clicked(checkfunc)
         g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
         g_check2.on_clicked(checkfunc)
 
-    plt.show()
+    if mode == "init" and not g.initialized:
+        g.initialized = True
+        print("plots_draw: entering event loop")
+        plt.show()
+        print("plots_draw: exited event loop")
+    else:
+        print("plots_draw: drawing...")
+        plt.draw()
 
 def checkfunc(label):
     global g_enabled
@@ -1020,8 +1041,13 @@ def draw_box_xy_data(tgt_index, src_index, color):
 
     return xs, ys
 
-def plot_grib():
+def init_grib():
     global g_title
+    global g_lons
+    global g_lats
+    global g_vort500
+    global g_cm
+    global g_norm
 
     g_data = pygrib.open(args.file)
 
@@ -1073,18 +1099,25 @@ def plot_grib():
     plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
 
     # Vorticity
-    vort500 = vdata * 100000
-    vort500 = scipy.ndimage.gaussian_filter(vort500, 1.7225)
-    #vort500[vort500 > 1000] = 0  # Mask out undefined values on domain edge
+    g_vort500 = vdata * 100000
+    g_vort500 = scipy.ndimage.gaussian_filter(g_vort500, 1.7225)
+    if False:
+        g_vort500[g_vort500 > 1000] = 0  # Mask out undefined values on domain edge
     vortlevs = [16, 20, 24, 28, 32, 36, 40]
     colorlist = ["yellow", "gold", "goldenrod", "orange", "orangered", "red" ]
-    cm = matplotlib.colors.ListedColormap(colorlist)
-    norm = matplotlib.colors.BoundaryNorm(vortlevs, cm.N)
+    g_cm = matplotlib.colors.ListedColormap(colorlist)
+    g_norm = matplotlib.colors.BoundaryNorm(vortlevs, g_cm.N)
+
+    g_lons = lons
+    g_lats = lats
+    g.grib_initialized = True
+
+def plot_grib():
     for p in g_projs:
         if g_plotted[p]:
-            cs1_a = g_axis[p].pcolormesh(lons, lats,
-                                         vort500, transform=cartopy.crs.PlateCarree(),
-                                         cmap=cm, norm=norm)
+            cs1_a = g_axis[p].pcolormesh(g_lons, g_lats,
+                                         g_vort500, transform=cartopy.crs.PlateCarree(),
+                                         cmap=g_cm, norm=g_norm)
     cs1_a.cmap.set_under("none")   # under 16
     cs1_a.cmap.set_over("darkred") # above 40
 
@@ -1101,7 +1134,7 @@ def show_help():
 #    print("Y-axis limits changed:", axes.get_ylim())
 
 def debug(format):
-    if g_debug:
+    if g.debug:
         print(format)
 
 #
@@ -1116,7 +1149,7 @@ def debug(format):
 if args.file:
     g_data = pygrib.open(args.file)
     msg = g_data[1]
-    debug(f"params: {msg.projparams}")
+    print(f"params: {msg.projparams}")
     match msg.projparams['proj']:
         case "lcc":
             g_index_dflt = 'LambertConformal'
@@ -1129,9 +1162,11 @@ if args.file:
             g_cen_lon_dflt = msg.projparams['lon_0']
             g_cen_lat_dflt = 90 - msg.projparams['o_lat_p']
         case _:
-            print(f"unsupported projection {msg.projparams['proj']}")
-            exit(1)
+            print(f"unknown projection {msg.projparams['proj']} -- using default")
     print(f" proj: {msg.projparams['proj']} --> {g_index_dflt}")
+
+g = ufs_domain_select()
+g.say_hello()
 
 plt.rcParams["figure.raise_window"] = False
 g_fig = plt.figure(figsize=(10, 10))
