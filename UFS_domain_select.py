@@ -3,17 +3,83 @@
 #
 # TODO
 #
-# - limit domain by square nautical miles??
-#   we can potentially eliminate any "global" checks, which may catch
-#   the same thing
-# - fix "-" and "+" when LambertConformal isn't enabled
-# ...
-# - update Makefile to download latest cycle and integrate into GUI
-# - make sure g_compute_grid (gnomonic) is correct and add option to show it
-# - write status to screen (e.g., YAML written, res selected, ...)
+# Validation
+# - make sure uds.compute_grid (gnomonic) is correct and add option to show it
 # - test w/ GFS files (currently filters based on lon/lat spans)
+#
+# Bugs
+# - none
+#
+# Tweaks
+# - make checked Orthographic global, by default
+#
+# Cleanup
+# - re-organize scipt comments, arguments and such
+# - move plots_draw and plots_remove into Class definitions??
+#
+# Features
+# - filter big GFS by region
+# - update Makefile to download latest cycle and integrate into GUI
+# - write status to screen (e.g., YAML written, res selected, ...)?
 # - understand and integrate regional_latlon
 #
+
+import argparse
+import os
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from matplotlib.backend_bases import MouseButton
+import time
+import math
+import io
+import PIL
+import pygrib
+import scipy
+import numpy as np
+import cartopy
+import matplotlib
+from matplotlib.widgets import RadioButtons
+from matplotlib.widgets import CheckButtons
+
+###########
+# Globals #
+###########
+
+g_debug = False
+
+HOME = f"{os.environ['HOME']}"
+UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
+
+g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
+g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
+g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
+
+g_index_dflt = 'InterruptedGoodeHomolosine'
+g_index_dflt = 'RotatedPole'
+g_index_dflt = 'LambertConformal'
+g_index_dflt = 'PlateCarree'
+g_index_dflt = 'Orthographic'
+g_index_dflt = 'Mercator'
+
+#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
+g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
+#g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
+#g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
+#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+
+g_dt_atmos = 36
+g_blocksize = 40
+g_layout_x = 3
+g_layout_y = 3
+g_write_groups = 1
+g_write_tasks_per_group = 3
+g_date ='20190615'
+g_cycle ='18'
+g_fcst_len_hrs = 1
+g_lbc_spec_intvl_hrs = 1
+g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
 #
 # This script has two uses. First, it automates the creation of the YAML 
@@ -43,7 +109,11 @@ g_help="""
 # center latitude and longitude can be specified via the --cen_lon and _cen_lat options,
 # and the lower left cornet longitude and latitude via --crn_lon and --crn_lat. 
 #
-import argparse
+
+#####################
+# Command-line args #
+#####################
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--cen_lon", help="center longitude", required=False)
 parser.add_argument("--cen_lat", help="center latitude", required=False)
@@ -52,116 +122,393 @@ parser.add_argument("--crn_lat", help="lower left corner latitude", required=Fal
 parser.add_argument("--file", "-f", help="grib file to plot", required=False)
 parser.add_argument("--proj", "-p", help="LambertConformal or RotatedPole (required with -f)", required=False)
 parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
-args = parser.parse_args()
+g_args = parser.parse_args()
 
 #####################
 # Class definitions #
 #####################
 
+class grib():
+
+    def init(self, file):
+
+        debug(f"grib: opening file {file}")
+
+        # Open file and get forecast time
+        self.data = pygrib.open(file)
+        zmsg = self.data.select(name="Geopotential height", level=500)[0]
+        zdata = zmsg.values
+        lats, lons = zmsg.latlons()
+        vdata = self.data.select(name="Absolute vorticity", level=500)[0].values
+        sio = io.StringIO()
+        print(zmsg, file=sio)
+        fcst = sio.getvalue().split(':')[6]
+        time = sio.getvalue().split(':')[7]
+        self.title = fcst + " " + time
+
+        # Get geopotential height
+        z500 = zdata * 0.1
+        z500 = scipy.ndimage.gaussian_filter(z500, 6.89)
+        for p in self.uds.projs:
+            if self.uds.plotted[p]:
+                contours = self.uds.axis[p].contour(lons, lats, z500,
+                                             np.arange(0, 900, 6),
+                                             colors="blue", linewidths=1,
+                                             transform=cartopy.crs.PlateCarree(), alpha=0.25)
+        plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
+
+        # Get vorticity
+        self.vort500 = vdata * 100000
+        self.vort500 = scipy.ndimage.gaussian_filter(self.vort500, 1.7225)
+        if False:
+            self.vort500[self.vort500 > 1000] = 0  # Mask out undefined values on domain edge
+        vortlevs = [16, 20, 24, 28, 32, 36, 40]
+        colorlist = ["yellow", "gold", "goldenrod", "orange", "orangered", "red" ]
+        self.cm = matplotlib.colors.ListedColormap(colorlist)
+        self.norm = matplotlib.colors.BoundaryNorm(vortlevs, self.cm.N)
+
+        self.lons = lons
+        self.lats = lats
+        self.initialized = True
+
+    def plot(self, file, parent):
+        if not self.initialized:
+            self.init(file)
+        debug("grib: plotting")
+        for p in self.uds.projs:
+            if self.uds.plotted[p]:
+                cs1_a = self.uds.axis[p].pcolormesh(self.lons, self.lats,
+                                             self.vort500, transform=cartopy.crs.PlateCarree(),
+                                             cmap=self.cm, norm=self.norm)
+        cs1_a.cmap.set_under("none")   # under 16
+        cs1_a.cmap.set_over("darkred") # above 40
+
+    def save(self, file):
+        ram = io.BytesIO()
+        print(f"grib: saving grib plot to {file}")
+        plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
+        ram.seek(0)
+        im = PIL.Image.open(ram)
+        im2 = im.convert("RGB")
+        im2.save(file, format="PNG")
+
+    def __init__(self, uds):
+        self.uds = uds
+        self.initialized = False
+
 class ufs_domain_select:
     menu = True
-    debug = False
-    grib_initialized = False
     initialized = False
+    enabled = {}
+    view = {}
+    extent = {}
+    globe = {}
+    proj = {}
+    plotted = {}
+    color = {}
+
+    def set_dflts(self):
+        s = self
+        if g_args.cen_lon:
+            s.cen_lon = float(g_args.cen_lon)
+        else:
+            s.cen_lon = g_cen_lon_dflt
+        if g_args.cen_lat:
+            s.cen_lat = float(g_args.cen_lat)
+        else:
+            s.cen_lat = g_cen_lat_dflt
+        if g_args.crn_lon:
+            s.crn_lon = float(g_args.crn_lon)
+        else:
+            s.crn_lon = g_crn_lon_dflt
+        if g_args.crn_lat:
+            s.crn_lat = float(g_args.crn_lat)
+        else:
+            s.crn_lat = g_crn_lat_dflt
+        if g_args.proj:
+            s.index = g_args.proj
+        else:
+            s.index = g_index_dflt
+        s.compute_grid = g_compute_grid_dflt
+        s.res = g_res_dflt
+
+    def projs_create(self, mode):
+        s = self
+        if mode == "init":
+            s.enabled = {}
+            s.view = {}
+            s.extent = {}
+        s.proj = {}
+        s.plotted = {}
+        s.color = {}
+        s.projs = []
+        s.axis = {}
+        s.loc = {}
+        s.cen_lat = cen_lat_adjust(s.cen_lat)
+
+        # Cylindrical
+        s.proj["PlateCarree"] = proj_create(s, "PlateCarree")
+        s.proj["Mercator"] = proj_create(s, "Mercator")
+        s.proj["Miller"] = proj_create(s, "Miller")
+    
+        # Conic
+        s.proj["EquidistantConic"] = proj_create(s, "EquidistantConic") 
+        s.proj["AlbersEqualArea"] = proj_create(s, "AlbersEqualArea")
+        s.proj["LambertConformal"] = proj_create(s, "LambertConformal")
+    
+        # Planar/Azimuthal
+        s.proj["Stereographic"] = proj_create(s, "Stereographic")
+        s.proj["Orthographic"] = proj_create(s, "Orthographic")
+        s.proj["Gnomonic"] = proj_create(s, "Gnomonic")
+    
+        # Pseudo-cylindrical
+        s.proj["Robinson"] = proj_create(s, "Robinson")
+        s.proj["Mollweide"] = proj_create(s, "Mollweide")
+        s.proj["Sinusoidal"] = proj_create(s, "Sinusoidal")
+        s.proj["InterruptedGoodeHomolosine"] = proj_create(s, "InterruptedGoodeHomolosine")
+    
+        # Other
+        s.proj["RotatedPole"] = proj_create(s, "RotatedPole")
+
+        if mode == "init":
+            for p in s.proj:
+                s.enabled[p] = False
+            s.enabled[g_index_dflt] = True
+            #s.enabled['Mercator'] = True
+            #s.enabled['PlateCarree'] = True
+            #s.enabled['Miller'] = True
+            #s.enabled['LambertConformal'] = True
+            #s.enabled['RotatedPole'] = True
+            #s.enabled['InterruptedGoodeHomolosine'] = True
+            #s.enabled['Gnomonic'] = True
+            #s.enabled['Orthographic'] = True
+
+        count = 0
+        for p in s.proj:
+            if s.enabled[p]:
+                s.projs.append(p)
+                count += 1
+
+        match count:
+            case 1:
+                s.dim_x = 1; s.dim_y = 1
+            case 2:
+                s.dim_x = 1; s.dim_y = 2
+            case 3 | 4:
+                s.dim_x = 2; s.dim_y = 2
+            case 5 | 6:
+                s.dim_x = 2; s.dim_y = 3
+            case 7 | 8:
+                s.dim_x = 3; s.dim_y = 3
+            case 9:
+                s.dim_x = 3; s.dim_y = 3
+            case 10 | 11 | 12:
+                s.dim_x = 4; s.dim_y = 3
+            case 13 | 14:
+                s.dim_x = 4; s.dim_y = 4
+    
+        # Give each projection a color (brown is the default).
+        for p in s.projs:
+            s.color[p] = "brown"
+            s.plotted[p] = False
+        s.color["LambertConformal"] = "blue"
+        s.color["RotatedPole"] = "purple"
+        s.color["Mercator"] = "yellow"
+        s.color["Gnomonic"] = "green"
+        s.color["Orthographic"] = "orange"
+    
+        if mode == "init":
+            for p in s.proj:
+                s.view[p] = "regional"
+
+    def on_button_press(self, event):
+        if not (event.inaxes and event.button is MouseButton.MIDDLE):
+            return
+    
+        index = get_index(self, event.inaxes)
+    
+        print(f"centering projection ({index})")
+    
+        if self.view[index] == "regional" and self.globe[index] == self.axis[index].get_extent():
+            print(f"EXTENT IS REGIONAL BUT GLOBAL: {self.axis[index].get_extent()}")
+            #self.axis[index].set_global()
+            force_global = True
+        else:
+            force_global = False
+    
+        if self.view[index] == "global":
+            try:
+                self.axis[index].set_extent(self.extent[index], crs=self.proj[index])
+                debug(f"on_button_press: A: set extent for {index}: {self.extent[index]}")
+            except:
+                debug(f"on_button_press: A: failed to set extent for {index}: {self.extent[index]} -- setting global")
+                self.axis[index].set_global()
+            restore = True
+        else:
+            restore = False
+    
+        self.cen_lon, self.cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata,
+                                                                  event.inaxes.projection)
+        x1, x2, y1, y2 = self.axis[index].get_extent()
+        if no_cen_lat(index):
+            yc = event.ydata
+            _, _, lower, upper = self.globe[index]
+            if yc-(y2-y1)/2>=lower and yc+(y2-y1)/2<=upper:
+                self.extent[index] = -(x2-x1)/2, +(x2-x1)/2, yc-(y2-y1)/2, yc+(y2-y1)/2
+            else:
+                if yc-(y2-y1)/2<lower:
+                    print(f"HIT BOTTOM EDGE: {index}")
+                if yc+(y2-y1)/2>upper:
+                    print(f"HIT TOP EDGE: {index}")
+                print(f"self.globe{index} = {self.globe[index]}")
+                self.extent[index] = -(x2-x1)/2, +(x2-x1)/2, y1, y2
+        else:
+            self.extent[index] = -(x2-x1)/2, +(x2-x1)/2, -(y2-y1)/2, +(y2-y1)/2
+    
+        self.axis[index].remove()
+        self.proj[index] = proj_create(self, index)
+        self.axis[index] = self.fig.add_subplot(self.dim_x, self.dim_y, self.loc[index], 
+                                          projection=self.proj[index])
+        self.axis[index].margins(x=0.0, y=0.0)
+        self.axis[index].add_feature(cfeature.COASTLINE)
+        self.axis[index].add_feature(cfeature.BORDERS)
+        self.axis[index].add_feature(cfeature.STATES)
+        self.axis[index].gridlines()
+        self.axis[index].set_title(index + " (centered)")
+        self.axis[index].plot(*(self.cen_lon, self.cen_lat), transform=ccrs.Geodetic(), 
+                             marker='*', ms=20, color='green')
+        if force_global:
+            self.axis[index].set_global()
+            self.axis[index].set_title(index + " (centered forced global)")
+        else:
+            try:
+                self.axis[index].set_extent(self.extent[index], crs=self.proj[index])
+                debug(f"on_button_press: B: set extent for {index}: {self.extent[index]}")
+            except:
+                debug(f"on_button_press: B: failed to set extent for {index}: {self.extent[index]} -- setting global")
+                self.axis[index].set_global()
+    
+        #self.axis[index].callbacks.connect('xlim_changed', on_xlim_changed)
+        #self.axis[index].callbacks.connect('ylim_changed', on_ylim_changed)
+    
+        if restore:
+            self.axis[index].set_global()
+            self.axis[index].set_title(index + " (global center restored)")
+            debug(f"restore: global extent is {self.axis[index].get_extent()}")
+    
+        # Now overlay the actual center
+        x1, x2, y1, y2 = self.axis[index].get_extent()
+        cen_lon, cen_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, (y1+y2)/2,
+                                                               self.axis[index].projection)
+        self.axis[index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
+                             marker='*', ms=10, color='red')
+    
+        print("on_button_press: DRAWING...")
+        plt.draw()
+        print("on_button_press: DONE DRAWING")
+
+    def on_key_press(self, event):
+        self.index = g_index_dflt
+        if event.inaxes:
+            self.index = get_index(self, event.inaxes)
+    
+        if event.key == 'h':
+            show_help()
+        elif event.key == '0':
+            print(f"restoring default settings")
+            plots_draw(self, "init")
+        elif event.key == 'y':
+            if (self.index == "LambertConformal" or self.index == "RotatedPole"):
+                output_config(self, self.index)
+            else:
+                print("choose from LambertConformal or RotatedPole")
+                return
+        elif event.key == 'R':
+            if self.res == 3000:
+                self.res = 13000
+            elif self.res == 13000:
+                self.res = 25000
+            elif self.res == 25000:
+                self.res = -1 
+            elif self.res == -1:
+                self.res = 3000
+            if (self.res == -1):
+                print(f"resolution set to AUTO")
+            else:
+                print(f"resolution set to {int(self.res/1000)}km")
+        elif event.key == '+':
+            self.compute_grid += .01
+            percent = round(100*(1+self.compute_grid))
+            print(f"set compute grid to {percent}% of write component")
+            plots_draw(self, "set")
+        elif event.key == '-':
+            self.compute_grid -= .01
+            percent = round(100*(1+self.compute_grid))
+            print(f"set compute grid to {percent}% of write component")
+            plots_draw(self, "set")
+        elif event.key == ' ':
+            if not event.inaxes:
+                print(f"hover hover an axis to select source projection)")
+                return
+            print(f"setting source projection ({self.index})")
+            if (self.axis[self.index].get_extent() == self.globe[self.index]):
+                print(f"SORRY - ATTEMPT TO SET WITH GLOBAL EXTENT: {self.globe[self.index]}")
+                return
+            plots_draw(self, "set")
+        elif event.key == 'g':
+            print(f"toggling global view (source {self.index})")
+            if self.view[self.index] == "regional":
+                self.extent[self.index] = self.axis[self.index].get_extent()
+                self.view[self.index] = "global"
+                self.axis[self.index].set_global()
+                self.axis[self.index].set_title(self.index + " (global toggle)")
+            elif self.view[self.index] == "global": 
+                self.view[self.index] = "regional"
+                self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
+                self.axis[self.index].set_title(self.index + " (regional toggle)")
+        elif event.key == 'q':
+            exit(0)
+
+    def checkfunc(self, label):
+        if not self.enabled[label]:
+            self.enabled[label] =  True
+        else:
+            if len(self.projs) == 1:
+                debug(f"checkfunc: cannot remove last projection")
+                plots_draw(self, "set")
+                return
+            elif label == self.index:
+                self.enabled[label] =  False
+                self.index = self.projs[0]
+                debug(f"checkfunc: changed index to {self.index}")
+                if label == self.index:
+                    self.index = self.projs[1]
+                    debug(f"checkfunc: changed index again to {self.index}")
+                self.view[self.index] = "regional"
+                self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
+                debug(f"checkfunc: forcing {self.index} to regional")
+            else:
+                debug(f"checkfunc: forcing {self.index} to regional")
+                self.view[self.index] = "regional"
+                self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
+            self.enabled[label] = False
+        plots_draw(self, "set")
+
 
     def __init__(self):
-        pass
+        plt.rcParams["figure.raise_window"] = False
+        self.fig = plt.figure(figsize=(10, 10))
+        self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
+        self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self.grib = grib(self)
 
-    def say_hello(self):
-        print("Hello, World!")
+########################
+# Function definitions #
+########################
 
-#
-# Internal defaults
-#
-import os
-HOME = f"{os.environ['HOME']}"
-UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
-
-g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
-g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
-g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
-
-g_index_dflt = 'InterruptedGoodeHomolosine'
-g_index_dflt = 'RotatedPole'
-g_index_dflt = 'LambertConformal'
-g_index_dflt = 'PlateCarree'
-g_index_dflt = 'Orthographic'
-g_index_dflt = 'Mercator'
-
-#
-# Default YAML values
-#
-g_dt_atmos = 36
-g_blocksize = 40
-g_layout_x = 3
-g_layout_y = 3
-g_write_groups = 1
-g_write_tasks_per_group = 3
-g_date ='20190615'
-g_cycle ='18'
-g_fcst_len_hrs = 1
-g_lbc_spec_intvl_hrs = 1
-g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-
-#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
-#g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
-#g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
-#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
-
-#
-# Imports
-#
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-from matplotlib.backend_bases import MouseButton
-import time
-import math
-import io
-import PIL
-import pygrib
-import scipy
-import numpy as np
-import cartopy
-import matplotlib
-from matplotlib.widgets import RadioButtons
-from matplotlib.widgets import CheckButtons
-
-#
-# Function definitions
-#
-def init_dflts():
-    global g_cen_lon, g_cen_lat
-    global g_crn_lon, g_crn_lat
-    global g_compute_grid
-    global g_res
-    global g_index
-
-    if args.cen_lon:
-        g_cen_lon = float(args.cen_lon)
-    else:
-        g_cen_lon = g_cen_lon_dflt
-    if args.cen_lat:
-        g_cen_lat = float(args.cen_lat)
-    else:
-        g_cen_lat = g_cen_lat_dflt
-    if args.crn_lon:
-        g_crn_lon = float(args.crn_lon)
-    else:
-        g_crn_lon = g_crn_lon_dflt
-    if args.crn_lat:
-        g_crn_lat = float(args.crn_lat)
-    else:
-        g_crn_lat = g_crn_lat_dflt
-    if args.proj:
-        g_index = args.proj
-    else:
-        g_index = g_index_dflt
-
-    g_compute_grid = g_compute_grid_dflt
-    g_res = g_res_dflt
+def debug(format):
+    if g_debug:
+        print(format)
 
 def cen_lat_adjust(cen_lat):
     if cen_lat > 80:
@@ -177,118 +524,29 @@ def cen_lat_adjust(cen_lat):
 
     return cen_lat
 
-def on_button_press(event):
-    global g_cen_lon, g_cen_lat
-    global g_crn_lon, g_crn_lat
-
-    if not (event.inaxes and event.button is MouseButton.MIDDLE):
-        return
-
-    index = get_index(event.inaxes)
-
-    print(f"centering projection ({index})")
-
-    if g_view[index] == "regional" and g_global[index] == g_axis[index].get_extent():
-        print(f"EXTENT IS REGIONAL BUT GLOBAL: {g_axis[index].get_extent()}")
-        #g_axis[index].set_global()
-        force_global = True
-    else:
-        force_global = False
-
-    if g_view[index] == "global":
-        try:
-            g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
-            debug(f"on_button_press: A: set extent for {index}: {g_extent[index]}")
-        except:
-            debug(f"on_button_press: A: failed to set extent for {index}: {g_extent[index]} -- setting global")
-            g_axis[index].set_global()
-        restore = True
-    else:
-        restore = False
-
-    g_cen_lon, g_cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata,
-                                                              event.inaxes.projection)
-    x1, x2, y1, y2 = g_axis[index].get_extent()
-    if no_cen_lat(index):
-        yc = event.ydata
-        _, _, lower, upper = g_global[index]
-        if yc-(y2-y1)/2>=lower and yc+(y2-y1)/2<=upper:
-            g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, yc-(y2-y1)/2, yc+(y2-y1)/2
-        else:
-            if yc-(y2-y1)/2<lower:
-                print(f"HIT BOTTOM EDGE: {index}")
-            if yc+(y2-y1)/2>upper:
-                print(f"HIT TOP EDGE: {index}")
-            print(f"g_global{index} = {g_global[index]}")
-            g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, y1, y2
-    else:
-        g_extent[index] = -(x2-x1)/2, +(x2-x1)/2, -(y2-y1)/2, +(y2-y1)/2
-
-    g_axis[index].remove()
-    g_proj[index] = proj_create(index)
-    g_axis[index] = g_fig.add_subplot(g_dim_x, g_dim_y, g_loc[index], 
-                                      projection=g_proj[index])
-    g_axis[index].margins(x=0.0, y=0.0)
-    g_axis[index].add_feature(cfeature.COASTLINE)
-    g_axis[index].add_feature(cfeature.BORDERS)
-    g_axis[index].add_feature(cfeature.STATES)
-    g_axis[index].gridlines()
-    g_axis[index].set_title(index + " (centered)")
-    g_axis[index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
-                         marker='*', ms=20, color='green')
-    if force_global:
-        g_axis[index].set_global()
-        g_axis[index].set_title(index + " (centered forced global)")
-    else:
-        try:
-            g_axis[index].set_extent(g_extent[index], crs=g_proj[index])
-            debug(f"on_button_press: B: set extent for {index}: {g_extent[index]}")
-        except:
-            debug(f"on_button_press: B: failed to set extent for {index}: {g_extent[index]} -- setting global")
-            g_axis[index].set_global()
-
-    #g_axis[index].callbacks.connect('xlim_changed', on_xlim_changed)
-    #g_axis[index].callbacks.connect('ylim_changed', on_ylim_changed)
-
-    if restore:
-        g_axis[index].set_global()
-        g_axis[index].set_title(index + " (global center restored)")
-        debug(f"restore: global extent is {g_axis[index].get_extent()}")
-
-    # Now overlay the actual center
-    x1, x2, y1, y2 = g_axis[index].get_extent()
-    cen_lon, cen_lat = ccrs.PlateCarree().transform_point((x1+x2)/2, (y1+y2)/2,
-                                                           g_axis[index].projection)
-    g_axis[index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
-                         marker='*', ms=10, color='red')
-
-    print("on_buttom_press: DRAWING...")
-    plt.draw()
-    print("on_buttom_press: DONE DRAWING")
-
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
 
-def get_dims(index, color):
-    extent = g_axis[index].get_extent()
+def get_dims(uds, index, color):
+    extent = uds.axis[index].get_extent()
     x1, x2, y1, y2 = extent
 
     if color == "red":
         xspan = abs(x2-x1)
-        x1 -= xspan*g_compute_grid/2
-        x2 += xspan*g_compute_grid/2
+        x1 -= xspan*uds.compute_grid/2
+        x2 += xspan*uds.compute_grid/2
         yspan = abs(y2-y1)
-        y1 -= yspan*g_compute_grid/2
-        y2 += yspan*g_compute_grid/2
+        y1 -= yspan*uds.compute_grid/2
+        y2 += yspan*uds.compute_grid/2
         extent = x1, x2, y1, y2
 
     xc = (x1+x2)/2
     yc = (y1+y2)/2
     xspan = abs(x2-x1)
     yspan = abs(y2-y1)
-    cen_lon, cen_lat = ccrs.PlateCarree().transform_point(xc, yc, g_axis[index].projection)
-    lwr_lon, lwr_lat = ccrs.PlateCarree().transform_point(x1, y1, g_axis[index].projection)
-    upr_lon, upr_lat = ccrs.PlateCarree().transform_point(x2, y2, g_axis[index].projection)
+    cen_lon, cen_lat = ccrs.PlateCarree().transform_point(xc, yc, uds.axis[index].projection)
+    lwr_lon, lwr_lat = ccrs.PlateCarree().transform_point(x1, y1, uds.axis[index].projection)
+    upr_lon, upr_lat = ccrs.PlateCarree().transform_point(x2, y2, uds.axis[index].projection)
 
     return cen_lon, cen_lat, lwr_lon, lwr_lat, extent
 
@@ -301,27 +559,27 @@ def pick_max_delta(xspan, yspan):
     else:
         return 25000
 
-def output_config(index):
-    res = g_res
+def output_config(uds, index):
+    res = uds.res
 
     # computational grid
-    cen_lon_r, cen_lat_r, lwr_lon_r, lwr_lat_r, extent_r = get_dims(index, "red")
+    cen_lon_r, cen_lat_r, lwr_lon_r, lwr_lat_r, extent_r = get_dims(uds, index, "red")
     x1, x2, y1, y2 = extent_r
     xspan_r = abs(x2-x1)
     yspan_r = abs(y2-y1)
-    if g_index == "RotatedPole":
+    if uds.index == "RotatedPole":
         max_delta = pick_max_delta(xspan_r*1852*60, yspan_r*1852*60)
     else:
         max_delta = pick_max_delta(xspan_r, yspan_r)
-    if g_res == -1:
+    if uds.res == -1:
         res = max_delta
         print(f"             resolution: automatically set to {res} meters")
-    elif (g_res>max_delta):
+    elif (uds.res>max_delta):
         res = max_delta
         print(f"             resolution: forced to max ({res} meters)")
-    percent = round(100*(1+g_compute_grid))
+    percent = round(100*(1+uds.compute_grid))
     print(f"      compute grid size: {percent}% of write component")
-    if g_index == "RotatedPole":
+    if uds.index == "RotatedPole":
         nx_r = int(xspan_r*1852*60/res)
         ny_r = int(yspan_r*1852*60/res)
     else:
@@ -331,7 +589,7 @@ def output_config(index):
     print(f"  gnomonic compute grid: nx {nx_r} ny {ny_r}")
 
     # write component grid
-    cen_lon_b, cen_lat_b, lwr_lon_b, lwr_lat_b, extent_b = get_dims(index, "blue")
+    cen_lon_b, cen_lat_b, lwr_lon_b, lwr_lat_b, extent_b = get_dims(uds, index, "blue")
     x1, x2, y1, y2 = extent_b
     xspan_b = abs(x2-x1)
     yspan_b = abs(y2-y1)
@@ -358,8 +616,8 @@ workflow:
   COMPILER: gnu
   GRID_GEN_METHOD: "ESGgrid"
 task_make_grid:
-  ESGgrid_LON_CTR: {g_cen_lon}
-  ESGgrid_LAT_CTR: {g_cen_lat}
+  ESGgrid_LON_CTR: {uds.cen_lon}
+  ESGgrid_LAT_CTR: {uds.cen_lat}
   ESGgrid_NX: {nx_r} 
   ESGgrid_NY: {ny_r}
   ESGgrid_DELX: {res}
@@ -386,13 +644,13 @@ task_run_fcst:
   WRTCMP_write_groups: {g_write_groups}
   WRTCMP_write_tasks_per_group: {g_write_tasks_per_group}"""
 
-    if g_index == "LambertConformal":
+    if uds.index == "LambertConformal":
         config_text_wrtcmp = f"""
   WRTCMP_output_grid: "lambert_conformal"
-  WRTCMP_cen_lon: {g_cen_lon}
-  WRTCMP_cen_lat: {g_cen_lat} 
-  WRTCMP_stdlat1: {g_cen_lat} 
-  WRTCMP_stdlat2: {g_cen_lat} 
+  WRTCMP_cen_lon: {uds.cen_lon}
+  WRTCMP_cen_lat: {uds.cen_lat} 
+  WRTCMP_stdlat1: {uds.cen_lat} 
+  WRTCMP_stdlat2: {uds.cen_lat} 
   WRTCMP_nx: {nx_b}
   WRTCMP_ny: {ny_b}
   WRTCMP_lon_lwr_left: {round(lwr_lon_b, 2)} 
@@ -401,11 +659,11 @@ task_run_fcst:
   WRTCMP_dy: {res}
 """
 
-    elif g_index == "RotatedPole":
+    elif uds.index == "RotatedPole":
         config_text_wrtcmp = f"""
   WRTCMP_output_grid: "rotated_latlon"
-  WRTCMP_cen_lon: {g_cen_lon}
-  WRTCMP_cen_lat: {g_cen_lat} 
+  WRTCMP_cen_lon: {uds.cen_lon}
+  WRTCMP_cen_lat: {uds.cen_lat} 
   WRTCMP_lon_lwr_left: {x1} 
   WRTCMP_lat_lwr_left: {y1} 
   WRTCMP_lon_upr_rght: {x2} 
@@ -422,118 +680,53 @@ task_run_fcst:
     print(f"       YAML file output: {g_yaml_file}")
     print(f"                    cmd: export DATE={g_date} CYCLE={g_cycle} LEN={g_fcst_len_hrs} LBC={g_lbc_spec_intvl_hrs}; time ./forecast")
 
-def on_key_press(event):
-    global g_compute_grid
-    global g_res
-    global g_extent
-    global g_index
-
-    g_index = g_index_dflt
-    if event.inaxes:
-        g_index = get_index(event.inaxes)
-
-    if event.key == 'h':
-        show_help()
-    elif event.key == '0':
-        print(f"restoring default settings")
-        plots_draw("init")
-    elif event.key == 'y':
-        if (g_index == "LambertConformal" or g_index == "RotatedPole"):
-            output_config(g_index)
-        else:
-            print("choose from LambertConformal or RotatedPole")
-            return
-    elif event.key == 'R':
-        if g_res == 3000:
-            g_res = 13000
-        elif g_res == 13000:
-            g_res = 25000
-        elif g_res == 25000:
-            g_res = -1 
-        elif g_res == -1:
-            g_res = 3000
-        if (g_res == -1):
-            print(f"resolution set to AUTO")
-        else:
-            print(f"resolution set to {int(g_res/1000)}km")
-    elif event.key == '+':
-        g_compute_grid += .01
-        percent = round(100*(1+g_compute_grid))
-        print(f"set compute grid to {percent}% of write component")
-        plots_draw("set")
-    elif event.key == '-':
-        g_compute_grid -= .01
-        percent = round(100*(1+g_compute_grid))
-        print(f"set compute grid to {percent}% of write component")
-        plots_draw("set")
-    elif event.key == ' ':
-        print(f"setting source projection ({g_index})")
-        if (g_axis[g_index].get_extent() == g_global[g_index]):
-            print(f"SORRY - ATTEMPT TO SET WITH GLOBAL EXTENT: {g_global[g_index]}")
-            return
-        plots_draw("set")
-    elif event.key == 'g':
-        print(f"toggling global view (source {g_index})")
-        if g_view[g_index] == "regional":
-            g_extent[g_index] = g_axis[g_index].get_extent()
-            g_view[g_index] = "global"
-            g_axis[g_index].set_global()
-            g_axis[g_index].set_title(g_index + " (global toggle)")
-        elif g_view[g_index] == "global": 
-            g_view[g_index] = "regional"
-            g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-            g_axis[g_index].set_title(g_index + " (regional toggle)")
-
-    elif event.key == 'q':
-        exit(0)
-
-def get_index(ax):
-    for p in g_projs:
-        if g_axis[p] == ax:
+def get_index(uds, ax):
+    for p in uds.projs:
+        if uds.axis[p] == ax:
             return p
 
-def proj_create(index):
+def proj_create(self, index):
     match index:
 
         # Cylindrical
         case "PlateCarree":
-            return ccrs.PlateCarree(central_longitude=g_cen_lon)
+            return ccrs.PlateCarree(central_longitude=self.cen_lon)
         case "Mercator":
-            return ccrs.Mercator(central_longitude=g_cen_lon)
+            return ccrs.Mercator(central_longitude=self.cen_lon)
         case "Miller":
-            return ccrs.Miller(central_longitude=g_cen_lon)
+            return ccrs.Miller(central_longitude=self.cen_lon)
 
         # Pseudo Cylindrical
         case "Sinusoidal":
-            return ccrs.Sinusoidal(central_longitude=g_cen_lon)
+            return ccrs.Sinusoidal(central_longitude=self.cen_lon)
         case "Mollweide":
-            return ccrs.Mollweide(central_longitude=g_cen_lon)
+            return ccrs.Mollweide(central_longitude=self.cen_lon)
         case "Robinson":
-            return ccrs.Robinson(central_longitude=g_cen_lon)
+            return ccrs.Robinson(central_longitude=self.cen_lon)
         case "InterruptedGoodeHomolosine":
-            return ccrs.InterruptedGoodeHomolosine(central_longitude=g_cen_lon)
+            return ccrs.InterruptedGoodeHomolosine(central_longitude=self.cen_lon)
 
         case "EquidistantConic":
-            return ccrs.EquidistantConic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+            return ccrs.EquidistantConic(central_longitude=self.cen_lon, central_latitude=self.cen_lat)
         case "AlbersEqualArea":
-            return ccrs.AlbersEqualArea(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+            return ccrs.AlbersEqualArea(central_longitude=self.cen_lon, central_latitude=self.cen_lat)
         case "LambertConformal":
-            if g_cen_lat>0:
+            if self.cen_lat>0:
                 lat_cutoff = -30
             else:
                 lat_cutoff = 30
-            return ccrs.LambertConformal(central_longitude=g_cen_lon, 
-                                         central_latitude=g_cen_lat,
-                                         standard_parallels=(g_cen_lat, g_cen_lat), 
+            return ccrs.LambertConformal(central_longitude=self.cen_lon, 
+                                         central_latitude=self.cen_lat,
+                                         standard_parallels=(self.cen_lat, self.cen_lat), 
                                          cutoff=lat_cutoff)
         case "Stereographic":
-            return ccrs.Stereographic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+            return ccrs.Stereographic(central_longitude=self.cen_lon, central_latitude=self.cen_lat)
         case "Orthographic":
-            return ccrs.Orthographic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+            return ccrs.Orthographic(central_longitude=self.cen_lon, central_latitude=self.cen_lat)
         case "Gnomonic":
-            return ccrs.Gnomonic(central_longitude=g_cen_lon, central_latitude=g_cen_lat)
+            return ccrs.Gnomonic(central_longitude=self.cen_lon, central_latitude=self.cen_lat)
         case "RotatedPole":
-            return ccrs.RotatedPole(pole_latitude=90-g_cen_lat, pole_longitude=g_cen_lon-180)
+            return ccrs.RotatedPole(pole_latitude=90-self.cen_lat, pole_longitude=self.cen_lon-180)
 
 def no_cen_lat(index):
     if index == "Mercator" or index == "Miller" or index == "PlateCarree" \
@@ -543,124 +736,15 @@ def no_cen_lat(index):
     else:
             return False
 
-def projs_create(mode):
-    global g_proj
-    global g_projs
-    global g_plotted
-    global g_view
-    global g_extent
-    global g_cen_lat
-    global g_dim_x, g_dim_y
-    global g_color
-    global g_enabled
-    global g_global
-
-    print(f"projs_create(mode {mode})")
-
-    if mode == "init":
-        g_extent = {}
-        g_view = {}
-        g_global = {}
-        g_enabled = {}
-
-    g_proj = {}
-    g_plotted = {}
-    g_color = {}
-
-    g_cen_lat = cen_lat_adjust(g_cen_lat)
-
-    # Class: Cylindrical, Conic, Planar/Azimuthal
-    # Case: Tangent, Secant
-    # Aspect: Normal, Transverse, Oblique
-
-    # Cylindrical
-    g_proj["PlateCarree"] = proj_create("PlateCarree")
-    g_proj["Mercator"] = proj_create("Mercator")
-    g_proj["Miller"] = proj_create("Miller")
-
-    # Conic
-    g_proj["EquidistantConic"] = proj_create("EquidistantConic") 
-    g_proj["AlbersEqualArea"] = proj_create("AlbersEqualArea")
-    g_proj["LambertConformal"] = proj_create("LambertConformal")
-
-    # Planar/Azimuthal
-    g_proj["Stereographic"] = proj_create("Stereographic")
-    g_proj["Orthographic"] = proj_create("Orthographic")
-    g_proj["Gnomonic"] = proj_create("Gnomonic")
-
-    # Pseudo-cylindrical
-    g_proj["Robinson"] = proj_create("Robinson")
-    g_proj["Mollweide"] = proj_create("Mollweide")
-    g_proj["Sinusoidal"] = proj_create("Sinusoidal")
-    g_proj["InterruptedGoodeHomolosine"] = proj_create("InterruptedGoodeHomolosine")
-
-    # Other
-    g_proj["RotatedPole"] = proj_create("RotatedPole")
-
-    if mode == "init":
-        for p in g_proj:
-            g_enabled[p] = False
-        g_enabled[g_index_dflt] = True
-        #g_enabled['Mercator'] = True
-        #g_enabled['PlateCarree'] = True
-        #g_enabled['Miller'] = True
-        #g_enabled['LambertConformal'] = True
-        #g_enabled['RotatedPole'] = True
-        #g_enabled['InterruptedGoodeHomolosine'] = True
-        #g_enabled['Gnomonic'] = True
-        #g_enabled['Orthographic'] = True
-
-    g_projs = []
-
-    count = 0
-    for p in g_proj:
-        if g_enabled[p]:
-            g_projs.append(p)
-            count += 1
-
-    match count:
-        case 1:
-            g_dim_x = 1; g_dim_y = 1
-        case 2:
-            g_dim_x = 1; g_dim_y = 2
-        case 3 | 4:
-            g_dim_x = 2; g_dim_y = 2
-        case 5 | 6:
-            g_dim_x = 2; g_dim_y = 3
-        case 7 | 8:
-            g_dim_x = 3; g_dim_y = 3
-        case 9:
-            g_dim_x = 3; g_dim_y = 3
-        case 10 | 11 | 12:
-            g_dim_x = 4; g_dim_y = 3
-        case 13 | 14:
-            g_dim_x = 4; g_dim_y = 4
-
-    # Give each projection a color (brown is the default).
-    for p in g_projs:
-        g_color[p] = "brown"
-        g_plotted[p] = False
-    g_color["LambertConformal"] = "blue"
-    g_color["RotatedPole"] = "purple"
-    g_color["Mercator"] = "yellow"
-    g_color["Gnomonic"] = "green"
-    g_color["Orthographic"] = "orange"
-
-    if mode == "init":
-        for p in g_proj:
-            g_view[p] = "regional"
-
-def plots_remove():
-    global g_plotted
-
-    if (g.menu):
-        g_axis['menu1'].remove()
-        g_axis['menu2'].remove()
-    if g_projs:
-        for p in g_projs:
-            if g_plotted[p]:
-                g_axis[p].remove()
-                g_plotted[p] = False
+def plots_remove(uds):
+    if (uds.menu):
+        uds.axis['menu1'].remove()
+        uds.axis['menu2'].remove()
+    if uds.projs:
+        for p in uds.projs:
+            if uds.plotted[p]:
+                uds.axis[p].remove()
+                uds.plotted[p] = False
 
 def find_extent(tx, ty):
     min_x = tx[0]; max_x = tx[0]
@@ -673,28 +757,13 @@ def find_extent(tx, ty):
         if y > max_y: max_y = y
     return (min_x, max_x, min_y, max_y)
 
-def plots_draw(mode):
-    global g_proj
-    global g_projs
-    global g_axis
-    global g_view
-    global g_cen_lon, g_cen_lat
-    global g_crn_lon, g_crn_lat
-    global g_dim_x, g_dim_y
-    global g_xdata_span, g_ydata_span
-    global g_compute_grid
-    global g_res
-    global g_index
-    global g_enabled
-    global g_check1
-    global g_check2
-    global g_loc
+def plots_draw(uds, mode):
 
     #
-    # Notes on global variables:
+    # Notes on variables:
     #
-    # g_index is the index of the source axis that we're trransforming from.
-    # g_projs is the list of projections, only one of which is g_index.
+    # uds.index is the index of the source axis that we're trransforming from.
+    # uds.projs is the list of projections, only one of which is uds.index.
     #
 
     # Change all target axes to regional view. Any target
@@ -702,30 +771,30 @@ def plots_draw(mode):
     # at the end of this procedure.
     if not mode == "init":
         restore_global = {}
-        for p in g_projs:
-            if p == g_index:
-                g_extent[p] = g_axis[p].get_extent()
-            elif (not p == g_index) and g_plotted[p] and g_enabled[p]:
+        for p in uds.projs:
+            if p == uds.index:
+                uds.extent[p] = uds.axis[p].get_extent()
+            elif (not p == uds.index) and uds.plotted[p] and uds.enabled[p]:
                 try:
-                    g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+                    uds.axis[p].set_extent(uds.extent[p], crs=uds.proj[p])
                 except:
                     print(f"*** WARN: FAILED TO SET EXTENT ({p}) ***")
-                if g_view[p] == "global":
+                if uds.view[p] == "global":
                     restore_global[p] = True
-                g_view[p] = "regional"
+                uds.view[p] = "regional"
 
     if mode == "init":
-        init_dflts()
+        uds.set_dflts()
     else:
         if mode == "set":
-            g_cen_lon, g_cen_lat, g_crn_lon, g_crn_lat, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
+            uds.cen_lon, uds.cen_lat, uds.crn_lon, uds.crn_lat, (x1, x2, y1, y2) = get_dims(uds, uds.index, 'blue')
         elif mode == "center":
-            _, _, _, _, (x1, x2, y1, y2) = get_dims(g_index, 'blue')
+            _, _, _, _, (x1, x2, y1, y2) = get_dims(uds, uds.index, 'blue')
 
-        if no_cen_lat(g_index):
-            xc, yc = g_proj[g_index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
+        if no_cen_lat(uds.index):
+            xc, yc = uds.proj[uds.index].transform_point(uds.cen_lon, uds.cen_lat, ccrs.Geodetic())
             # This calculation doesn't work for InterruptedGoodeHomolosine
-            if g_index == "InterruptedGoodeHomolosine":
+            if uds.index == "InterruptedGoodeHomolosine":
                 print(f"SPECIAL CASE FOR InterruptedGoodeHomolosine (set)")
                 new_extent = (xc-abs(x2-x1)/2, xc+abs(x2-x1)/2, yc-abs(y2-y1)/2, yc+abs(y2-y1)/2)
             else:
@@ -733,232 +802,187 @@ def plots_draw(mode):
         else:
             new_extent = (-abs(x2-x1)/2, abs(x2-x1)/2,   -abs(y2-y1)/2,    abs(y2-y1)/2)
 
-    # Remove old plots (the try will fail on the first "init", as g_projs hasn't
+    # Remove old plots (the try will fail on the first "init", as uds.projs hasn't
     # yet been defined via projs_create()
     try:
-        plots_remove()
+        plots_remove(uds)
     except:
         debug("NO PLOTS TO REMOVE")
 
     # Create projections
-    projs_create(mode)
+    uds.projs_create(mode)
 
     # Create plots
-    g_axis = {}
-    g_loc = {}
     j = 1
 
-    debug(f"CREATING PLOTS w/ INDEX {g_index}")
+    debug(f"CREATING PLOTS w/ INDEX {uds.index}")
 
-    for p in g_projs:
+    for p in uds.projs:
 
-        g_axis[p] = g_fig.add_subplot(g_dim_x, g_dim_y, j, projection=g_proj[p])
-        g_axis[p].margins(x=0.0, y=0.0)
-        g_axis[p].add_feature(cfeature.COASTLINE)
-        g_axis[p].add_feature(cfeature.BORDERS)
-        g_axis[p].add_feature(cfeature.STATES)
-        g_axis[p].gridlines()
-        #g_axis[p].callbacks.connect('xlim_changed', on_xlim_changed)
-        #g_axis[p].callbacks.connect('ylim_changed', on_ylim_changed)
-        g_loc[p] = j
+        uds.axis[p] = uds.fig.add_subplot(uds.dim_x, uds.dim_y, j, projection=uds.proj[p])
+        uds.axis[p].margins(x=0.0, y=0.0)
+        uds.axis[p].add_feature(cfeature.COASTLINE)
+        uds.axis[p].add_feature(cfeature.BORDERS)
+        uds.axis[p].add_feature(cfeature.STATES)
+        uds.axis[p].gridlines()
+        uds.loc[p] = j
 
         # Set axis view (global or regional/zoomed)
-        debug(f"p is {p}, mode is {mode}, g_view[{p}] is {g_view[p]}")
+        debug(f"p is {p}, mode is {mode}, uds.view[{p}] is {uds.view[p]}")
 
-        if ((p != g_index) and g_view[p] == "global"):
-            g_axis[p].set_title(f"{p} ({mode} global)")
-            g_axis[p].set_global()
+        if ((p != uds.index) and uds.view[p] == "global"):
+            uds.axis[p].set_title(f"{p} ({mode} global)")
+            uds.axis[p].set_global()
 
         else:
-            g_view[p] = "regional"
-            if p == g_index:
-                g_axis[p].set_title(f"{p} (regional index)")
+            uds.view[p] = "regional"
+            if p == uds.index:
+                uds.axis[p].set_title(f"{p} (regional index)")
             else:
-                g_axis[p].set_title(f"{p} (regional non-index)")
+                uds.axis[p].set_title(f"{p} (regional non-index)")
 
-        g_plotted[p] = True
+        uds.plotted[p] = True
 
         j = j + 1
 
     if mode == "init":
-        xc, yc = g_proj[g_index].transform_point(g_cen_lon, g_cen_lat, ccrs.Geodetic())
-        xll, yll = g_proj[g_index].transform_point(g_crn_lon, g_crn_lat, ccrs.Geodetic())
+        xc, yc = uds.proj[uds.index].transform_point(uds.cen_lon, uds.cen_lat, ccrs.Geodetic())
+        xll, yll = uds.proj[uds.index].transform_point(uds.crn_lon, uds.crn_lat, ccrs.Geodetic())
         xlr = xc+(xc-xll); ylr = yc-(yc-yll)
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
-        g_extent[g_index] = (xll, xlr, yll, yul)
+        uds.extent[uds.index] = (xll, xlr, yll, yul)
     else:
-        g_extent[g_index] = new_extent
+        uds.extent[uds.index] = new_extent
         debug("CASE 2")
 
-    if args.file:
-        if not g.grib_initialized:
-            print(f"processing GRIB file {args.file}...")
-            init_grib()
-        print(f"plotting GRIB...")
-        plot_grib()
-        for p in g_projs:
-            if g_plotted[p]:
-                g_axis[p].set_title(p)
-        g_fig.suptitle(g_title)
-        if args.close:
-            ram = io.BytesIO()
-            print(f"SAVING GRIB PLOT TO {args.file}")
-            plt.savefig(ram, format="png", bbox_inches="tight", dpi=150)
-            ram.seek(0)
-            im = PIL.Image.open(ram)
-            im2 = im.convert("RGB")
-            im2.save(args.file + ".png", format="PNG")
-            print(f"DONE SAVING GRIB PLOT TO {args.file}")
+    if g_args.file:
+        uds.grib.plot(g_args.file, uds)
+        for p in uds.projs:
+            if uds.plotted[p]:
+                uds.axis[p].set_title(p)
+        uds.fig.suptitle(uds.grib.title)
+        if g_args.close:
+            uds.grib.save(g_args.file + ".png")
             exit(0)
 
     if True:
 
-        assert(g_view[g_index] == "regional")
+        assert(uds.view[uds.index] == "regional")
         assert(mode=="set" or mode=="init")
 
         try:
-            if not args.file:
-                print(f"GRIB FILE NOT SPECIFIED: setting default extent for {g_index}")
-                g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-                debug(f"A:   set extent to {fmt_tuple(g_extent[g_index])}")
+            if not g_args.file:
+                print(f"GRIB FILE NOT SPECIFIED: setting default extent for {uds.index}")
+                uds.axis[uds.index].set_extent(uds.extent[uds.index], crs=uds.proj[uds.index])
+                debug(f"A:   set extent to {fmt_tuple(uds.extent[uds.index])}")
             else:
-                print(f"GRIB FILE SPECIFIED: not setting extent for {g_index}")
-            g_axis[g_index].set_title(f"{g_index} (STILL REGIONAL after mode {mode})")
+                print(f"GRIB FILE SPECIFIED: not setting extent for {uds.index}")
+            uds.axis[uds.index].set_title(f"{uds.index} (STILL REGIONAL after mode {mode})")
         except:
-            print(f"*** CASE 2: FAILED TO SET EXTENT ({g_index}): {g_extent[g_index]} ***")
+            print(f"*** CASE 2: FAILED TO SET EXTENT ({uds.index}): {uds.extent[uds.index]} ***")
 
         # Outline the extent of the index's axis
-        x, y = create_box_xy_data(g_index, g_color[g_index])
-        g_axis[g_index].plot(x, y, color=g_color[g_index], linewidth=2, alpha=1.0, linestyle='dashed')
-        g_axis[g_index].plot(*(g_cen_lon, g_cen_lat), transform=ccrs.Geodetic(), 
+        x, y = create_box_xy_data(uds, uds.index, uds.color[uds.index])
+        uds.axis[uds.index].plot(x, y, color=uds.color[uds.index], linewidth=2, alpha=1.0, linestyle='dashed')
+        uds.axis[uds.index].plot(*(uds.cen_lon, uds.cen_lat), transform=ccrs.Geodetic(), 
                                marker='*', ms=10, color='purple')
 
-        targets = [t for t in g_projs if not t == g_index]
+        targets = [t for t in uds.projs if not t == uds.index]
         for p in targets:
 
             style = 'solid' 
 
             # Draw the transformed index's extent on the target's axis
-            pts = g_proj[p].transform_points(g_proj[g_index], np.array(x), np.array(y))
+            pts = uds.proj[p].transform_points(uds.proj[uds.index], np.array(x), np.array(y))
             tx = pts[:, 0]; ty = pts[:, 1]
-            g_axis[p].plot(tx, ty, color=g_color[g_index], linewidth=2, alpha=1.0, linestyle=style)
+            uds.axis[p].plot(tx, ty, color=uds.color[uds.index], linewidth=2, alpha=1.0, linestyle=style)
 
             # Outline the extent of the target's axis
             min_x, max_x, min_y, max_y = find_extent(tx, ty)
             xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
-            g_axis[p].plot(xp, yp, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+            uds.axis[p].plot(xp, yp, color=uds.color[p], linewidth=2, alpha=1.0, linestyle=style)
 
             # Draw the transformed targets's extent on the index's axis
-            pts = g_proj[g_index].transform_points(g_proj[p], np.array(xp), np.array(yp))
+            pts = uds.proj[uds.index].transform_points(uds.proj[p], np.array(xp), np.array(yp))
             tx = pts[:, 0]; ty = pts[:, 1]
-            g_axis[g_index].plot(tx, ty, color=g_color[p], linewidth=2, alpha=1.0, linestyle=style)
+            uds.axis[uds.index].plot(tx, ty, color=uds.color[p], linewidth=2, alpha=1.0, linestyle=style)
 
     if mode == "center":
-        x1, x2, y1, y2 = g_axis[g_index].get_extent()
-        g_crn_lon, g_crn_lat = ccrs.PlateCarree().transform_point(x1, y1, g_proj[g_index])
+        x1, x2, y1, y2 = uds.axis[uds.index].get_extent()
+        uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(x1, y1, uds.proj[uds.index])
 
     # Set/restore view
     if mode == "init":
-        for p in g_projs:
-            if g_plotted[p]:
+        for p in uds.projs:
+            if uds.plotted[p]:
                 if p == "Orthographic":
                     print(f"special case: initializing global view for Orthographic")
-                    g_extent[p] = g_axis[p].get_extent()
-                    g_view[p] = "global"
-                    g_axis[p].set_global()
-                    g_axis[p].set_title(p + " (global init)")
+                    uds.extent[p] = uds.axis[p].get_extent()
+                    uds.view[p] = "global"
+                    uds.axis[p].set_global()
+                    uds.axis[p].set_title(p + " (global init)")
     else:
         for p in restore_global:
-            if g_enabled[p]:
+            if uds.enabled[p]:
                 debug(f"restoring global view for {p} ***")
-                g_extent[p] =  g_axis[p].get_extent()
-                g_axis[p].set_global()
-                g_view[p] = "global"
-                g_axis[p].set_title(p + " (global restore)")
+                uds.extent[p] =  uds.axis[p].get_extent()
+                uds.axis[p].set_global()
+                uds.view[p] = "global"
+                uds.axis[p].set_title(p + " (global restore)")
 
     # Keep track of what the global extent is
-    for p in g_projs:
-            debug(f"recording global extent for {p} (current view {g_view[p]})")
-            if g_view[p] == "global":
-                g_global[p] = g_axis[p].get_extent()
+    for p in uds.projs:
+            debug(f"recording global extent for {p} (current view {uds.view[p]})")
+            if uds.view[p] == "global":
+                uds.globe[p] = uds.axis[p].get_extent()
             else:
-                g_extent[p] = g_axis[p].get_extent()
-                g_axis[p].set_global()
-                g_global[p] = g_axis[p].get_extent()
+                uds.extent[p] = uds.axis[p].get_extent()
+                uds.axis[p].set_global()
+                uds.globe[p] = uds.axis[p].get_extent()
                 try:
-                    g_axis[p].set_extent(g_extent[p], crs=g_proj[p])
+                    uds.axis[p].set_extent(uds.extent[p], crs=uds.proj[p])
                 except:
-                    print(f"FAILED TO SET EXTENT FOR {p}: {g_extent[p]}")
+                    print(f"FAILED TO SET EXTENT FOR {p}: {uds.extent[p]}")
 
     # Check buttons
-    if (g.menu):
-        g_axis['menu1'] = g_fig.add_axes([0.25, 0.0, 0.1, 0.1], frameon=False)
-        g_axis['menu2'] = g_fig.add_axes([0.65, 0.0, 0.1, 0.1], frameon=False)
+    if (uds.menu):
+        uds.axis['menu1'] = uds.fig.add_axes([0.25, 0.0, 0.1, 0.1], frameon=False)
+        uds.axis['menu2'] = uds.fig.add_axes([0.65, 0.0, 0.1, 0.1], frameon=False)
 
     proj1 = []
     proj2 = []
     status1 = []
     status2 = []
     count = 1
-    for p in g_proj:
-        if count<len(g_proj)/2:
-            if g_enabled[p]:
+    for p in uds.proj:
+        if count<len(uds.proj)/2:
+            if uds.enabled[p]:
                 status1.append(True)
             else:
                 status1.append(False)
             proj1.append(p)
         else:
-            if g_enabled[p]:
+            if uds.enabled[p]:
                 status2.append(True)
             else:
                 status2.append(False)
             proj2.append(p)
         count += 1
-    if (g.menu):
-        g_check1 = CheckButtons(g_axis['menu1'], proj1, status1)
-        g_check1.on_clicked(checkfunc)
-        g_check2 = CheckButtons(g_axis['menu2'], proj2, status2)
-        g_check2.on_clicked(checkfunc)
+    if (uds.menu):
+        uds.check1 = CheckButtons(uds.axis['menu1'], proj1, status1)
+        uds.check1.on_clicked(uds.checkfunc)
+        uds.check2 = CheckButtons(uds.axis['menu2'], proj2, status2)
+        uds.check2.on_clicked(uds.checkfunc)
 
-    if mode == "init" and not g.initialized:
-        g.initialized = True
+    if mode == "init" and not uds.initialized:
+        uds.initialized = True
         print("plots_draw: entering event loop")
         plt.show()
         print("plots_draw: exited event loop")
     else:
         print("plots_draw: drawing...")
         plt.draw()
-
-def checkfunc(label):
-    global g_enabled
-    global g_index
-    global g_view
-
-    if not g_enabled[label]:
-        g_enabled[label] =  True
-    else:
-        if len(g_projs) == 1:
-            debug(f"checkfunc: cannot remove last projection")
-            plots_draw("set")
-            return
-        elif label == g_index:
-            g_enabled[label] =  False
-            g_index = g_projs[0]
-            debug(f"checkfunc: changed index to {g_index}")
-            if label == g_index:
-                g_index = g_projs[1]
-                debug(f"checkfunc: changed index again to {g_index}")
-            g_view[g_index] = "regional"
-            g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-            debug(f"checkfunc: forcing {g_index} to regional")
-        else:
-            debug(f"checkfunc: forcing {g_index} to regional")
-            g_view[g_index] = "regional"
-            g_axis[g_index].set_extent(g_extent[g_index], crs=g_proj[g_index])
-        g_enabled[label] = False
-
-    plots_draw("set")
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
@@ -984,8 +1008,8 @@ def create_box_xy(extent):
 
     return xs, ys
 
-def create_box_xy_data(src_index, color):
-    cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(src_index, color)
+def create_box_xy_data(uds, src_index, color):
+    cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(uds, src_index, color)
     x1, x2, y1, y2 = extent 
     xs = []
     ys = []
@@ -1012,10 +1036,10 @@ def create_box_xy_data(src_index, color):
     return xs, ys
 
 def draw_box_xy_data(tgt_index, src_index, color):
-    cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(src_index, color)
+    cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(uds, src_index, color)
     x1, x2, y1, y2 = extent 
     if color == "blue":
-        g_axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
+        uds.axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
                                marker='*', ms=10, color='orange')
     xs = []
     ys = []
@@ -1036,118 +1060,20 @@ def draw_box_xy_data(tgt_index, src_index, color):
         xs.append(x2-i*(x2-x1)/32)
         ys.append(y1)
 
-    g_axis[tgt_index].plot(xs, ys, transform=g_axis[src_index].projection, 
+    uds.axis[tgt_index].plot(xs, ys, transform=uds.axis[src_index].projection, 
                            color=color, linewidth=2, alpha=1.0, linestyle='solid')
 
     return xs, ys
 
-def init_grib():
-    global g_title
-    global g_lons
-    global g_lats
-    global g_vort500
-    global g_cm
-    global g_norm
-
-    g_data = pygrib.open(args.file)
-
-    zmsg = g_data.select(name="Geopotential height", level=500)[0]
-    zdata = zmsg.values
-    lats, lons = zmsg.latlons()
-
-    vdata = g_data.select(name="Absolute vorticity", level=500)[0].values
-
-    sio = io.StringIO()
-    print(zmsg, file=sio)
-    fcst = sio.getvalue().split(':')[6]
-    time = sio.getvalue().split(':')[7]
-    g_title = fcst + " " + time
-
-    # Filter out by lat/lon (need to generalize this using lambert center and corner)
-    if False:
-        lat_span = 30
-        lon_span = 30
-        lat_min, lat_max = round(g_cen_lat-lat_span/2), \
-                           round(g_cen_lat+lat_span/2)
-        dim0 = (lat_max-lat_min)*4+1
-        lon_min, lon_max = round(360+g_cen_lon-lon_span/2), \
-                           round(360+g_cen_lon+lon_span/2)
-        dim1 = (lon_max-lon_min)*4+1
-        mask = (lats >= lat_min) & (lats <= lat_max) & (lons >= lon_min) & (lons <= lon_max)
-        filtered_lats = lats[mask]
-        filtered_lons = lons[mask]
-        filtered_zdata = zdata[mask]
-        filtered_vdata = vdata[mask]
-        lats = np.array(filtered_lats)
-        lons = np.array(filtered_lons)
-        zdata = np.array(filtered_zdata)
-        vdata = np.array(filtered_vdata)
-        lats = np.reshape(lats, (dim0, dim1))
-        lons = np.reshape(lons, (dim0, dim1))
-        zdata = np.reshape(zdata, (dim0, dim1))
-        vdata = np.reshape(vdata, (dim0, dim1))
-
-    # Geopotential height
-    z500 = zdata * 0.1
-    z500 = scipy.ndimage.gaussian_filter(z500, 6.89)
-    for p in g_projs:
-        if g_plotted[p]:
-            contours = g_axis[p].contour(lons, lats, z500, 
-                                         np.arange(0, 900, 6), 
-                                         colors="blue", linewidths=1, 
-                                         transform=cartopy.crs.PlateCarree(), alpha=0.25)
-    plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
-
-    # Vorticity
-    g_vort500 = vdata * 100000
-    g_vort500 = scipy.ndimage.gaussian_filter(g_vort500, 1.7225)
-    if False:
-        g_vort500[g_vort500 > 1000] = 0  # Mask out undefined values on domain edge
-    vortlevs = [16, 20, 24, 28, 32, 36, 40]
-    colorlist = ["yellow", "gold", "goldenrod", "orange", "orangered", "red" ]
-    g_cm = matplotlib.colors.ListedColormap(colorlist)
-    g_norm = matplotlib.colors.BoundaryNorm(vortlevs, g_cm.N)
-
-    g_lons = lons
-    g_lats = lats
-    g.grib_initialized = True
-
-def plot_grib():
-    for p in g_projs:
-        if g_plotted[p]:
-            cs1_a = g_axis[p].pcolormesh(g_lons, g_lats,
-                                         g_vort500, transform=cartopy.crs.PlateCarree(),
-                                         cmap=g_cm, norm=g_norm)
-    cs1_a.cmap.set_under("none")   # under 16
-    cs1_a.cmap.set_over("darkred") # above 40
-
 def show_help():
     print(g_help)
 
-#def on_resize(event):
-#    print(f"Figure resized: width={event.width}, height={event.height}")
+########
+# Main #
+########
 
-#def on_xlim_changed(axes):
-#    print("X-axis limits changed:", axes.get_xlim())
-
-#def on_ylim_changed(axes):
-#    print("Y-axis limits changed:", axes.get_ylim())
-
-def debug(format):
-    if g.debug:
-        print(format)
-
-#
-# Main
-#
-
-#if args.file and not (args.cen_lon and args.cen_lat and args.proj):
-#    print("--file requires --cen_lon, --cen_lat, and --proj")
-#    exit(1)
-#else:
-
-if args.file:
-    g_data = pygrib.open(args.file)
+if g_args.file:
+    g_data = pygrib.open(g_args.file)
     msg = g_data[1]
     print(f"params: {msg.projparams}")
     match msg.projparams['proj']:
@@ -1165,13 +1091,6 @@ if args.file:
             print(f"unknown projection {msg.projparams['proj']} -- using default")
     print(f" proj: {msg.projparams['proj']} --> {g_index_dflt}")
 
-g = ufs_domain_select()
-g.say_hello()
-
-plt.rcParams["figure.raise_window"] = False
-g_fig = plt.figure(figsize=(10, 10))
-g_fig.canvas.mpl_connect('button_press_event', on_button_press)
-g_fig.canvas.mpl_connect('key_press_event', on_key_press)
-#g_fig.canvas.mpl_connect('resize_event', on_resize)
 show_help()
-plots_draw("init")
+myuds = ufs_domain_select()
+plots_draw(myuds, "init")
