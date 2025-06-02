@@ -16,12 +16,14 @@
 # Cleanup
 # - re-organize scipt comments, arguments and such
 # - move plots_draw and plots_remove into Class definitions??
+# - fix figure names (like "regional non-index")
 #
 # Features
 # - filter big GFS by region
 # - update Makefile to download latest cycle and integrate into GUI
 # - write status to screen (e.g., YAML written, res selected, ...)?
 # - understand and integrate regional_latlon
+# - add menu for predefined UFS regions (to be parsed from file ;-)
 #
 
 import argparse
