@@ -4,8 +4,34 @@
 # TODO
 #
 # Validation
+# - update fig_control on reset ('0')
+# - recreate various predefined grids (should be identical!)
+#   whatever we do to recreate needs to be automated by reading
+#   in the predefined file!
+#
+#                             DFLT  REPR
+#   L RRFS_CONUS_25km           OK
+#   L RRFS_CONUScompact_25km    OK
+#   L RRFS_CONUS_13km           OK
+#   L RRFS_CONUScompact_13km    OK
+#   L RRFS_CONUS_3km            X - OOM
+#   L RRFS_CONUScompact_3km     X - OOM
+#   L SUBCONUS_Ind_3km          OK
+#   L RRFS_AK_13km              OK - but contours wrap
+#   L RRFS_AK_3km               X - OOM 
+#   L WoFS_3km                  OK
+#   R CONUS_25km_GFDLgrid       OK
+#   R CONUS_3km_GFDLgrid        X - OOM 
+#   L GSD_HRRR_25km             OK
+#   R AQM_NA_13km               X - OOM 
+#   R RRFS_NA_13km              X - OOM 
+#   R RRFS_NA_3km
+#   R RRFS_NA_25km              OK - but odd projection
+#
 # - make sure uds.compute_grid (gnomonic) is correct and add option to show it
 # - test w/ GFS files (currently filters based on lon/lat spans)
+#
+# - do lambert and rotated have the same corner??
 #
 # Bugs
 # - none
@@ -19,6 +45,7 @@
 # - fix figure names (like "regional non-index")
 #
 # Features
+# - make it so that all projections go to Orthographic
 # - filter big GFS by region
 # - update Makefile to download latest cycle and integrate into GUI
 # - write status to screen (e.g., YAML written, res selected, ...)?
@@ -43,6 +70,7 @@ import cartopy
 import matplotlib
 from matplotlib.widgets import RadioButtons
 from matplotlib.widgets import CheckButtons
+import yaml
 
 ###########
 # Globals #
@@ -57,18 +85,6 @@ g_res_dflt=-1                                             # 3000, 13000, 25000, 
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 
-g_index_dflt = 'InterruptedGoodeHomolosine'
-g_index_dflt = 'RotatedPole'
-g_index_dflt = 'LambertConformal'
-g_index_dflt = 'PlateCarree'
-g_index_dflt = 'Orthographic'
-g_index_dflt = 'Mercator'
-
-#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
-#g_cen_lon_dflt=-97.5;   g_cen_lat_dflt=38.5;  g_crn_lon_dflt=-122.72; g_crn_lat_dflt=21.14  # CONUS
-#g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # CONUS
-#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
 
 g_dt_atmos = 36
 g_blocksize = 40
@@ -151,13 +167,15 @@ class grib():
         # Get geopotential height
         z500 = zdata * 0.1
         z500 = scipy.ndimage.gaussian_filter(z500, 6.89)
-        for p in self.uds.projs:
-            if self.uds.plotted[p]:
+
+        if False:
+            for p in self.uds.projs:
+             if self.uds.plotted[p]:
                 contours = self.uds.axis[p].contour(lons, lats, z500,
-                                             np.arange(0, 900, 6),
-                                             colors="blue", linewidths=1,
-                                             transform=cartopy.crs.PlateCarree(), alpha=0.25)
-        plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
+                                                    np.arange(0, 900, 6),
+                                                    colors="blue", linewidths=1,
+                                                    transform=cartopy.crs.PlateCarree(), alpha=0.25)
+            plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
 
         # Get vorticity
         self.vort500 = vdata * 100000
@@ -276,14 +294,20 @@ class ufs_domain_select:
             for p in s.proj:
                 s.enabled[p] = False
             s.enabled[g_index_dflt] = True
-            #s.enabled['Mercator'] = True
-            #s.enabled['PlateCarree'] = True
-            #s.enabled['Miller'] = True
-            #s.enabled['LambertConformal'] = True
-            #s.enabled['RotatedPole'] = True
-            #s.enabled['InterruptedGoodeHomolosine'] = True
-            #s.enabled['Gnomonic'] = True
-            #s.enabled['Orthographic'] = True
+            s.enabled['PlateCarree'] = True
+            s.enabled['Mercator'] = True
+            s.enabled['Miller'] = True
+            s.enabled['EquidistantConic'] = True
+            s.enabled['AlbersEqualArea'] = True
+            s.enabled['LambertConformal'] = True
+            s.enabled['Stereographic'] = True
+            s.enabled['Orthographic'] = True
+            s.enabled['Gnomonic'] = True
+            s.enabled['Robinson'] = True
+            s.enabled['Mollweide'] = True
+            s.enabled['Sinusoidal'] = True
+            s.enabled['InterruptedGoodeHomolosine'] = True
+            s.enabled['RotatedPole'] = True
 
         count = 0
         for p in s.proj:
@@ -314,10 +338,10 @@ class ufs_domain_select:
             s.color[p] = "brown"
             s.plotted[p] = False
         s.color["LambertConformal"] = "blue"
+        s.color["Gnomonic"] = "red"
+        s.color["Orthographic"] = "black"
         s.color["RotatedPole"] = "purple"
         s.color["Mercator"] = "yellow"
-        s.color["Gnomonic"] = "green"
-        s.color["Orthographic"] = "orange"
     
         if mode == "init":
             for p in s.proj:
@@ -472,14 +496,30 @@ class ufs_domain_select:
             exit(0)
 
     def checkfunc(self, label):
+
+        # get index (i) of projection in self.proj
+        i = 0
+        for p in self.proj:
+            if p == label:
+                break
+            i = i + 1
+
+        if len(self.projs) == 1:
+            true_count = sum(self.check1.get_status())
+            if not self.check1.get_status()[i] and true_count == 0:
+                print(f"CANNOT DISABLE LAST PROJECTION ({label})")
+                self.check1.set_active(i)
+                return
+            elif self.check1.get_status()[i] and true_count == 1:
+                print(f"RE-ENABLING LAST PROJECTION ({label})")
+                # the above if statement will call back to this point
+                # to re-enabled the button, so just return
+                return
+
         if not self.enabled[label]:
             self.enabled[label] =  True
         else:
-            if len(self.projs) == 1:
-                debug(f"checkfunc: cannot remove last projection")
-                plots_draw(self, "set")
-                return
-            elif label == self.index:
+            if label == self.index:
                 self.enabled[label] =  False
                 self.index = self.projs[0]
                 debug(f"checkfunc: changed index to {self.index}")
@@ -494,12 +534,13 @@ class ufs_domain_select:
                 self.view[self.index] = "regional"
                 self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
             self.enabled[label] = False
-        plots_draw(self, "set")
 
+        plots_draw(self, "set")
 
     def __init__(self):
         plt.rcParams["figure.raise_window"] = False
-        self.fig = plt.figure(figsize=(10, 10))
+        self.fig = plt.figure(figsize=(8, 5))
+        self.fig_control = plt.figure(figsize=(8, 5))
         self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         self.grib = grib(self)
@@ -741,7 +782,6 @@ def no_cen_lat(index):
 def plots_remove(uds):
     if (uds.menu):
         uds.axis['menu1'].remove()
-        uds.axis['menu2'].remove()
     if uds.projs:
         for p in uds.projs:
             if uds.plotted[p]:
@@ -848,8 +888,18 @@ def plots_draw(uds, mode):
         j = j + 1
 
     if mode == "init":
+
+        if uds.index == "RotatedPole":
+            # Transform the RotatedPole corner to Geodetic
+            print("plots_draw: init for RotatedPole")
+            uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(g_crn_lon_dflt, g_crn_lat_dflt, uds.proj[uds.index])
+            print(f" rotated corner: lon {g_crn_lon_dflt} lat {g_crn_lat_dflt}")
+            print(f"geodetic corner: lon {uds.crn_lon} lat {uds.crn_lat}")
+
         xc, yc = uds.proj[uds.index].transform_point(uds.cen_lon, uds.cen_lat, ccrs.Geodetic())
         xll, yll = uds.proj[uds.index].transform_point(uds.crn_lon, uds.crn_lat, ccrs.Geodetic())
+
+
         xlr = xc+(xc-xll); ylr = yc-(yc-yll)
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
@@ -949,48 +999,74 @@ def plots_draw(uds, mode):
 
     # Check buttons
     if (uds.menu):
-        uds.axis['menu1'] = uds.fig.add_axes([0.25, 0.0, 0.1, 0.1], frameon=False)
-        uds.axis['menu2'] = uds.fig.add_axes([0.65, 0.0, 0.1, 0.1], frameon=False)
+        uds.axis['menu1'] = uds.fig_control.add_axes([0.10, 0.0, 0.10, 1.0], frameon=False)
+        uds.axis['menu3'] = uds.fig_control.add_axes([0.60, 0.0, 0.25, 1.0], frameon=False)
 
     proj1 = []
     proj2 = []
     status1 = []
-    status2 = []
     count = 1
     for p in uds.proj:
-        if count<len(uds.proj)/2:
-            if uds.enabled[p]:
-                status1.append(True)
-            else:
-                status1.append(False)
-            proj1.append(p)
+        if uds.enabled[p]:
+            status1.append(True)
         else:
-            if uds.enabled[p]:
-                status2.append(True)
-            else:
-                status2.append(False)
-            proj2.append(p)
+            status1.append(False)
+        proj1.append(p)
         count += 1
     if (uds.menu):
         uds.check1 = CheckButtons(uds.axis['menu1'], proj1, status1)
         uds.check1.on_clicked(uds.checkfunc)
-        uds.check2 = CheckButtons(uds.axis['menu2'], proj2, status2)
-        uds.check2.on_clicked(uds.checkfunc)
-
+        radio = RadioButtons(uds.axis['menu3'], g_radio_buttons)
+        radio.on_clicked(radio_func)
     if mode == "init" and not uds.initialized:
         uds.initialized = True
         print("plots_draw: entering event loop")
         plt.show()
         print("plots_draw: exited event loop")
-    else:
+
+    # FIXME: things get sluggish when we remove LambertConformal
+    # FIXME: the combination below requires plt.draw() for some reason
+
+    if True:
         print("plots_draw: drawing...")
-        plt.draw()
+        plt.draw() # To draw the control window
+        #myuds.fig_control.canvas.draw() # This fails
+        #uds.fig_control.canvas.draw() # This fails too
+        print("redrawing canvas...")
+        uds.fig.canvas.draw() # To draw the projections
+        if mode == "init":
+            print(f"redrawing control canvas on mode {mode}")
+            uds.fig_control.canvas.draw()
+        print("plots_draw: done drawing...")
+
+def radio_func(region):
+    global g_cen_lon_dflt
+    global g_cen_lat_dflt
+    global g_crn_lon_dflt
+    global g_crn_lat_dflt
+    global g_index_dflt
+    print(f"radio_func ({region})")
+    g_cen_lon_dflt = WRTCMP_cen_lon[region]['WRTCMP_cen_lon']
+    g_cen_lat_dflt = WRTCMP_cen_lat[region]['WRTCMP_cen_lat']
+    g_crn_lon_dflt = WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left']
+    g_crn_lat_dflt = WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left']
+    match WRTCMP_output_grid[region]['WRTCMP_output_grid']:
+        case "lambert_conformal":
+            print("SELECTING lambert_conformal")
+            g_index_dflt = "LambertConformal"
+        case "rotated_latlon":
+            print("SELECTING rotated_latlon")
+            g_index_dflt = "RotatedPole"
+    plots_draw(myuds, "init")
+    print("radio_func: drawing control canvas")
+    myuds.fig_control.canvas.draw()
+    print("radio_func: done drawing control canvas")
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
     xs = []
     ys = []
-    steps = 64
+    steps = 256
     #left
     for i in range(0, steps+1):
         xs.append(x1)
@@ -1093,6 +1169,71 @@ if g_args.file:
             print(f"unknown projection {msg.projparams['proj']} -- using default")
     print(f" proj: {msg.projparams['proj']} --> {g_index_dflt}")
 
+#
+# Select from one of the predefined grids
+#
+
+with open("/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml", 'r') as file:
+    yaml_data = yaml.safe_load(file)
+    WRTCMP_cen_lon = {}
+    WRTCMP_cen_lat = {}
+    WRTCMP_lon_lwr_left = {}
+    WRTCMP_lat_lwr_left = {}
+    WRTCMP_output_grid = {}
+    g_radio_buttons = []
+    for region in yaml_data:
+        WRTCMP_cen_lon[region] = {}
+        WRTCMP_cen_lat[region] = {}
+        WRTCMP_lon_lwr_left[region] = {}
+        WRTCMP_lat_lwr_left[region] = {}
+        WRTCMP_output_grid[region] = {}
+        print(f"region is {region} ({yaml_data[region]['QUILTING']['WRTCMP_output_grid']})")
+        for key in yaml_data[region]['QUILTING']:
+            WRTCMP_output_grid[region][key] = yaml_data[region]['QUILTING']['WRTCMP_output_grid']
+            WRTCMP_cen_lon[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lon']
+            WRTCMP_cen_lat[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lat']
+            WRTCMP_lon_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lon_lwr_left']
+            WRTCMP_lat_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lat_lwr_left']
+        g_radio_buttons.append(region)
+
+# LambertConformal
+#region='RRFS_CONUS_25km'
+#region='RRFS_CONUScompact_25km'
+#region='RRFS_CONUS_13km'
+#region='RRFS_CONUScompact_13km'
+#region='RRFS_CONUS_3km'
+#region='RRFS_CONUScompact_3km'
+#region='SUBCONUS_Ind_3km'
+#region='RRFS_AK_13km'
+#region='RRFS_AK_3km'
+#region='WoFS_3km'
+#region='GSD_HRRR_25km'
+
+# RotatedPole
+#region='CONUS_25km_GFDLgrid'
+#region='CONUS_3km_GFDLgrid'
+#region='AQM_NA_13km'
+#region='RRFS_NA_13km'
+#region='RRFS_NA_3km'
+#
+#g_cen_lon_dflt = WRTCMP_cen_lon[region]['WRTCMP_cen_lon']
+#g_cen_lat_dflt = WRTCMP_cen_lat[region]['WRTCMP_cen_lat']
+#g_crn_lon_dflt = WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left']
+#g_crn_lat_dflt = WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left']
+#match WRTCMP_output_grid[region]['WRTCMP_output_grid']:
+#    case "lambert_conformal":
+#        g_index_dflt = "LambertConformal"
+#    case "rotated_latlon":
+#        g_index_dflt = "RotatedPole"
+#
+#g_index_dflt = 'RotatedPole'
+#g_index_dflt = 'LambertConformal'
+#g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
+#g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
+#g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # Trinidad & Tobago
+#g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+
 show_help()
 myuds = ufs_domain_select()
-plots_draw(myuds, "init")
+radio_func('RRFS_CONUS_25km') # This will call plots_draw()
+#plots_draw(myuds, "init")
