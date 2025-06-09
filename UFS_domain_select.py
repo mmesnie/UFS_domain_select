@@ -4,7 +4,7 @@
 # TODO
 #
 # Validation
-# - update fig_control on reset ('0')
+# - persist projection selection when we change domain
 # - recreate various predefined grids (should be identical!)
 #   whatever we do to recreate needs to be automated by reading
 #   in the predefined file!
@@ -77,6 +77,7 @@ import yaml
 ###########
 
 g_debug = False
+g_first_init = True
 
 HOME = f"{os.environ['HOME']}"
 UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
@@ -217,15 +218,6 @@ class grib():
         self.initialized = False
 
 class ufs_domain_select:
-    menu = True
-    initialized = False
-    enabled = {}
-    view = {}
-    extent = {}
-    globe = {}
-    proj = {}
-    plotted = {}
-    color = {}
 
     def set_dflts(self):
         s = self
@@ -258,6 +250,7 @@ class ufs_domain_select:
             s.enabled = {}
             s.view = {}
             s.extent = {}
+        s.globe = {}
         s.proj = {}
         s.plotted = {}
         s.color = {}
@@ -294,20 +287,21 @@ class ufs_domain_select:
             for p in s.proj:
                 s.enabled[p] = False
             s.enabled[g_index_dflt] = True
-            s.enabled['PlateCarree'] = True
+            #s.enabled['PlateCarree'] = True
             s.enabled['Mercator'] = True
-            s.enabled['Miller'] = True
-            s.enabled['EquidistantConic'] = True
-            s.enabled['AlbersEqualArea'] = True
+            #s.enabled['Miller'] = True
+            #s.enabled['EquidistantConic'] = True
+            #s.enabled['AlbersEqualArea'] = True
             s.enabled['LambertConformal'] = True
-            s.enabled['Stereographic'] = True
+            #s.enabled['Stereographic'] = True
             s.enabled['Orthographic'] = True
             s.enabled['Gnomonic'] = True
-            s.enabled['Robinson'] = True
-            s.enabled['Mollweide'] = True
-            s.enabled['Sinusoidal'] = True
-            s.enabled['InterruptedGoodeHomolosine'] = True
+            #s.enabled['Robinson'] = True
+            #s.enabled['Mollweide'] = True
+            #s.enabled['Sinusoidal'] = True
+            #s.enabled['InterruptedGoodeHomolosine'] = True
             s.enabled['RotatedPole'] = True
+            g_first_init = False
 
         count = 0
         for p in s.proj:
@@ -540,7 +534,7 @@ class ufs_domain_select:
     def __init__(self):
         plt.rcParams["figure.raise_window"] = False
         self.fig = plt.figure(figsize=(8, 5))
-        self.fig_control = plt.figure(figsize=(8, 5))
+        self.fig_control = plt.figure(figsize=(5.5, 5))
         self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         self.grib = grib(self)
@@ -780,11 +774,12 @@ def no_cen_lat(index):
             return False
 
 def plots_remove(uds):
-    if (uds.menu):
-        uds.axis['menu1'].remove()
+    #uds.axis['menu1'].remove()
+    #uds.axis['menu3'].remove()
     if uds.projs:
         for p in uds.projs:
             if uds.plotted[p]:
+                print(f"removing {p} axis")
                 uds.axis[p].remove()
                 uds.plotted[p] = False
 
@@ -998,9 +993,8 @@ def plots_draw(uds, mode):
                     print(f"FAILED TO SET EXTENT FOR {p}: {uds.extent[p]}")
 
     # Check buttons
-    if (uds.menu):
-        uds.axis['menu1'] = uds.fig_control.add_axes([0.10, 0.0, 0.10, 1.0], frameon=False)
-        uds.axis['menu3'] = uds.fig_control.add_axes([0.60, 0.0, 0.25, 1.0], frameon=False)
+    uds.axis['menu1'] = uds.fig_control.add_axes([0.10, 0.0, 0.10, 1.0], frameon=False)
+    uds.axis['menu3'] = uds.fig_control.add_axes([0.50, 0.0, 0.25, 1.0], frameon=False)
 
     proj1 = []
     proj2 = []
@@ -1013,31 +1007,20 @@ def plots_draw(uds, mode):
             status1.append(False)
         proj1.append(p)
         count += 1
-    if (uds.menu):
-        uds.check1 = CheckButtons(uds.axis['menu1'], proj1, status1)
-        uds.check1.on_clicked(uds.checkfunc)
-        radio = RadioButtons(uds.axis['menu3'], g_radio_buttons)
-        radio.on_clicked(radio_func)
-    if mode == "init" and not uds.initialized:
-        uds.initialized = True
-        print("plots_draw: entering event loop")
+
+    uds.check1 = CheckButtons(uds.axis['menu1'], proj1, status1)
+    uds.check1.on_clicked(uds.checkfunc)
+    radio = RadioButtons(uds.axis['menu3'], g_radio_buttons)
+    radio.on_clicked(radio_func)
+
+    if mode == "init":
         plt.show()
-        print("plots_draw: exited event loop")
-
-    # FIXME: things get sluggish when we remove LambertConformal
-    # FIXME: the combination below requires plt.draw() for some reason
-
-    if True:
-        print("plots_draw: drawing...")
-        plt.draw() # To draw the control window
-        #myuds.fig_control.canvas.draw() # This fails
-        #uds.fig_control.canvas.draw() # This fails too
-        print("redrawing canvas...")
-        uds.fig.canvas.draw() # To draw the projections
-        if mode == "init":
-            print(f"redrawing control canvas on mode {mode}")
-            uds.fig_control.canvas.draw()
-        print("plots_draw: done drawing...")
+    else:
+        # FIXME 1: things get sluggish when we remove LambertConformal
+        # FIXME 2: removing menu1 or menu3 in plots_remove() causes these to break
+        #          must use plt.draw() when we remove menu1 for some reason?
+        uds.fig_control.canvas.draw()
+        uds.fig.canvas.draw()
 
 def radio_func(region):
     global g_cen_lon_dflt
