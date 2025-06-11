@@ -1,0 +1,45 @@
+metadata:
+  description: >-
+    Sample community config
+user:
+  RUN_ENVIR: community
+  MACHINE: linux
+  ACCOUNT: an_account
+platform:
+  CCPA_OBS_DIR: ""
+  MRMS_OBS_DIR: ""
+  NDAS_OBS_DIR: ""
+workflow:
+  USE_CRON_TO_RELAUNCH: false
+  EXPT_SUBDIR: /home/mmesnie/UFS_domain_select/build/expt-2.2.0/test_community/
+  CCPP_PHYS_SUITE: FV3_GFS_v16
+  PREDEF_GRID_NAME: RRFS_CONUScompact_3km
+  DATE_FIRST_CYCL: '2019061518'
+  DATE_LAST_CYCL: '2019061518'
+  FCST_LEN_HRS: 1
+  PREEXISTING_DIR_METHOD: rename
+  VERBOSE: true
+  COMPILER: gnu
+task_get_extrn_ics:
+  EXTRN_MDL_NAME_ICS: FV3GFS
+  FV3GFS_FILE_FMT_ICS: grib2
+  EXTRN_MDL_SOURCE_BASEDIR_ICS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
+task_get_extrn_lbcs:
+  EXTRN_MDL_NAME_LBCS: FV3GFS
+  LBC_SPEC_INTVL_HRS: 1
+  FV3GFS_FILE_FMT_LBCS: grib2
+  EXTRN_MDL_SOURCE_BASEDIR_LBCS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
+task_run_fcst:
+  QUILTING: true
+task_plot_allvars:
+  COMOUT_REF: ""
+global:
+  DO_ENSEMBLE: false
+  NUM_ENS_MEMBERS: 2
+verification:
+  VX_FCST_MODEL_NAME: FV3_GFS_v16_CONUS_25km
+rocoto:
+  tasks:
+    metatask_run_ensemble:
+      task_run_fcst_mem#mem#:
+        walltime: 02:00:00
