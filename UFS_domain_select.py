@@ -4,14 +4,15 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - FIXME: clean up plot+save.  Why is contour under plot and colormesh under save? 
+# - FIXME: persist projections across domain change??
+# - FIXME: cleanup g_region = g_region_dflt = g_region_dflt_dflt ;-)
+# - FIXME: changing domain does nothing when grib file is loaded without -x (by design?)
+# - FIXME: do something with globals for WRTCMP*
 # ...
-# - persist projection selection when we change domain
 # - make checked Orthographic global, by default
 # - re-organize script comments, arguments and such
 # - move plots_draw and plots_remove into Class definitions??
 # - fix figure names (like "regional non-index")
-# - add menu for predefined UFS regions (to be parsed from the file ;-)
 # - things get sluggish when we remove LambertConformal?
 #
 # Validation
@@ -72,7 +73,9 @@ import yaml
 # Globals #
 ###########
 
-g_debug = False
+g_debug = True
+g_count = 0
+g_radio = None
 
 HOME = f"{os.environ['HOME']}"
 UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
@@ -80,7 +83,6 @@ UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
 g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
-
 
 g_dt_atmos = 36
 g_blocksize = 40
@@ -143,9 +145,9 @@ g_args = parser.parse_args()
 #####################
 
 class grib():
-    global g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt
 
     def init(self, file):
+        global g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
 
         debug(f"grib: loading file {file}")
 
@@ -159,12 +161,16 @@ class grib():
                 g_index_dflt = 'LambertConformal'
                 g_cen_lon_dflt = msg.projparams['lon_0']
                 g_cen_lat_dflt = msg.projparams['lat_0']
+                g_crn_lon_dflt = -1
+                g_crn_lat_dflt = -1
                 print(f"grib: lon_0: {msg.projparams['lon_0']}")
                 print(f"grib: lat_0: {msg.projparams['lat_0']}")
             case "ob_tran":
                 g_index_dflt = 'RotatedPole'
                 g_cen_lon_dflt = msg.projparams['lon_0']
                 g_cen_lat_dflt = 90 - msg.projparams['o_lat_p']
+                g_crn_lon_dflt = -1
+                g_crn_lat_dflt = -1
             case _:
                 print(f"grib: unknown projection {msg.projparams['proj']} -- using default")
         print(f"grib: proj: {msg.projparams['proj']} --> {g_index_dflt}")
@@ -179,20 +185,11 @@ class grib():
         time = sio.getvalue().split(':')[7]
         self.title = fcst + " " + time
 
-        # Get geopotential height
+        # Parse geopotential height
         z500 = zdata * 0.1
         z500 = scipy.ndimage.gaussian_filter(z500, 6.89)
 
-        if True:
-            for p in self.uds.projs:
-             if self.uds.plotted[p]:
-                contours = self.uds.axis[p].contour(lons, lats, z500,
-                                                    np.arange(0, 900, 6),
-                                                    colors="blue", linewidths=1,
-                                                    transform=cartopy.crs.PlateCarree(), alpha=0.25)
-            plt.clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=8)
-
-        # Get vorticity
+        # Parse vorticity
         self.vort500 = vdata * 100000
         self.vort500 = scipy.ndimage.gaussian_filter(self.vort500, 1.7225)
         if False:
@@ -202,23 +199,35 @@ class grib():
         self.cm = matplotlib.colors.ListedColormap(colorlist)
         self.norm = matplotlib.colors.BoundaryNorm(vortlevs, self.cm.N)
 
+        # Save for plotting
         self.lons = lons
         self.lats = lats
+        self.z500 = z500
         self.initialized = True
 
-        debug(f"grib: done loading file {file}")
-
     def plot(self, file, parent):
+        debug("grib: plotting")
         if not self.initialized:
             self.init(file)
-        debug("grib: plotting")
-        for p in self.uds.projs:
-            if self.uds.plotted[p]:
-                cs1_a = self.uds.axis[p].pcolormesh(self.lons, self.lats,
-                                                    self.vort500, transform=cartopy.crs.PlateCarree(),
-                                                    cmap=self.cm, norm=self.norm)
-        cs1_a.cmap.set_under("none")   # under 16
-        cs1_a.cmap.set_over("darkred") # above 40
+
+        if True:
+            for p in self.uds.projs:
+                if self.uds.plotted[p]:
+                    cs1_a = self.uds.axis[p].pcolormesh(self.lons, self.lats,
+                                                        self.vort500, transform=cartopy.crs.PlateCarree(),
+                                                        cmap=self.cm, norm=self.norm)
+            cs1_a.cmap.set_under("none")   # under 16
+            cs1_a.cmap.set_over("darkred") # above 40
+
+        if True:
+            for p in self.uds.projs:
+                if self.uds.plotted[p]:
+                    contours = self.uds.axis[p].contour(self.lons, self.lats, self.z500,
+                                                        np.arange(0, 900, 6),
+                                                        colors="blue", linewidths=1,
+                                                        transform=cartopy.crs.PlateCarree(), alpha=0.25)
+            self.uds.axis[p].clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=16)
+
         debug("grib: done plotting")
 
     def __init__(self, uds):
@@ -228,6 +237,8 @@ class grib():
 class ufs_domain_select:
 
     def set_dflts(self):
+        global g_region
+
         s = self
         if g_args.cen_lon:
             s.cen_lon = float(g_args.cen_lon)
@@ -251,6 +262,9 @@ class ufs_domain_select:
             s.index = g_index_dflt
         s.compute_grid = g_compute_grid_dflt
         s.res = g_res_dflt
+
+        print(f"SETTING g_region to default ({g_region_dflt})")
+        g_region = g_region_dflt
 
     def projs_create(self, mode):
         s = self
@@ -294,22 +308,24 @@ class ufs_domain_select:
         if mode == "init":
             for p in s.proj:
                 s.enabled[p] = False
+            debug(f"projs_create: g_index_dflt = {g_index_dflt}")
             s.enabled[g_index_dflt] = True
             if not g_args.file:
                 #s.enabled['PlateCarree'] = True
-                s.enabled['Mercator'] = True
+                #s.enabled['Mercator'] = True
                 #s.enabled['Miller'] = True
                 #s.enabled['EquidistantConic'] = True
                 #s.enabled['AlbersEqualArea'] = True
-                s.enabled['LambertConformal'] = True
+                #s.enabled['LambertConformal'] = True
                 #s.enabled['Stereographic'] = True
-                s.enabled['Orthographic'] = True
-                s.enabled['Gnomonic'] = True
+                #s.enabled['Orthographic'] = True
+                #s.enabled['Gnomonic'] = True
                 #s.enabled['Robinson'] = True
                 #s.enabled['Mollweide'] = True
                 #s.enabled['Sinusoidal'] = True
                 #s.enabled['InterruptedGoodeHomolosine'] = True
-                s.enabled['RotatedPole'] = True
+                #s.enabled['RotatedPole'] = True
+                pass
 
         count = 0
         for p in s.proj:
@@ -367,7 +383,7 @@ class ufs_domain_select:
         if self.view[index] == "global":
             try:
                 self.axis[index].set_extent(self.extent[index], crs=self.proj[index])
-                debug(f"on_button_press: A: set extent for {index}: {self.extent[index]}")
+                debug(f"on_button_press: A: set extent for {index}: {fmt_tuple(self.extent[index])}")
             except:
                 debug(f"on_button_press: A: failed to set extent for {index}: {self.extent[index]} -- setting global")
                 self.axis[index].set_global()
@@ -433,6 +449,10 @@ class ufs_domain_select:
         plt.draw()
 
     def on_key_press(self, event):
+        global g_index_dflt
+        global g_region
+        global g_region_dflt
+
         self.index = g_index_dflt
         if event.inaxes:
             self.index = get_index(self, event.inaxes)
@@ -441,7 +461,9 @@ class ufs_domain_select:
             show_help()
         elif event.key == '0':
             print(f"on_key_press: restoring default settings")
-            plots_draw(self, "init")
+            g_region = g_region_dflt = g_region_dflt_dflt
+            active_radio_index =  find_active_radio_index()
+            g_radio.set_active(active_radio_index)
         elif event.key == 'y':
             if (self.index == "LambertConformal" or self.index == "RotatedPole"):
                 output_config(self, self.index)
@@ -542,7 +564,13 @@ class ufs_domain_select:
         self.fig_control = plt.figure(figsize=(5.5, 5))
         self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self.fig_control.canvas.mpl_connect('key_press_event', self.on_key_press)
+        print("CREATING GRIB")
         self.grib = grib(self)
+        if g_args.file:
+            print("INITIALIZING GRIB")
+            self.grib.init(g_args.file)
+        print("DONE CREATING GRIB")
 
 ########################
 # Function definitions #
@@ -798,6 +826,8 @@ def find_extent(tx, ty):
     return (min_x, max_x, min_y, max_y)
 
 def plots_draw(uds, mode):
+    global g_count
+    global g_radio
 
     #
     # Notes on variables:
@@ -809,6 +839,9 @@ def plots_draw(uds, mode):
     # Change all target axes to regional view. Any target
     # axis in global view will be returned to global view
     # at the end of this procedure.
+
+    debug(f"plots_draw: g_index_dflt = {g_index_dflt}")
+
     if not mode == "init":
         restore_global = {}
         for p in uds.projs:
@@ -899,6 +932,8 @@ def plots_draw(uds, mode):
         xul = xll; yul = yc+(yc-yll)
         xur = xlr; yur = yul
         uds.extent[uds.index] = (xll, xlr, yll, yul)
+
+        print(f"plots_draw: saved uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
     else:
         uds.extent[uds.index] = new_extent
         debug("plots_draw: CASE 2")
@@ -924,7 +959,7 @@ def plots_draw(uds, mode):
             if not g_args.file:
                 print(f"plots_draw: grib file not specified: setting default extent for {uds.index}")
                 uds.axis[uds.index].set_extent(uds.extent[uds.index], crs=uds.proj[uds.index])
-                debug(f"plots_draw: A: set extent to {fmt_tuple(uds.extent[uds.index])}")
+                debug(f"plots_draw:   set uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
             else:
                 debug(f"plots_draw: grib file specified: not setting extent for {uds.index}")
             uds.axis[uds.index].set_title(f"{uds.index} (STILL REGIONAL after mode {mode})")
@@ -1012,8 +1047,25 @@ def plots_draw(uds, mode):
 
     uds.check1 = CheckButtons(uds.axis['menu1'], proj1, status1)
     uds.check1.on_clicked(uds.checkfunc)
-    radio = RadioButtons(uds.axis['menu3'], g_radio_buttons)
-    radio.on_clicked(radio_func)
+
+    # Find index of active region in g_radio_buttons. We do this
+    # so that the default region shows up as selected.
+
+    def find_active_radio_index():
+        print(f"looking for {g_region} in g_radio_buttons")
+        i=0
+        for val in g_radio_buttons:
+            if val == g_region:
+                print(f"active region is {g_region} (index {i})")
+                region_active = i
+                break
+            i+=1
+        return i
+
+    active_radio_index = find_active_radio_index()
+    g_radio = RadioButtons(uds.axis['menu3'], g_radio_buttons, active=active_radio_index)
+    g_radio.on_clicked(radio_func)
+    print(f"*** CREATED RADIO BUTTONS (mode {mode} selected {g_radio.value_selected})) ***")
 
     # FIXME: plot and save (after)
     if mode == "init":
@@ -1027,12 +1079,27 @@ def plots_draw(uds, mode):
         uds.fig_control.canvas.draw()
         uds.fig.canvas.draw()
 
+def find_active_radio_index():
+    print(f"looking for {g_region} in g_radio_buttons")
+    i=0
+    for val in g_radio_buttons:
+        if val == g_region:
+            print(f"active region is {g_region} (index {i})")
+            region_active = i
+            break
+        i+=1
+    return i
+
 def radio_func(region):
     global g_cen_lon_dflt
     global g_cen_lat_dflt
     global g_crn_lon_dflt
     global g_crn_lat_dflt
     global g_index_dflt
+    global g_region_dflt
+
+    g_region_dflt = region
+
     print(f"radio_func ({region})")
     if not g_args.file:
         g_cen_lon_dflt = WRTCMP_cen_lon[region]['WRTCMP_cen_lon']
@@ -1139,27 +1206,55 @@ def show_help():
 # Main #
 ########
 
+def register_region(region, cen_lon, cen_lat, lwr_lon, lwr_lat, proj):
+    WRTCMP_output_grid[region] = {}
+    WRTCMP_cen_lon[region] = {}
+    WRTCMP_cen_lat[region] = {}
+    WRTCMP_lon_lwr_left[region] = {}
+    WRTCMP_lat_lwr_left[region] = {}
+    WRTCMP_output_grid[region]['WRTCMP_output_grid'] = proj
+    WRTCMP_cen_lon[region]['WRTCMP_cen_lon'] = cen_lon
+    WRTCMP_cen_lat[region]['WRTCMP_cen_lat'] = cen_lat
+    WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left'] = lwr_lon
+    WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left'] = lwr_lat
+    g_radio_buttons.append(region)
+
+# FIXME: do these need to be globals?
+WRTCMP_cen_lon = {}
+WRTCMP_cen_lat = {}
+WRTCMP_lon_lwr_left = {}
+WRTCMP_lat_lwr_left = {}
+WRTCMP_output_grid = {}
+g_radio_buttons = []
+
+register_region("Trinidad and Tobago", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal') 
+register_region("Falkland Islands", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal') 
+register_region("Oregon Coast", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal') 
+register_region("Eastern Pacific", -141.87, 40.48, -160.29, 16.64,  'lambert_conformal') 
+
 with open("/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml", 'r') as file:
     yaml_data = yaml.safe_load(file)
-    WRTCMP_cen_lon = {}
-    WRTCMP_cen_lat = {}
-    WRTCMP_lon_lwr_left = {}
-    WRTCMP_lat_lwr_left = {}
-    WRTCMP_output_grid = {}
-    g_radio_buttons = []
     for region in yaml_data:
+        WRTCMP_output_grid[region] = {}
         WRTCMP_cen_lon[region] = {}
         WRTCMP_cen_lat[region] = {}
         WRTCMP_lon_lwr_left[region] = {}
         WRTCMP_lat_lwr_left[region] = {}
-        WRTCMP_output_grid[region] = {}
         print(f"region is {region} ({yaml_data[region]['QUILTING']['WRTCMP_output_grid']})")
-        for key in yaml_data[region]['QUILTING']:
-            WRTCMP_output_grid[region][key] = yaml_data[region]['QUILTING']['WRTCMP_output_grid']
-            WRTCMP_cen_lon[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lon']
-            WRTCMP_cen_lat[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lat']
-            WRTCMP_lon_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lon_lwr_left']
-            WRTCMP_lat_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lat_lwr_left']
+        if False:
+            for key in yaml_data[region]['QUILTING']:
+                print(f"doing key {key}")
+                WRTCMP_output_grid[region][key] = yaml_data[region]['QUILTING']['WRTCMP_output_grid']
+                WRTCMP_cen_lon[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lon']
+                WRTCMP_cen_lat[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lat']
+                WRTCMP_lon_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lon_lwr_left']
+                WRTCMP_lat_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lat_lwr_left']
+        else:
+            WRTCMP_output_grid[region]['WRTCMP_output_grid'] = yaml_data[region]['QUILTING']['WRTCMP_output_grid']
+            WRTCMP_cen_lon[region]['WRTCMP_cen_lon'] = yaml_data[region]['QUILTING']['WRTCMP_cen_lon']
+            WRTCMP_cen_lat[region]['WRTCMP_cen_lat'] = yaml_data[region]['QUILTING']['WRTCMP_cen_lat']
+            WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left'] = yaml_data[region]['QUILTING']['WRTCMP_lon_lwr_left']
+            WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left'] = yaml_data[region]['QUILTING']['WRTCMP_lat_lwr_left']
         g_radio_buttons.append(region)
 
 # LambertConformal
@@ -1185,14 +1280,9 @@ with open("/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/pr
 show_help()
 myuds = ufs_domain_select()
 
-if True:
-    #g_index_dflt = 'RotatedPole'
-    #g_cen_lon_dflt=-59.5;   g_cen_lat_dflt=-51.7; g_crn_lon_dflt=-61.98;  g_crn_lat_dflt=-52.81 # Falkland Islands
-    #g_cen_lon_dflt=-127.68; g_cen_lat_dflt=45.72; g_crn_lon_dflt=-132.86; g_crn_lat_dflt=41.77  # Oregon coast
-    #g_cen_lon_dflt=-141.87; g_cen_lat_dflt=40.48; g_crn_lon_dflt=-160.29; g_crn_lat_dflt=16.64  # Eastern Pacific 
+if not g_args.file:
     g_index_dflt = 'LambertConformal'
-    g_cen_lon_dflt=-61.13;   g_cen_lat_dflt=10.65;  g_crn_lon_dflt=-61.98; g_crn_lat_dflt=9.85  # Trinidad & Tobago
-    plots_draw(myuds, "init")
-else:
-    #radio_func('RRFS_CONUS_25km') # This will call plots_draw()
-    radio_func('SUBCONUS_Ind_3km') # This will call plots_draw()
+
+g_region_dflt="WoFS_3km"
+g_region_dflt_dflt=g_region_dflt
+radio_func(g_region_dflt)
