@@ -4,15 +4,16 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
+# - toggling Orthographic when regional is nearly global fails w/ idential high/low ylims (easy check)
 # - FIXME: persist projections across domain change??
 # - FIXME: cleanup g_region = g_region_dflt = g_region_dflt_dflt ;-)
+# - FIXME: get rid of global g_radio
 # - FIXME: changing domain does nothing when grib file is loaded without -x (by design?)
 # - FIXME: do something with globals for WRTCMP*
 # ...
 # - make checked Orthographic global, by default
 # - re-organize script comments, arguments and such
 # - move plots_draw and plots_remove into Class definitions??
-# - fix figure names (like "regional non-index")
 # - things get sluggish when we remove LambertConformal?
 #
 # Validation
@@ -73,8 +74,7 @@ import yaml
 # Globals #
 ###########
 
-g_debug = True
-g_count = 0
+g_debug = False
 g_radio = None
 
 HOME = f"{os.environ['HOME']}"
@@ -318,7 +318,7 @@ class ufs_domain_select:
                 #s.enabled['AlbersEqualArea'] = True
                 #s.enabled['LambertConformal'] = True
                 #s.enabled['Stereographic'] = True
-                #s.enabled['Orthographic'] = True
+                s.enabled['Orthographic'] = True
                 #s.enabled['Gnomonic'] = True
                 #s.enabled['Robinson'] = True
                 #s.enabled['Mollweide'] = True
@@ -418,7 +418,10 @@ class ufs_domain_select:
         self.axis[index].add_feature(cfeature.BORDERS)
         self.axis[index].add_feature(cfeature.STATES)
         self.axis[index].gridlines()
-        self.axis[index].set_title(index + " (centered)")
+        if g_debug:
+            self.axis[index].set_title(index + " (centered)")
+        else:
+            self.axis[index].set_title(index)
         self.axis[index].plot(*(self.cen_lon, self.cen_lat), transform=ccrs.Geodetic(), 
                              marker='*', ms=20, color='green')
         if force_global:
@@ -505,14 +508,23 @@ class ufs_domain_select:
         elif event.key == 'g':
             print(f"toggling global view (source {self.index})")
             if self.view[self.index] == "regional":
-                self.extent[self.index] = self.axis[self.index].get_extent()
+                if (self.axis[self.index].get_extent() == self.globe[self.index]):
+                    print("WARN: not restoring regional view zoomed out to global")
+                else:
+                    self.extent[self.index] = self.axis[self.index].get_extent()
                 self.view[self.index] = "global"
                 self.axis[self.index].set_global()
-                self.axis[self.index].set_title(self.index + " (global toggle)")
+                if g_debug:
+                    self.axis[self.index].set_title(self.index + " (global toggle)")
+                else:
+                    self.axis[self.index].set_title(self.index + " (global)")
             elif self.view[self.index] == "global": 
                 self.view[self.index] = "regional"
                 self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
-                self.axis[self.index].set_title(self.index + " (regional toggle)")
+                if g_debug:
+                    self.axis[self.index].set_title(self.index + " (regional toggle)")
+                else:
+                    self.axis[self.index].set_title(self.index + " (regional)")
         elif event.key == 'q':
             exit(0)
 
@@ -826,7 +838,6 @@ def find_extent(tx, ty):
     return (min_x, max_x, min_y, max_y)
 
 def plots_draw(uds, mode):
-    global g_count
     global g_radio
 
     #
@@ -912,7 +923,10 @@ def plots_draw(uds, mode):
             if p == uds.index:
                 uds.axis[p].set_title(f"{p} (regional index)")
             else:
-                uds.axis[p].set_title(f"{p} (regional non-index)")
+                if g_debug:
+                    uds.axis[p].set_title(f"{p} (regional non-index)")
+                else:
+                    uds.axis[p].set_title(f"{p} (regional)")
 
         uds.plotted[p] = True
 
@@ -962,7 +976,10 @@ def plots_draw(uds, mode):
                 debug(f"plots_draw:   set uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
             else:
                 debug(f"plots_draw: grib file specified: not setting extent for {uds.index}")
-            uds.axis[uds.index].set_title(f"{uds.index} (STILL REGIONAL after mode {mode})")
+            if g_debug:
+                uds.axis[uds.index].set_title(f"{uds.index} (STILL REGIONAL after mode {mode})")
+            else:
+                uds.axis[uds.index].set_title(f"{uds.index} (regional)")
         except:
             print(f"*** CASE 2: FAILED TO SET EXTENT ({uds.index}): {uds.extent[uds.index]} ***")
 
@@ -1005,7 +1022,10 @@ def plots_draw(uds, mode):
                     uds.extent[p] = uds.axis[p].get_extent()
                     uds.view[p] = "global"
                     uds.axis[p].set_global()
-                    uds.axis[p].set_title(p + " (global init)")
+                    if g_debug:
+                        uds.axis[p].set_title(p + " (global init)")
+                    else:
+                        uds.axis[p].set_title(p + " (global)")
     else:
         for p in restore_global:
             if uds.enabled[p]:
@@ -1013,7 +1033,10 @@ def plots_draw(uds, mode):
                 uds.extent[p] =  uds.axis[p].get_extent()
                 uds.axis[p].set_global()
                 uds.view[p] = "global"
-                uds.axis[p].set_title(p + " (global restore)")
+                if g_debug:
+                    uds.axis[p].set_title(p + " (global restore)")
+                else:
+                    uds.axis[p].set_title(p + " (global)")
 
     # Keep track of what the global extent is
     for p in uds.projs:
