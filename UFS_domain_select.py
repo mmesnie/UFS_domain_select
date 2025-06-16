@@ -4,8 +4,9 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - toggling Orthographic when regional is nearly global fails w/ idential high/low ylims (easy check)
-# - FIXME: persist projections across domain change??
+# - depcrecate self.globe, as it's not needed anymore given self.too_big() given self.too_big()
+# - toggling Orthographic when regional is nearly global fails w/ idential high/low ylims (easy check?)
+# --> make a "good" regional extent, and fall back to that whenever things get out of whack?
 # - FIXME: cleanup g_region = g_region_dflt = g_region_dflt_dflt ;-)
 # - FIXME: get rid of global g_radio
 # - FIXME: changing domain does nothing when grib file is loaded without -x (by design?)
@@ -75,7 +76,7 @@ import yaml
 ###########
 
 g_debug = False
-g_radio = None
+g_radio = None # FIXME
 
 HOME = f"{os.environ['HOME']}"
 UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
@@ -371,7 +372,7 @@ class ufs_domain_select:
     
         index = get_index(self, event.inaxes)
     
-        print(f"on_button_press: centering projection ({index})")
+        debug(f"on_button_press: centering projection ({index})")
     
         if self.view[index] == "regional" and self.globe[index] == self.axis[index].get_extent():
             print(f"EXTENT IS REGIONAL BUT GLOBAL: {self.axis[index].get_extent()}")
@@ -451,6 +452,20 @@ class ufs_domain_select:
                              marker='*', ms=10, color='red')
         plt.draw()
 
+    def too_big(self): 
+        extent = self.axis[self.index].get_extent()
+        x1, x2, y1, y2 = extent
+        xspan = abs(x2-x1)
+        yspan = abs(y2-y1)
+        debug(f"xspan is {abs(x2-x1)} yspan is {abs(y2-y1)}")
+        if xspan > 12000000:
+            print("xspan too big")
+            return True
+        if yspan > 12000000:
+            print("yspan too big")
+            return True
+        return False
+
     def on_key_press(self, event):
         global g_index_dflt
         global g_region
@@ -500,18 +515,26 @@ class ufs_domain_select:
             if not event.inaxes:
                 print(f"on_key_press: hover over an axis to select source projection)")
                 return
-            print(f"on_key_press: setting source projection ({self.index})")
+            debug(f"on_key_press: setting source projection ({self.index})")
             if (self.axis[self.index].get_extent() == self.globe[self.index]):
-                print(f"on_key_press: failed attempt to set with global extent: {self.globe[self.index]}")
+                debug(f"on_key_press: failed attempt to set with global extent: {self.globe[self.index]}")
+                print("SORRY - CANNOT SELECT ENTIRE GLOBE")
+                return
+            if (self.too_big()):
+                print("SORRY - REGION TOO BIG")
                 return
             plots_draw(self, "set")
         elif event.key == 'g':
-            print(f"toggling global view (source {self.index})")
+            debug(f"toggling global view (source {self.index})")
             if self.view[self.index] == "regional":
                 if (self.axis[self.index].get_extent() == self.globe[self.index]):
                     print("WARN: not restoring regional view zoomed out to global")
                 else:
-                    self.extent[self.index] = self.axis[self.index].get_extent()
+                    if not self.too_big():
+                        self.extent[self.index] = self.axis[self.index].get_extent()
+                    else:
+                        print("LOCAL REGION TOO BIG -- NOT SAVING")
+                debug(f"regional extent is {self.extent[self.index]}")
                 self.view[self.index] = "global"
                 self.axis[self.index].set_global()
                 if g_debug:
@@ -519,6 +542,7 @@ class ufs_domain_select:
                 else:
                     self.axis[self.index].set_title(self.index + " (global)")
             elif self.view[self.index] == "global": 
+                debug(f"setting regional: {self.extent[self.index]}")
                 self.view[self.index] = "regional"
                 self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
                 if g_debug:
@@ -838,7 +862,7 @@ def find_extent(tx, ty):
     return (min_x, max_x, min_y, max_y)
 
 def plots_draw(uds, mode):
-    global g_radio
+    global g_radio # FIXME
 
     #
     # Notes on variables:
