@@ -4,14 +4,10 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - depcrecate self.globe, as it's not needed anymore given self.too_big() given self.too_big()
-# - toggling Orthographic when regional is nearly global fails w/ idential high/low ylims (easy check?)
-# --> make a "good" regional extent, and fall back to that whenever things get out of whack?
 # - FIXME: cleanup g_region = g_region_dflt = g_region_dflt_dflt ;-)
 # - FIXME: get rid of global g_radio
 # - FIXME: changing domain does nothing when grib file is loaded without -x (by design?)
 # - FIXME: do something with globals for WRTCMP*
-# ...
 # - make checked Orthographic global, by default
 # - re-organize script comments, arguments and such
 # - move plots_draw and plots_remove into Class definitions??
