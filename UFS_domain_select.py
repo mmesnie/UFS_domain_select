@@ -5,8 +5,9 @@
 #
 # Bugs/tweaks/cleanup
 # - FIXME: create "forecast" class and add relevant globals
-# - FIXME: create "region" class and add WRTCMP* globals
-# - FIXME: cleanup g_region = g_region_dflt = g_region_dflt_dflt ;-)
+# - remove grid_active if not used!
+# - remove these globals??: g_grid_dflt, g_res_dflt, g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
+# - FIXME: cleanup g_grid = g_grid_dflt = g_grid_dflt_dflt ;-)
 # - FIXME: get rid of global g_radio
 # - ...
 # - changing domain does nothing when grib file is loaded without -x (by design?)
@@ -24,7 +25,7 @@
 #
 # Features
 # - make it so that all projections go to Orthographic
-# - filter big GFS by region
+# - filter big GFS by grid
 # - update Makefile to download latest cycle and integrate into GUI
 # - write status to screen (e.g., YAML written, res selected, ...)?
 # - understand and integrate regional_latlon
@@ -49,16 +50,21 @@ from matplotlib.widgets import RadioButtons
 from matplotlib.widgets import CheckButtons
 import yaml
 
+###############
+# Environment #
+###############
+
+HOME = f"{os.environ['HOME']}"
+UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
+
 ###########
 # Globals #
 ###########
 
 g_debug = False
+g_grids = {}
 g_radio = None # FIXME
-
-HOME = f"{os.environ['HOME']}"
-UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
-
+g_radio_buttons = []
 g_res_dflt=25000                                          # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
@@ -76,15 +82,6 @@ g_fcst_len_hrs = 1
 g_lbc_spec_intvl_hrs = 1
 g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-
-# FIXME: Add these to a region class
-WRTCMP_cen_lon = {}
-WRTCMP_cen_lat = {}
-WRTCMP_lon_lwr_left = {}
-WRTCMP_lat_lwr_left = {}
-WRTCMP_output_grid = {}
-WRTCMP_res = {}
-g_radio_buttons = []
 
 #
 # This script has two uses. First, it automates the creation of the YAML 
@@ -133,8 +130,17 @@ g_args = parser.parse_args()
 # Class definitions #
 #####################
 
-class grib():
+class grid():
+    def __init__(self, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
+        self.label = label
+        self.WRTCMP_cen_lon = cen_lon
+        self.WRTCMP_cen_lat = cen_lat
+        self.WRTCMP_lon_lwr_left = lwr_lon
+        self.WRTCMP_lat_lwr_left = lwr_lat
+        self.WRTCMP_output_grid = proj
+        self.WRTCMP_res = self.ESGgrid_DELX = self.ESGgrid_DELY = res
 
+class grib():
     def init(self, file):
         global g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
 
@@ -226,7 +232,7 @@ class grib():
 class ufs_domain_select:
 
     def set_dflts(self):
-        global g_region
+        global g_grid
 
         s = self
         if g_args.cen_lon:
@@ -252,8 +258,8 @@ class ufs_domain_select:
         s.compute_grid = g_compute_grid_dflt
         s.res = g_res_dflt
 
-        debug(f"set_dflts: setting g_region to default ({g_region_dflt})")
-        g_region = g_region_dflt
+        debug(f"set_dflts: setting g_grid to default ({g_grid_dflt})")
+        g_grid = g_grid_dflt
 
     def projs_create(self, mode):
         s = self
@@ -456,8 +462,8 @@ class ufs_domain_select:
 
     def on_key_press(self, event):
         global g_index_dflt
-        global g_region
-        global g_region_dflt
+        global g_grid
+        global g_grid_dflt
 
         self.index = g_index_dflt
         if event.inaxes:
@@ -467,7 +473,7 @@ class ufs_domain_select:
             show_help()
         elif event.key == '0':
             print(f"on_key_press: restoring default settings")
-            g_region = g_region_dflt = g_region_dflt_dflt
+            g_grid = g_grid_dflt = g_grid_dflt_dflt
             active_radio_index =  find_active_radio_index()
             g_radio.set_active(active_radio_index)
         elif event.key == 'y':
@@ -1085,16 +1091,16 @@ def plots_draw(uds, mode):
     uds.check1 = CheckButtons(uds.axis['menu1'], proj1, status1)
     uds.check1.on_clicked(uds.checkfunc)
 
-    # Find index of active region in g_radio_buttons. We do this
-    # so that the default region shows up as selected.
+    # Find index of active grid in g_radio_buttons. We do this
+    # so that the default grid shows up as selected.
 
     def find_active_radio_index():
-        debug(f"plots_draw: looking for {g_region} in g_radio_buttons")
+        debug(f"plots_draw: looking for {g_grid} in g_radio_buttons")
         i=0
         for val in g_radio_buttons:
-            if val == g_region:
-                debug(f"plots_draw: active region is {g_region} (index {i})")
-                region_active = i
+            if val == g_grid:
+                debug(f"plots_draw: active grid is {g_grid} (index {i})")
+                grid_active = i
                 break
             i+=1
         return i
@@ -1117,35 +1123,35 @@ def plots_draw(uds, mode):
         uds.fig.canvas.draw()
 
 def find_active_radio_index():
-    print(f"looking for {g_region} in g_radio_buttons")
+    print(f"looking for {g_grid} in g_radio_buttons")
     i=0
     for val in g_radio_buttons:
-        if val == g_region:
-            print(f"active region is {g_region} (index {i})")
-            region_active = i
+        if val == g_grid:
+            print(f"active grid is {g_grid} (index {i})")
+            grid_active = i
             break
         i+=1
     return i
 
-def radio_func(region):
+def radio_func(grid):
     global g_cen_lon_dflt
     global g_cen_lat_dflt
     global g_crn_lon_dflt
     global g_crn_lat_dflt
     global g_index_dflt
-    global g_region_dflt
+    global g_grid_dflt
     global g_res_dflt
 
-    g_region_dflt = region
+    g_grid_dflt = grid
 
-    debug(f"radio_func ({region})")
+    debug(f"radio_func ({grid})")
     if not g_args.file:
-        g_cen_lon_dflt = WRTCMP_cen_lon[region]['WRTCMP_cen_lon']
-        g_cen_lat_dflt = WRTCMP_cen_lat[region]['WRTCMP_cen_lat']
-        g_crn_lon_dflt = WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left']
-        g_crn_lat_dflt = WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left']
-        g_res_dflt = WRTCMP_res[region]['ESGgrid_DELX']
-        match WRTCMP_output_grid[region]['WRTCMP_output_grid']:
+        g_cen_lon_dflt = g_grids[grid].WRTCMP_cen_lon
+        g_cen_lat_dflt = g_grids[grid].WRTCMP_cen_lat
+        g_crn_lon_dflt = g_grids[grid].WRTCMP_lon_lwr_left
+        g_crn_lat_dflt = g_grids[grid].WRTCMP_lat_lwr_left
+        g_res_dflt = g_grids[grid].ESGgrid_DELX
+        match g_grids[grid].WRTCMP_output_grid:
             case "lambert_conformal":
                 debug("radio_func: selecting lambert_conformal")
                 g_index_dflt = "LambertConformal"
@@ -1241,58 +1247,34 @@ def draw_box_xy_data(tgt_index, src_index, color):
 def show_help():
     print(g_help)
 
-def register_region(region, cen_lon, cen_lat, lwr_lon, lwr_lat, res, proj):
-    WRTCMP_output_grid[region] = {}
-    WRTCMP_cen_lon[region] = {}
-    WRTCMP_cen_lat[region] = {}
-    WRTCMP_lon_lwr_left[region] = {}
-    WRTCMP_lat_lwr_left[region] = {}
-    WRTCMP_res[region] = {}
-    WRTCMP_output_grid[region]['WRTCMP_output_grid'] = proj
-    WRTCMP_cen_lon[region]['WRTCMP_cen_lon'] = cen_lon
-    WRTCMP_cen_lat[region]['WRTCMP_cen_lat'] = cen_lat
-    WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left'] = lwr_lon
-    WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left'] = lwr_lat
-    WRTCMP_res[region]['ESGgrid_DELX'] = res
-    WRTCMP_res[region]['ESGgrid_DELY'] = res
-    g_radio_buttons.append(region)
+def register_grid(label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
+    this_grid = grid(label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res)
+    g_grids[label] = this_grid
+    g_radio_buttons.append(label)
 
 def register_from_yaml(file):
-    global WRTCMP_output_grid
-    global WRTCMP_cen_lon
-    global WRTCMP_cen_lat
-    global WRTCMP_lon_lwr_left
-    global WRTCMP_lat_lwr_left
-    global WRTCMP_res
-
     with open(file, 'r') as file:
         yaml_data = yaml.safe_load(file)
-        for region in yaml_data:
-            WRTCMP_output_grid[region] = {}
-            WRTCMP_cen_lon[region] = {}
-            WRTCMP_cen_lat[region] = {}
-            WRTCMP_lon_lwr_left[region] = {}
-            WRTCMP_lat_lwr_left[region] = {}
-            WRTCMP_res[region] = {}
-            debug(f"open: region is {region} ({yaml_data[region]['QUILTING']['WRTCMP_output_grid']})")
-            WRTCMP_output_grid[region]['WRTCMP_output_grid'] = yaml_data[region]['QUILTING']['WRTCMP_output_grid']
-            WRTCMP_cen_lon[region]['WRTCMP_cen_lon'] = yaml_data[region]['QUILTING']['WRTCMP_cen_lon']
-            WRTCMP_cen_lat[region]['WRTCMP_cen_lat'] = yaml_data[region]['QUILTING']['WRTCMP_cen_lat']
-            WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left'] = yaml_data[region]['QUILTING']['WRTCMP_lon_lwr_left']
-            WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left'] = yaml_data[region]['QUILTING']['WRTCMP_lat_lwr_left']
-            if WRTCMP_output_grid[region]['WRTCMP_output_grid'] == 'lambert_conformal':
-                WRTCMP_res[region]['ESGgrid_DELX'] = yaml_data[region]['ESGgrid_DELX']
-                WRTCMP_res[region]['ESGgrid_DELY'] = yaml_data[region]['ESGgrid_DELY']
-                debug(f"open: res is {WRTCMP_res[region]['ESGgrid_DELX']}")
-            else:
-                try:
-                    WRTCMP_res[region]['ESGgrid_DELX'] = yaml_data[region]['ESGgrid_DELX']
-                    WRTCMP_res[region]['ESGgrid_DELY'] = yaml_data[region]['ESGgrid_DELY']
-                except:
-                    print(f"*** No ESGgrid_DELX or ESGgrid_DELY for {region}; setting res to AUTO")
-                    WRTCMP_res[region]['ESGgrid_DELX'] = -1
-                    WRTCMP_res[region]['ESGgrid_DELY'] = -1
-            g_radio_buttons.append(region)
+        for label in yaml_data:
+            try:
+                this_grid = grid(label, 
+                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lon'], 
+                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lat'], 
+                                 yaml_data[label]['QUILTING']['WRTCMP_lon_lwr_left'],
+                                 yaml_data[label]['QUILTING']['WRTCMP_lat_lwr_left'],
+                                 WRTCMP_output_grid[label]['WRTCMP_output_grid'],
+                                 yaml_data[label]['ESGgrid_DELX'])
+            except:
+                print(f"*** CLASS: No ESGgrid_DELX or ESGgrid_DELY for {label}; setting res to AUTO")
+                this_grid = grid(label, 
+                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lon'], 
+                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lat'], 
+                                 yaml_data[label]['QUILTING']['WRTCMP_lon_lwr_left'],
+                                 yaml_data[label]['QUILTING']['WRTCMP_lat_lwr_left'],
+                                 yaml_data[label]['QUILTING']['WRTCMP_output_grid'],
+                                 -1)
+            g_grids[label] = this_grid
+            g_radio_buttons.append(label)
 
 ########
 # Main #
@@ -1300,10 +1282,10 @@ def register_from_yaml(file):
 
 show_help()
 
-register_region("Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, -1, 'lambert_conformal') 
-register_region("Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, -1, 'lambert_conformal') 
-register_region("Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, -1, 'lambert_conformal') 
-register_region("Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64,  -1, 'lambert_conformal') 
+register_grid("Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
+register_grid("Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', -1)
+register_grid("Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', -1)
+register_grid("Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
 register_from_yaml("/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
 
 myuds = ufs_domain_select()
@@ -1311,6 +1293,6 @@ myuds = ufs_domain_select()
 if not g_args.file:
     g_index_dflt = 'LambertConformal'
 
-g_region_dflt="Oregon Coast auto"
-g_region_dflt_dflt=g_region_dflt
-radio_func(g_region_dflt)
+g_grid_dflt="Oregon Coast auto"
+g_grid_dflt_dflt=g_grid_dflt
+radio_func(g_grid_dflt)
