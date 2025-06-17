@@ -4,39 +4,21 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
+# - FIXME: create "forecast" class and add relevant globals
+# - FIXME: create "region" class and add WRTCMP* globals
 # - FIXME: cleanup g_region = g_region_dflt = g_region_dflt_dflt ;-)
 # - FIXME: get rid of global g_radio
-# - FIXME: changing domain does nothing when grib file is loaded without -x (by design?)
-# - FIXME: do something with globals for WRTCMP*
-# - make checked Orthographic global, by default
-# - re-organize script comments, arguments and such
-# - move plots_draw and plots_remove into Class definitions??
+# - ...
+# - changing domain does nothing when grib file is loaded without -x (by design?)
+# - make selected Orthographic global, by default
+# - move plots_draw and plots_remove into Class definitions?
 # - things get sluggish when we remove LambertConformal?
+# - re-organize script comments, arguments and such
 #
 # Validation
 # - recreate various predefined grids (should be identical!)
 #   whatever we do to recreate needs to be automated by reading
 #   in the predefined file!
-#
-#                             DFLT  REPR
-#   L RRFS_CONUS_25km           OK
-#   L RRFS_CONUScompact_25km    OK
-#   L RRFS_CONUS_13km           OK
-#   L RRFS_CONUScompact_13km    OK
-#   L RRFS_CONUS_3km            X - OOM
-#   L RRFS_CONUScompact_3km     X - OOM
-#   L SUBCONUS_Ind_3km          OK
-#   L RRFS_AK_13km              OK - but contours wrap
-#   L RRFS_AK_3km               X - OOM 
-#   L WoFS_3km                  OK
-#   R CONUS_25km_GFDLgrid       OK
-#   R CONUS_3km_GFDLgrid        X - OOM 
-#   L GSD_HRRR_25km             OK
-#   R AQM_NA_13km               X - OOM 
-#   R RRFS_NA_13km              X - OOM 
-#   R RRFS_NA_3km
-#   R RRFS_NA_25km              OK - but odd projection
-#
 # - make sure uds.compute_grid (gnomonic) is correct and add option to show it
 # - test w/ GFS files (currently filters based on lon/lat spans)
 #
@@ -77,10 +59,11 @@ g_radio = None # FIXME
 HOME = f"{os.environ['HOME']}"
 UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
 
-g_res_dflt=-1                                             # 3000, 13000, 25000, or -1 (auto)
+g_res_dflt=25000                                          # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 
+# FIXME: Add these to a forecast class
 g_dt_atmos = 36
 g_blocksize = 40
 g_layout_x = 3
@@ -93,6 +76,15 @@ g_fcst_len_hrs = 1
 g_lbc_spec_intvl_hrs = 1
 g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+
+# FIXME: Add these to a region class
+WRTCMP_cen_lon = {}
+WRTCMP_cen_lat = {}
+WRTCMP_lon_lwr_left = {}
+WRTCMP_lat_lwr_left = {}
+WRTCMP_output_grid = {}
+WRTCMP_res = {}
+g_radio_buttons = []
 
 #
 # This script has two uses. First, it automates the creation of the YAML 
@@ -260,7 +252,7 @@ class ufs_domain_select:
         s.compute_grid = g_compute_grid_dflt
         s.res = g_res_dflt
 
-        print(f"SETTING g_region to default ({g_region_dflt})")
+        debug(f"set_dflts: setting g_region to default ({g_region_dflt})")
         g_region = g_region_dflt
 
     def projs_create(self, mode):
@@ -597,12 +589,10 @@ class ufs_domain_select:
         self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         self.fig_control.canvas.mpl_connect('key_press_event', self.on_key_press)
-        print("CREATING GRIB")
         self.grib = grib(self)
         if g_args.file:
             print("INITIALIZING GRIB")
             self.grib.init(g_args.file)
-        print("DONE CREATING GRIB")
 
 ########################
 # Function definitions #
@@ -669,16 +659,20 @@ def output_config(uds, index):
     x1, x2, y1, y2 = extent_r
     xspan_r = abs(x2-x1)
     yspan_r = abs(y2-y1)
-    if uds.index == "RotatedPole":
-        max_delta = pick_max_delta(xspan_r*1852*60, yspan_r*1852*60)
+    if res == -1:
+        if uds.index == "RotatedPole":
+            max_delta = pick_max_delta(xspan_r*1852*60, yspan_r*1852*60)
+        else:
+            max_delta = pick_max_delta(xspan_r, yspan_r)
+        if uds.res == -1:
+            res = max_delta
+            print(f"             resolution: automatically set to {res} meters")
+        elif (uds.res>max_delta):
+            res = max_delta
+            print(f"             resolution: forced to max ({res} meters)")
     else:
-        max_delta = pick_max_delta(xspan_r, yspan_r)
-    if uds.res == -1:
-        res = max_delta
-        print(f"             resolution: automatically set to {res} meters")
-    elif (uds.res>max_delta):
-        res = max_delta
-        print(f"             resolution: forced to max ({res} meters)")
+        print(f"USING RES is {res}")
+
     percent = round(100*(1+uds.compute_grid))
     print(f"      compute grid size: {percent}% of write component")
     if uds.index == "RotatedPole":
@@ -967,7 +961,7 @@ def plots_draw(uds, mode):
         xur = xlr; yur = yul
         uds.extent[uds.index] = (xll, xlr, yll, yul)
 
-        print(f"plots_draw: saved uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
+        debug(f"plots_draw: saved uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
     else:
         uds.extent[uds.index] = new_extent
         debug("plots_draw: CASE 2")
@@ -991,7 +985,7 @@ def plots_draw(uds, mode):
 
         try:
             if not g_args.file:
-                print(f"plots_draw: grib file not specified: setting default extent for {uds.index}")
+                debug(f"plots_draw: grib file not specified: setting default extent for {uds.index}")
                 uds.axis[uds.index].set_extent(uds.extent[uds.index], crs=uds.proj[uds.index])
                 debug(f"plots_draw:   set uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
             else:
@@ -1095,11 +1089,11 @@ def plots_draw(uds, mode):
     # so that the default region shows up as selected.
 
     def find_active_radio_index():
-        print(f"looking for {g_region} in g_radio_buttons")
+        debug(f"plots_draw: looking for {g_region} in g_radio_buttons")
         i=0
         for val in g_radio_buttons:
             if val == g_region:
-                print(f"active region is {g_region} (index {i})")
+                debug(f"plots_draw: active region is {g_region} (index {i})")
                 region_active = i
                 break
             i+=1
@@ -1108,7 +1102,7 @@ def plots_draw(uds, mode):
     active_radio_index = find_active_radio_index()
     g_radio = RadioButtons(uds.axis['menu3'], g_radio_buttons, active=active_radio_index)
     g_radio.on_clicked(radio_func)
-    print(f"*** CREATED RADIO BUTTONS (mode {mode} selected {g_radio.value_selected})) ***")
+    debug(f"plots_draw: created radio buttons (mode {mode} selected {g_radio.value_selected})) ***")
 
     # FIXME: plot and save (after)
     if mode == "init":
@@ -1140,26 +1134,28 @@ def radio_func(region):
     global g_crn_lat_dflt
     global g_index_dflt
     global g_region_dflt
+    global g_res_dflt
 
     g_region_dflt = region
 
-    print(f"radio_func ({region})")
+    debug(f"radio_func ({region})")
     if not g_args.file:
         g_cen_lon_dflt = WRTCMP_cen_lon[region]['WRTCMP_cen_lon']
         g_cen_lat_dflt = WRTCMP_cen_lat[region]['WRTCMP_cen_lat']
         g_crn_lon_dflt = WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left']
         g_crn_lat_dflt = WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left']
+        g_res_dflt = WRTCMP_res[region]['ESGgrid_DELX']
         match WRTCMP_output_grid[region]['WRTCMP_output_grid']:
             case "lambert_conformal":
-                print("SELECTING lambert_conformal")
+                debug("radio_func: selecting lambert_conformal")
                 g_index_dflt = "LambertConformal"
             case "rotated_latlon":
-                print("SELECTING rotated_latlon")
+                debug("radio_func: selecting rotated_latlon")
                 g_index_dflt = "RotatedPole"
     plots_draw(myuds, "init")
-    print("radio_func: drawing control canvas")
+    debug("radio_func: drawing control canvas")
     myuds.fig_control.canvas.draw()
-    print("radio_func: done drawing control canvas")
+    debug("radio_func: done drawing control canvas")
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
@@ -1245,87 +1241,76 @@ def draw_box_xy_data(tgt_index, src_index, color):
 def show_help():
     print(g_help)
 
-########
-# Main #
-########
-
-def register_region(region, cen_lon, cen_lat, lwr_lon, lwr_lat, proj):
+def register_region(region, cen_lon, cen_lat, lwr_lon, lwr_lat, res, proj):
     WRTCMP_output_grid[region] = {}
     WRTCMP_cen_lon[region] = {}
     WRTCMP_cen_lat[region] = {}
     WRTCMP_lon_lwr_left[region] = {}
     WRTCMP_lat_lwr_left[region] = {}
+    WRTCMP_res[region] = {}
     WRTCMP_output_grid[region]['WRTCMP_output_grid'] = proj
     WRTCMP_cen_lon[region]['WRTCMP_cen_lon'] = cen_lon
     WRTCMP_cen_lat[region]['WRTCMP_cen_lat'] = cen_lat
     WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left'] = lwr_lon
     WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left'] = lwr_lat
+    WRTCMP_res[region]['ESGgrid_DELX'] = res
+    WRTCMP_res[region]['ESGgrid_DELY'] = res
     g_radio_buttons.append(region)
 
-# FIXME: do these need to be globals?
-WRTCMP_cen_lon = {}
-WRTCMP_cen_lat = {}
-WRTCMP_lon_lwr_left = {}
-WRTCMP_lat_lwr_left = {}
-WRTCMP_output_grid = {}
-g_radio_buttons = []
+def register_from_yaml(file):
+    global WRTCMP_output_grid
+    global WRTCMP_cen_lon
+    global WRTCMP_cen_lat
+    global WRTCMP_lon_lwr_left
+    global WRTCMP_lat_lwr_left
+    global WRTCMP_res
 
-register_region("Trinidad and Tobago", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal') 
-register_region("Falkland Islands", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal') 
-register_region("Oregon Coast", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal') 
-register_region("Eastern Pacific", -141.87, 40.48, -160.29, 16.64,  'lambert_conformal') 
-
-with open("/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml", 'r') as file:
-    yaml_data = yaml.safe_load(file)
-    for region in yaml_data:
-        WRTCMP_output_grid[region] = {}
-        WRTCMP_cen_lon[region] = {}
-        WRTCMP_cen_lat[region] = {}
-        WRTCMP_lon_lwr_left[region] = {}
-        WRTCMP_lat_lwr_left[region] = {}
-        print(f"region is {region} ({yaml_data[region]['QUILTING']['WRTCMP_output_grid']})")
-        if False:
-            for key in yaml_data[region]['QUILTING']:
-                print(f"doing key {key}")
-                WRTCMP_output_grid[region][key] = yaml_data[region]['QUILTING']['WRTCMP_output_grid']
-                WRTCMP_cen_lon[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lon']
-                WRTCMP_cen_lat[region][key] = yaml_data[region]['QUILTING']['WRTCMP_cen_lat']
-                WRTCMP_lon_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lon_lwr_left']
-                WRTCMP_lat_lwr_left[region][key] = yaml_data[region]['QUILTING']['WRTCMP_lat_lwr_left']
-        else:
+    with open(file, 'r') as file:
+        yaml_data = yaml.safe_load(file)
+        for region in yaml_data:
+            WRTCMP_output_grid[region] = {}
+            WRTCMP_cen_lon[region] = {}
+            WRTCMP_cen_lat[region] = {}
+            WRTCMP_lon_lwr_left[region] = {}
+            WRTCMP_lat_lwr_left[region] = {}
+            WRTCMP_res[region] = {}
+            debug(f"open: region is {region} ({yaml_data[region]['QUILTING']['WRTCMP_output_grid']})")
             WRTCMP_output_grid[region]['WRTCMP_output_grid'] = yaml_data[region]['QUILTING']['WRTCMP_output_grid']
             WRTCMP_cen_lon[region]['WRTCMP_cen_lon'] = yaml_data[region]['QUILTING']['WRTCMP_cen_lon']
             WRTCMP_cen_lat[region]['WRTCMP_cen_lat'] = yaml_data[region]['QUILTING']['WRTCMP_cen_lat']
             WRTCMP_lon_lwr_left[region]['WRTCMP_lon_lwr_left'] = yaml_data[region]['QUILTING']['WRTCMP_lon_lwr_left']
             WRTCMP_lat_lwr_left[region]['WRTCMP_lat_lwr_left'] = yaml_data[region]['QUILTING']['WRTCMP_lat_lwr_left']
-        g_radio_buttons.append(region)
+            if WRTCMP_output_grid[region]['WRTCMP_output_grid'] == 'lambert_conformal':
+                WRTCMP_res[region]['ESGgrid_DELX'] = yaml_data[region]['ESGgrid_DELX']
+                WRTCMP_res[region]['ESGgrid_DELY'] = yaml_data[region]['ESGgrid_DELY']
+                debug(f"open: res is {WRTCMP_res[region]['ESGgrid_DELX']}")
+            else:
+                try:
+                    WRTCMP_res[region]['ESGgrid_DELX'] = yaml_data[region]['ESGgrid_DELX']
+                    WRTCMP_res[region]['ESGgrid_DELY'] = yaml_data[region]['ESGgrid_DELY']
+                except:
+                    print(f"*** No ESGgrid_DELX or ESGgrid_DELY for {region}; setting res to AUTO")
+                    WRTCMP_res[region]['ESGgrid_DELX'] = -1
+                    WRTCMP_res[region]['ESGgrid_DELY'] = -1
+            g_radio_buttons.append(region)
 
-# LambertConformal
-#region='RRFS_CONUS_25km'
-#region='RRFS_CONUScompact_25km'
-#region='RRFS_CONUS_13km'
-#region='RRFS_CONUScompact_13km'
-#region='RRFS_CONUS_3km'
-#region='RRFS_CONUScompact_3km'
-#region='SUBCONUS_Ind_3km'
-#region='RRFS_AK_13km'
-#region='RRFS_AK_3km'
-#region='WoFS_3km'
-#region='GSD_HRRR_25km'
-
-# RotatedPole
-#region='CONUS_25km_GFDLgrid'
-#region='CONUS_3km_GFDLgrid'
-#region='AQM_NA_13km'
-#region='RRFS_NA_13km'
-#region='RRFS_NA_3km'
+########
+# Main #
+########
 
 show_help()
+
+register_region("Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, -1, 'lambert_conformal') 
+register_region("Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, -1, 'lambert_conformal') 
+register_region("Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, -1, 'lambert_conformal') 
+register_region("Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64,  -1, 'lambert_conformal') 
+register_from_yaml("/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
+
 myuds = ufs_domain_select()
 
 if not g_args.file:
     g_index_dflt = 'LambertConformal'
 
-g_region_dflt="WoFS_3km"
+g_region_dflt="Oregon Coast auto"
 g_region_dflt_dflt=g_region_dflt
 radio_func(g_region_dflt)
