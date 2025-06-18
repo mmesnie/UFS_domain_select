@@ -69,20 +69,6 @@ g_res_dflt=25000                                          # 3000, 13000, 25000, 
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
 
-# FIXME: Add these to a forecast class
-g_dt_atmos = 36
-g_blocksize = 40
-g_layout_x = 3
-g_layout_y = 3
-g_write_groups = 1
-g_write_tasks_per_group = 3
-g_date ='20190615'
-g_cycle ='18'
-g_fcst_len_hrs = 1
-g_lbc_spec_intvl_hrs = 1
-g_extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-g_extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-
 #
 # This script has two uses. First, it automates the creation of the YAML 
 # configuration that specifies the compute grid and write component. The write
@@ -129,6 +115,21 @@ g_args = parser.parse_args()
 #####################
 # Class definitions #
 #####################
+
+class forecast():
+    def __init__(self):
+        self.dt_atmos = 36
+        self.blocksize = 40
+        self.layout_x = 3
+        self.layout_y = 3
+        self.write_groups = 1
+        self.write_tasks_per_group = 3
+        self.date ='20190615'
+        self.cycle ='18'
+        self.fcst_len_hrs = 1
+        self.lbc_spec_intvl_hrs = 1
+        self.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+        self.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
 
 class grid():
     def __init__(self, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
