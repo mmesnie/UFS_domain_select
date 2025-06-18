@@ -4,11 +4,7 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - FIXME: create "forecast" class and add relevant globals
-# - remove grid_active if not used!
-# - remove these globals??: g_grid_dflt, g_res_dflt, g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
-# - FIXME: cleanup g_grid = g_grid_dflt = g_grid_dflt_dflt ;-)
-# - FIXME: get rid of global g_radio
+# - remove globals?: g_grid_dflt, g_res_dflt, g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
 # - ...
 # - changing domain does nothing when grib file is loaded without -x (by design?)
 # - make selected Orthographic global, by default
@@ -49,6 +45,7 @@ import matplotlib
 from matplotlib.widgets import RadioButtons
 from matplotlib.widgets import CheckButtons
 import yaml
+from functools import partial
 
 ###############
 # Environment #
@@ -63,8 +60,6 @@ UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
 
 g_debug = False
 g_grids = {}
-g_radio = None # FIXME
-g_radio_buttons = []
 g_res_dflt=25000                                          # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
@@ -128,8 +123,8 @@ class forecast():
         self.cycle ='18'
         self.fcst_len_hrs = 1
         self.lbc_spec_intvl_hrs = 1
-        self.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
-        self.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{g_date}{g_cycle}"
+        self.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{self.date}{self.cycle}"
+        self.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{self.date}{self.cycle}"
 
 class grid():
     def __init__(self, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
@@ -463,8 +458,6 @@ class ufs_domain_select:
 
     def on_key_press(self, event):
         global g_index_dflt
-        global g_grid
-        global g_grid_dflt
 
         self.index = g_index_dflt
         if event.inaxes:
@@ -474,9 +467,8 @@ class ufs_domain_select:
             show_help()
         elif event.key == '0':
             print(f"on_key_press: restoring default settings")
-            g_grid = g_grid_dflt = g_grid_dflt_dflt
-            active_radio_index =  find_active_radio_index()
-            g_radio.set_active(active_radio_index)
+            active_radio_index =  find_active_radio_index(self)
+            self.radio.set_active(active_radio_index)
         elif event.key == 'y':
             if (self.index == "LambertConformal" or self.index == "RotatedPole"):
                 output_config(self, self.index)
@@ -557,12 +549,12 @@ class ufs_domain_select:
             i = i + 1
 
         if len(self.projs) == 1:
-            true_count = sum(self.check1.get_status())
-            if not self.check1.get_status()[i] and true_count == 0:
+            true_count = sum(self.check.get_status())
+            if not self.check.get_status()[i] and true_count == 0:
                 print(f"CANNOT DISABLE LAST PROJECTION ({label})")
-                self.check1.set_active(i)
+                self.check.set_active(i)
                 return
-            elif self.check1.get_status()[i] and true_count == 1:
+            elif self.check.get_status()[i] and true_count == 1:
                 print(f"RE-ENABLING LAST PROJECTION ({label})")
                 # the above if statement will call back to this point
                 # to re-enabled the button, so just return
@@ -600,6 +592,7 @@ class ufs_domain_select:
         if g_args.file:
             print("INITIALIZING GRIB")
             self.grib.init(g_args.file)
+        self.radio_buttons = []
 
 ########################
 # Function definitions #
@@ -659,6 +652,9 @@ def pick_max_delta(xspan, yspan):
         return 25000
 
 def output_config(uds, index):
+
+    f = forecast()
+
     res = uds.res
 
     # computational grid
@@ -711,9 +707,9 @@ workflow:
   EXPT_SUBDIR: {UFS_DOMAIN_SELECT_HOME}/build/expt-2.2.0/test_community
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
-  DATE_FIRST_CYCL: '{g_date}{g_cycle}'
-  DATE_LAST_CYCL: '{g_date}{g_cycle}'
-  FCST_LEN_HRS: {g_fcst_len_hrs}
+  DATE_FIRST_CYCL: '{f.date}{f.cycle}'
+  DATE_LAST_CYCL: '{f.date}{f.cycle}'
+  FCST_LEN_HRS: {f.fcst_len_hrs}
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
   COMPILER: gnu
@@ -730,22 +726,22 @@ task_make_grid:
 task_get_extrn_ics:
   EXTRN_MDL_NAME_ICS: FV3GFS
   FV3GFS_FILE_FMT_ICS: grib2
-  EXTRN_MDL_SOURCE_BASEDIR_ICS: {g_extrn_mdl_source_basedir_ics}
+  EXTRN_MDL_SOURCE_BASEDIR_ICS: {f.extrn_mdl_source_basedir_ics}
 task_get_extrn_lbcs:
   EXTRN_MDL_NAME_LBCS: FV3GFS
-  LBC_SPEC_INTVL_HRS: {g_lbc_spec_intvl_hrs} 
+  LBC_SPEC_INTVL_HRS: {f.lbc_spec_intvl_hrs} 
   FV3GFS_FILE_FMT_LBCS: grib2
-  EXTRN_MDL_SOURCE_BASEDIR_LBCS: {g_extrn_mdl_source_basedir_lbcs}
+  EXTRN_MDL_SOURCE_BASEDIR_LBCS: {f.extrn_mdl_source_basedir_lbcs}
 task_run_post:
   POST_OUTPUT_DOMAIN_NAME: 'mesnier'
 task_run_fcst:
   QUILTING: true
-  DT_ATMOS: {g_dt_atmos}
-  LAYOUT_X: {g_layout_x} 
-  LAYOUT_Y: {g_layout_y}
-  BLOCKSIZE: {g_blocksize}
-  WRTCMP_write_groups: {g_write_groups}
-  WRTCMP_write_tasks_per_group: {g_write_tasks_per_group}"""
+  DT_ATMOS: {f.dt_atmos}
+  LAYOUT_X: {f.layout_x} 
+  LAYOUT_Y: {f.layout_y}
+  BLOCKSIZE: {f.blocksize}
+  WRTCMP_write_groups: {f.write_groups}
+  WRTCMP_write_tasks_per_group: {f.write_tasks_per_group}"""
 
     if uds.index == "LambertConformal":
         config_text_wrtcmp = f"""
@@ -781,7 +777,7 @@ task_run_fcst:
         file.write(config_text)
         file.write(config_text_wrtcmp)
     print(f"       YAML file output: {g_yaml_file}")
-    print(f"                    cmd: export DATE={g_date} CYCLE={g_cycle} LEN={g_fcst_len_hrs} LBC={g_lbc_spec_intvl_hrs}; time ./forecast")
+    print(f"                    cmd: export DATE={f.date} CYCLE={f.cycle} LEN={f.fcst_len_hrs} LBC={f.lbc_spec_intvl_hrs}; time ./forecast")
 
 def get_index(uds, ax):
     for p in uds.projs:
@@ -859,7 +855,6 @@ def find_extent(tx, ty):
     return (min_x, max_x, min_y, max_y)
 
 def plots_draw(uds, mode):
-    global g_radio # FIXME
 
     #
     # Notes on variables:
@@ -1089,27 +1084,15 @@ def plots_draw(uds, mode):
         proj1.append(p)
         count += 1
 
-    uds.check1 = CheckButtons(uds.axis['menu1'], proj1, status1)
-    uds.check1.on_clicked(uds.checkfunc)
+    # Projection checkbuttons
+    uds.check = CheckButtons(uds.axis['menu1'], proj1, status1)
+    uds.check.on_clicked(uds.checkfunc)
 
-    # Find index of active grid in g_radio_buttons. We do this
-    # so that the default grid shows up as selected.
-
-    def find_active_radio_index():
-        debug(f"plots_draw: looking for {g_grid} in g_radio_buttons")
-        i=0
-        for val in g_radio_buttons:
-            if val == g_grid:
-                debug(f"plots_draw: active grid is {g_grid} (index {i})")
-                grid_active = i
-                break
-            i+=1
-        return i
-
-    active_radio_index = find_active_radio_index()
-    g_radio = RadioButtons(uds.axis['menu3'], g_radio_buttons, active=active_radio_index)
-    g_radio.on_clicked(radio_func)
-    debug(f"plots_draw: created radio buttons (mode {mode} selected {g_radio.value_selected})) ***")
+    # Grid radiobuttons
+    active_radio_index = find_active_radio_index(uds)
+    uds.radio = RadioButtons(uds.axis['menu3'], uds.radio_buttons, active=active_radio_index)
+    callback_plus_args = partial(radio_func, uds=uds)
+    uds.radio.on_clicked(callback_plus_args)
 
     # FIXME: plot and save (after)
     if mode == "init":
@@ -1123,29 +1106,30 @@ def plots_draw(uds, mode):
         uds.fig_control.canvas.draw()
         uds.fig.canvas.draw()
 
-def find_active_radio_index():
-    print(f"looking for {g_grid} in g_radio_buttons")
+
+# Find index of active grid in uds.radio_buttons. We do this
+# so that the default grid shows up as selected.
+
+def find_active_radio_index(uds):
+    print(f"looking for {g_grid} in uds.radio_buttons")
     i=0
-    for val in g_radio_buttons:
+    for val in uds.radio_buttons:
         if val == g_grid:
             print(f"active grid is {g_grid} (index {i})")
-            grid_active = i
             break
         i+=1
     return i
 
-def radio_func(grid):
+def radio_func(grid, uds):
+    global g_grid_dflt
+    global g_res_dflt
+    global g_index_dflt
     global g_cen_lon_dflt
     global g_cen_lat_dflt
     global g_crn_lon_dflt
     global g_crn_lat_dflt
-    global g_index_dflt
-    global g_grid_dflt
-    global g_res_dflt
 
     g_grid_dflt = grid
-
-    debug(f"radio_func ({grid})")
     if not g_args.file:
         g_cen_lon_dflt = g_grids[grid].WRTCMP_cen_lon
         g_cen_lat_dflt = g_grids[grid].WRTCMP_cen_lat
@@ -1159,10 +1143,8 @@ def radio_func(grid):
             case "rotated_latlon":
                 debug("radio_func: selecting rotated_latlon")
                 g_index_dflt = "RotatedPole"
-    plots_draw(myuds, "init")
-    debug("radio_func: drawing control canvas")
-    myuds.fig_control.canvas.draw()
-    debug("radio_func: done drawing control canvas")
+    plots_draw(uds, "init")
+    uds.fig_control.canvas.draw()
 
 def create_box_xy(extent):
     x1, x2, y1, y2 = extent 
@@ -1248,12 +1230,12 @@ def draw_box_xy_data(tgt_index, src_index, color):
 def show_help():
     print(g_help)
 
-def register_grid(label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
+def register_grid(uds, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
     this_grid = grid(label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res)
     g_grids[label] = this_grid
-    g_radio_buttons.append(label)
+    uds.radio_buttons.append(label)
 
-def register_from_yaml(file):
+def register_from_yaml(uds, file):
     with open(file, 'r') as file:
         yaml_data = yaml.safe_load(file)
         for label in yaml_data:
@@ -1275,7 +1257,7 @@ def register_from_yaml(file):
                                  yaml_data[label]['QUILTING']['WRTCMP_output_grid'],
                                  -1)
             g_grids[label] = this_grid
-            g_radio_buttons.append(label)
+            uds.radio_buttons.append(label)
 
 ########
 # Main #
@@ -1283,17 +1265,15 @@ def register_from_yaml(file):
 
 show_help()
 
-register_grid("Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
-register_grid("Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', -1)
-register_grid("Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', -1)
-register_grid("Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
-register_from_yaml("/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
-
 myuds = ufs_domain_select()
+
+register_grid(myuds, "Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
+register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', -1)
+register_grid(myuds, "Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', -1)
+register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
+register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
 
 if not g_args.file:
     g_index_dflt = 'LambertConformal'
 
-g_grid_dflt="Oregon Coast auto"
-g_grid_dflt_dflt=g_grid_dflt
-radio_func(g_grid_dflt)
+radio_func("Oregon Coast auto", myuds)
