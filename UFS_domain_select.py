@@ -7,6 +7,7 @@
 # - remove globals: g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
 # - remove globals: g_grid_dflt, g_res_dflt, g_yaml_file, g_compute_grid_dflt
 # - remove globals: g_help, g_args
+# - address remaining FIXMEs
 # - ...
 # - changing domain does nothing when grib file is loaded without -x (by design?)
 # - make selected Orthographic global, by default
@@ -34,7 +35,6 @@ import os
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from matplotlib.backend_bases import MouseButton
 import time
 import math
 import io
@@ -44,9 +44,10 @@ import scipy
 import numpy as np
 import cartopy
 import matplotlib
+import yaml
+from matplotlib.backend_bases import MouseButton
 from matplotlib.widgets import RadioButtons
 from matplotlib.widgets import CheckButtons
-import yaml
 from functools import partial
 
 ###############
@@ -1277,6 +1278,7 @@ register_grid(myuds, "Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambe
 register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
 register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
 
+# FIXME
 if not g_args.file:
     g_index_dflt = 'LambertConformal'
 
