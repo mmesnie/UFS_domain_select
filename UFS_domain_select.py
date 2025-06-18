@@ -13,12 +13,10 @@
 # - make selected Orthographic global, by default
 # - move plots_draw and plots_remove into Class definitions?
 # - things get sluggish when we remove LambertConformal?
-# - re-organize script comments, arguments and such
+# - re-organize toplevel script comments, arguments and such
 #
 # Validation
 # - recreate various predefined grids (should be identical!)
-#   whatever we do to recreate needs to be automated by reading
-#   in the predefined file!
 # - make sure uds.compute_grid (gnomonic) is correct and add option to show it
 # - test w/ GFS files (currently filters based on lon/lat spans)
 #
