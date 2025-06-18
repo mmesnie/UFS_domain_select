@@ -4,7 +4,9 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - remove globals?: g_grid_dflt, g_res_dflt, g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
+# - remove globals: g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
+# - remove globals: g_grid_dflt, g_res_dflt, g_yaml_file, g_compute_grid_dflt
+# - remove globals: g_help, g_args
 # - ...
 # - changing domain does nothing when grib file is loaded without -x (by design?)
 # - make selected Orthographic global, by default
@@ -59,7 +61,6 @@ UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
 ###########
 
 g_debug = False
-#g_grids = {}
 g_res_dflt=25000                                          # 3000, 13000, 25000, or -1 (auto)
 g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
@@ -113,28 +114,30 @@ g_args = parser.parse_args()
 
 class forecast():
     def __init__(self):
-        self.dt_atmos = 36
-        self.blocksize = 40
-        self.layout_x = 3
-        self.layout_y = 3
-        self.write_groups = 1
-        self.write_tasks_per_group = 3
-        self.date ='20190615'
-        self.cycle ='18'
-        self.fcst_len_hrs = 1
-        self.lbc_spec_intvl_hrs = 1
-        self.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{self.date}{self.cycle}"
-        self.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{self.date}{self.cycle}"
+        s = self
+        s.dt_atmos = 36
+        s.blocksize = 40
+        s.layout_x = 3
+        s.layout_y = 3
+        s.write_groups = 1
+        s.write_tasks_per_group = 3
+        s.date ='20190615'
+        s.cycle ='18'
+        s.fcst_len_hrs = 1
+        s.lbc_spec_intvl_hrs = 1
+        s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
+        s.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
 
 class grid():
     def __init__(self, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
-        self.label = label
-        self.WRTCMP_cen_lon = cen_lon
-        self.WRTCMP_cen_lat = cen_lat
-        self.WRTCMP_lon_lwr_left = lwr_lon
-        self.WRTCMP_lat_lwr_left = lwr_lat
-        self.WRTCMP_output_grid = proj
-        self.WRTCMP_res = self.ESGgrid_DELX = self.ESGgrid_DELY = res
+        s = self
+        s.label = label
+        s.WRTCMP_cen_lon = cen_lon
+        s.WRTCMP_cen_lat = cen_lat
+        s.WRTCMP_lon_lwr_left = lwr_lon
+        s.WRTCMP_lat_lwr_left = lwr_lat
+        s.WRTCMP_output_grid = proj
+        s.WRTCMP_res = s.ESGgrid_DELX = s.ESGgrid_DELY = res
 
 class grib():
     def init(self, file):
@@ -593,6 +596,7 @@ class ufs_domain_select:
             print("INITIALIZING GRIB")
             self.grib.init(g_args.file)
         self.radio_buttons = []
+        self.grids = {}
 
 ########################
 # Function definitions #
@@ -1131,12 +1135,12 @@ def radio_func(grid, uds):
 
     g_grid_dflt = grid
     if not g_args.file:
-        g_cen_lon_dflt = g_grids[grid].WRTCMP_cen_lon
-        g_cen_lat_dflt = g_grids[grid].WRTCMP_cen_lat
-        g_crn_lon_dflt = g_grids[grid].WRTCMP_lon_lwr_left
-        g_crn_lat_dflt = g_grids[grid].WRTCMP_lat_lwr_left
-        g_res_dflt = g_grids[grid].ESGgrid_DELX
-        match g_grids[grid].WRTCMP_output_grid:
+        g_cen_lon_dflt = uds.grids[grid].WRTCMP_cen_lon
+        g_cen_lat_dflt = uds.grids[grid].WRTCMP_cen_lat
+        g_crn_lon_dflt = uds.grids[grid].WRTCMP_lon_lwr_left
+        g_crn_lat_dflt = uds.grids[grid].WRTCMP_lat_lwr_left
+        g_res_dflt = uds.grids[grid].ESGgrid_DELX
+        match uds.grids[grid].WRTCMP_output_grid:
             case "lambert_conformal":
                 debug("radio_func: selecting lambert_conformal")
                 g_index_dflt = "LambertConformal"
@@ -1232,7 +1236,7 @@ def show_help():
 
 def register_grid(uds, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
     this_grid = grid(label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res)
-    g_grids[label] = this_grid
+    uds.grids[label] = this_grid
     uds.radio_buttons.append(label)
 
 def register_from_yaml(uds, file):
@@ -1256,7 +1260,7 @@ def register_from_yaml(uds, file):
                                  yaml_data[label]['QUILTING']['WRTCMP_lat_lwr_left'],
                                  yaml_data[label]['QUILTING']['WRTCMP_output_grid'],
                                  -1)
-            g_grids[label] = this_grid
+            uds.grids[label] = this_grid
             uds.radio_buttons.append(label)
 
 ########
