@@ -4,10 +4,12 @@
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - remove globals: g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
+# - remove globals: g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
+# - remove globals: g_index_dflt
 # - remove globals: g_grid_dflt, g_res_dflt, g_yaml_file, g_compute_grid_dflt
 # - remove globals: g_help, g_args
 # - address remaining FIXMEs
+# - add color decoder for projections
 # - ...
 # - changing domain does nothing when grib file is loaded without -x (by design?)
 # - make selected Orthographic global, by default
@@ -139,8 +141,13 @@ class grid():
         s.WRTCMP_res = s.ESGgrid_DELX = s.ESGgrid_DELY = res
 
 class grib():
-    def init(self, file):
-        global g_index_dflt, g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
+    def init(self, file, uds):
+        global g_index_dflt
+
+        # DEPRECATED
+        # global g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
+
+        global g_grib_grid
 
         debug(f"grib: loading file {file}")
 
@@ -152,18 +159,36 @@ class grib():
         match msg.projparams['proj']:
             case "lcc":
                 g_index_dflt = 'LambertConformal'
-                g_cen_lon_dflt = msg.projparams['lon_0']
-                g_cen_lat_dflt = msg.projparams['lat_0']
-                g_crn_lon_dflt = -1
-                g_crn_lat_dflt = -1
+
+                # DEPRECATED
+                #g_cen_lon_dflt = msg.projparams['lon_0']
+                #g_cen_lat_dflt = msg.projparams['lat_0']
+                #g_crn_lon_dflt = -1
+                #g_crn_lat_dflt = -1
+
                 print(f"grib: lon_0: {msg.projparams['lon_0']}")
                 print(f"grib: lat_0: {msg.projparams['lat_0']}")
+                g_grib_grid = grid("GRIB", 
+                                   msg.projparams['lon_0'], msg.projparams['lat_0'] 
+                                  -1, -1, 'lambert_conformal', 3000)
+                uds.grids["GRIB"] = g_grib_grid
+                uds.radio_buttons.append("GRIB")
+
             case "ob_tran":
                 g_index_dflt = 'RotatedPole'
-                g_cen_lon_dflt = msg.projparams['lon_0']
-                g_cen_lat_dflt = 90 - msg.projparams['o_lat_p']
-                g_crn_lon_dflt = -1
-                g_crn_lat_dflt = -1
+
+                # DEPRECATED
+                #g_cen_lon_dflt = msg.projparams['lon_0']
+                #g_cen_lat_dflt = 90 - msg.projparams['o_lat_p']
+                #g_crn_lon_dflt = -1
+                #g_crn_lat_dflt = -1
+
+                g_grib_grid = grid("GRIB", 
+                                   msg.projparams['lon_0'], 90 - msg.projparams['o_lat_p'],
+                                   -1, -1, 'rotated_latlon', 3000)
+                uds.grids["GRIB"] = g_grib_grid
+                uds.radio_buttons.append("GRIB")
+
             case _:
                 print(f"grib: unknown projection {msg.projparams['proj']} -- using default")
         print(f"grib: proj: {msg.projparams['proj']} --> {g_index_dflt}")
@@ -201,7 +226,7 @@ class grib():
     def plot(self, file, parent):
         debug("grib: plotting")
         if not self.initialized:
-            self.init(file)
+            self.init(file, self)
 
         if True:
             for p in self.uds.projs:
@@ -232,23 +257,39 @@ class ufs_domain_select:
     def set_dflts(self):
         global g_grid
 
+        print(f"set_dflts: g_grid_dflt is {g_grid_dflt}")
+
         s = self
         if g_args.cen_lon:
             s.cen_lon = float(g_args.cen_lon)
         else:
-            s.cen_lon = g_cen_lon_dflt
+
+            # DEPRECATED
+            #s.cen_lon = g_cen_lon_dflt
+
+            s.cen_lon = self.grids[g_grid_dflt].WRTCMP_cen_lon
         if g_args.cen_lat:
             s.cen_lat = float(g_args.cen_lat)
         else:
-            s.cen_lat = g_cen_lat_dflt
+
+            # DEPRECATED
+            #s.cen_lat = g_cen_lat_dflt
+
+            s.cen_lat = self.grids[g_grid_dflt].WRTCMP_cen_lat
         if g_args.crn_lon:
             s.crn_lon = float(g_args.crn_lon)
         else:
-            s.crn_lon = g_crn_lon_dflt
+
+            # DEPRECATED
+            #s.crn_lon = g_crn_lon_dflt
+
+            s.crn_lon = self.grids[g_grid_dflt].WRTCMP_lon_lwr_left
         if g_args.crn_lat:
             s.crn_lat = float(g_args.crn_lat)
         else:
-            s.crn_lat = g_crn_lat_dflt
+            # DEPRECATED
+            #s.crn_lat = g_crn_lat_dflt
+            s.crn_lat = self.grids[g_grid_dflt].WRTCMP_lat_lwr_left
         if g_args.proj:
             s.index = g_args.proj
         else:
@@ -584,6 +625,7 @@ class ufs_domain_select:
         plots_draw(self, "set")
 
     def __init__(self):
+        print("*** INITIALIZING UFS DOMAIN SELECT ***")
         plt.rcParams["figure.raise_window"] = False
         self.fig = plt.figure(figsize=(8, 5))
         self.fig_control = plt.figure(figsize=(5.5, 5))
@@ -591,11 +633,11 @@ class ufs_domain_select:
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         self.fig_control.canvas.mpl_connect('key_press_event', self.on_key_press)
         self.grib = grib(self)
+        self.grids = {}
+        self.radio_buttons = []
         if g_args.file:
             print("INITIALIZING GRIB")
-            self.grib.init(g_args.file)
-        self.radio_buttons = []
-        self.grids = {}
+            self.grib.init(g_args.file, self)
 
 ########################
 # Function definitions #
@@ -955,8 +997,13 @@ def plots_draw(uds, mode):
         if uds.index == "RotatedPole":
             # Transform the RotatedPole corner to Geodetic
             print("plots_draw: init for RotatedPole")
-            uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(g_crn_lon_dflt, g_crn_lat_dflt, uds.proj[uds.index])
-            print(f"plots_draw: rotated corner: lon {g_crn_lon_dflt} lat {g_crn_lat_dflt}")
+            #DEPRECATED
+            #uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(g_crn_lon_dflt, g_crn_lat_dflt, uds.proj[uds.index])
+            uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(uds.grids[g_grid_dflt].WRTCMP_cen_lon, 
+                                                                          uds.grids[g_grid_dflt].WRTCMP_cen_lat,
+                                                                          uds.proj[uds.index])
+            print(f"plots_draw: rotated corner: lon {uds.grids[g_grid_dflt].WRTCMP_cen_lon} "
+                  f"lat {uds.grids[g_grid_dflt].WRTCMP_cen_lat}")
             print(f"plots_draw: geodetic corner: lon {uds.crn_lon} lat {uds.crn_lat}")
 
         xc, yc = uds.proj[uds.index].transform_point(uds.cen_lon, uds.cen_lat, ccrs.Geodetic())
@@ -1127,17 +1174,22 @@ def radio_func(grid, uds):
     global g_grid_dflt
     global g_res_dflt
     global g_index_dflt
-    global g_cen_lon_dflt
-    global g_cen_lat_dflt
-    global g_crn_lon_dflt
-    global g_crn_lat_dflt
+
+    # DEPRECATED
+    #global g_cen_lon_dflt
+    #global g_cen_lat_dflt
+    #global g_crn_lon_dflt
+    #global g_crn_lat_dflt
 
     g_grid_dflt = grid
     if not g_args.file:
-        g_cen_lon_dflt = uds.grids[grid].WRTCMP_cen_lon
-        g_cen_lat_dflt = uds.grids[grid].WRTCMP_cen_lat
-        g_crn_lon_dflt = uds.grids[grid].WRTCMP_lon_lwr_left
-        g_crn_lat_dflt = uds.grids[grid].WRTCMP_lat_lwr_left
+
+        # DEPRECATED
+        #g_cen_lon_dflt = uds.grids[grid].WRTCMP_cen_lon
+        #g_cen_lat_dflt = uds.grids[grid].WRTCMP_cen_lat
+        #g_crn_lon_dflt = uds.grids[grid].WRTCMP_lon_lwr_left
+        #g_crn_lat_dflt = uds.grids[grid].WRTCMP_lat_lwr_left
+
         g_res_dflt = uds.grids[grid].ESGgrid_DELX
         match uds.grids[grid].WRTCMP_output_grid:
             case "lambert_conformal":
