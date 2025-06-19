@@ -169,7 +169,7 @@ class grib():
                 print(f"grib: lon_0: {msg.projparams['lon_0']}")
                 print(f"grib: lat_0: {msg.projparams['lat_0']}")
                 g_grib_grid = grid("GRIB", 
-                                   msg.projparams['lon_0'], msg.projparams['lat_0'] 
+                                   msg.projparams['lon_0'], msg.projparams['lat_0'],
                                   -1, -1, 'lambert_conformal', 3000)
                 uds.grids["GRIB"] = g_grib_grid
                 uds.radio_buttons.append("GRIB")
@@ -268,6 +268,7 @@ class ufs_domain_select:
             #s.cen_lon = g_cen_lon_dflt
 
             s.cen_lon = self.grids[g_grid_dflt].WRTCMP_cen_lon
+            print(f"s.cen_lon = {s.cen_lon}")
         if g_args.cen_lat:
             s.cen_lat = float(g_args.cen_lat)
         else:
@@ -276,6 +277,7 @@ class ufs_domain_select:
             #s.cen_lat = g_cen_lat_dflt
 
             s.cen_lat = self.grids[g_grid_dflt].WRTCMP_cen_lat
+            print(f"s.cen_lat = {s.cen_lat}")
         if g_args.crn_lon:
             s.crn_lon = float(g_args.crn_lon)
         else:
@@ -284,12 +286,14 @@ class ufs_domain_select:
             #s.crn_lon = g_crn_lon_dflt
 
             s.crn_lon = self.grids[g_grid_dflt].WRTCMP_lon_lwr_left
+            print(f"s.crn_lon = {s.crn_lon}")
         if g_args.crn_lat:
             s.crn_lat = float(g_args.crn_lat)
         else:
             # DEPRECATED
             #s.crn_lat = g_crn_lat_dflt
             s.crn_lat = self.grids[g_grid_dflt].WRTCMP_lat_lwr_left
+            print(f"s.crn_lat = {s.crn_lat}")
         if g_args.proj:
             s.index = g_args.proj
         else:
@@ -1036,7 +1040,8 @@ def plots_draw(uds, mode):
         assert(mode=="set" or mode=="init")
 
         try:
-            if not g_args.file:
+            # HERE (added True hack below)
+            if True or not g_args.file:
                 debug(f"plots_draw: grib file not specified: setting default extent for {uds.index}")
                 uds.axis[uds.index].set_extent(uds.extent[uds.index], crs=uds.proj[uds.index])
                 debug(f"plots_draw:   set uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
@@ -1328,8 +1333,8 @@ register_grid(myuds, "Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambe
 register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
 register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
 
-# FIXME
-if not g_args.file:
+if g_args.file:
+    radio_func("GRIB", myuds)
+else:
     g_index_dflt = 'LambertConformal'
-
-radio_func("Oregon Coast auto", myuds)
+    radio_func("Oregon Coast auto", myuds)
