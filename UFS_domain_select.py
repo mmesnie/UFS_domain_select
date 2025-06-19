@@ -100,12 +100,15 @@ g_help="""
 #####################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--cen_lon", help="center longitude", required=False)
-parser.add_argument("--cen_lat", help="center latitude", required=False)
-parser.add_argument("--crn_lon", help="lower left corner longitude", required=False)
-parser.add_argument("--crn_lat", help="lower left corner latitude", required=False)
+
+# DEPRECATED
+#parser.add_argument("--cen_lon", help="center longitude", required=False)
+#parser.add_argument("--cen_lat", help="center latitude", required=False)
+#parser.add_argument("--crn_lon", help="lower left corner longitude", required=False)
+#parser.add_argument("--crn_lat", help="lower left corner latitude", required=False)
+#parser.add_argument("--proj", "-p", help="LambertConformal or RotatedPole (required with -f)", required=False)
+
 parser.add_argument("--file", "-f", help="grib file to plot", required=False)
-parser.add_argument("--proj", "-p", help="LambertConformal or RotatedPole (required with -f)", required=False)
 parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
 g_args = parser.parse_args()
 
@@ -143,10 +146,6 @@ class grid():
 class grib():
     def init(self, file, uds):
         global g_index_dflt
-
-        # DEPRECATED
-        # global g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
-
         global g_grib_grid
 
         debug(f"grib: loading file {file}")
@@ -159,15 +158,6 @@ class grib():
         match msg.projparams['proj']:
             case "lcc":
                 g_index_dflt = 'LambertConformal'
-
-                # DEPRECATED
-                #g_cen_lon_dflt = msg.projparams['lon_0']
-                #g_cen_lat_dflt = msg.projparams['lat_0']
-                #g_crn_lon_dflt = -1
-                #g_crn_lat_dflt = -1
-
-                print(f"grib: lon_0: {msg.projparams['lon_0']}")
-                print(f"grib: lat_0: {msg.projparams['lat_0']}")
                 g_grib_grid = grid("GRIB", 
                                    msg.projparams['lon_0'], msg.projparams['lat_0'],
                                   -1, -1, 'lambert_conformal', 3000)
@@ -176,13 +166,6 @@ class grib():
 
             case "ob_tran":
                 g_index_dflt = 'RotatedPole'
-
-                # DEPRECATED
-                #g_cen_lon_dflt = msg.projparams['lon_0']
-                #g_cen_lat_dflt = 90 - msg.projparams['o_lat_p']
-                #g_crn_lon_dflt = -1
-                #g_crn_lat_dflt = -1
-
                 g_grib_grid = grid("GRIB", 
                                    msg.projparams['lon_0'], 90 - msg.projparams['o_lat_p'],
                                    -1, -1, 'rotated_latlon', 3000)
@@ -257,52 +240,39 @@ class ufs_domain_select:
     def set_dflts(self):
         global g_grid
 
-        print(f"set_dflts: g_grid_dflt is {g_grid_dflt}")
-
         s = self
-        if g_args.cen_lon:
-            s.cen_lon = float(g_args.cen_lon)
-        else:
-
-            # DEPRECATED
-            #s.cen_lon = g_cen_lon_dflt
-
-            s.cen_lon = self.grids[g_grid_dflt].WRTCMP_cen_lon
-            print(f"s.cen_lon = {s.cen_lon}")
-        if g_args.cen_lat:
-            s.cen_lat = float(g_args.cen_lat)
-        else:
-
-            # DEPRECATED
-            #s.cen_lat = g_cen_lat_dflt
-
-            s.cen_lat = self.grids[g_grid_dflt].WRTCMP_cen_lat
-            print(f"s.cen_lat = {s.cen_lat}")
-        if g_args.crn_lon:
-            s.crn_lon = float(g_args.crn_lon)
-        else:
-
-            # DEPRECATED
-            #s.crn_lon = g_crn_lon_dflt
-
-            s.crn_lon = self.grids[g_grid_dflt].WRTCMP_lon_lwr_left
-            print(f"s.crn_lon = {s.crn_lon}")
-        if g_args.crn_lat:
-            s.crn_lat = float(g_args.crn_lat)
-        else:
-            # DEPRECATED
-            #s.crn_lat = g_crn_lat_dflt
-            s.crn_lat = self.grids[g_grid_dflt].WRTCMP_lat_lwr_left
-            print(f"s.crn_lat = {s.crn_lat}")
-        if g_args.proj:
-            s.index = g_args.proj
-        else:
-            s.index = g_index_dflt
+        s.cen_lon = self.grids[g_grid_dflt].WRTCMP_cen_lon
+        s.cen_lat = self.grids[g_grid_dflt].WRTCMP_cen_lat
+        s.crn_lon = self.grids[g_grid_dflt].WRTCMP_lon_lwr_left
+        s.crn_lat = self.grids[g_grid_dflt].WRTCMP_lat_lwr_left
+        s.index = g_index_dflt
         s.compute_grid = g_compute_grid_dflt
         s.res = g_res_dflt
 
         debug(f"set_dflts: setting g_grid to default ({g_grid_dflt})")
         g_grid = g_grid_dflt
+
+        # DEPRECATED
+        #if g_args.cen_lon:
+        #    s.cen_lon = float(g_args.cen_lon)
+        #else:
+        #    s.cen_lon = self.grids[g_grid_dflt].WRTCMP_cen_lon
+        #if g_args.cen_lat:
+        #    s.cen_lat = float(g_args.cen_lat)
+        #else:
+        #    s.cen_lat = self.grids[g_grid_dflt].WRTCMP_cen_lat
+        #if g_args.crn_lon:
+        #    s.crn_lon = float(g_args.crn_lon)
+        #else:
+        #    s.crn_lon = self.grids[g_grid_dflt].WRTCMP_lon_lwr_left
+        #if g_args.crn_lat:
+        #    s.crn_lat = float(g_args.crn_lat)
+        #else:
+        #    s.crn_lat = self.grids[g_grid_dflt].WRTCMP_lat_lwr_left
+        #if g_args.proj:
+        #    s.index = g_args.proj
+        #else:
+        #    s.index = g_index_dflt
 
     def projs_create(self, mode):
         s = self
