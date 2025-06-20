@@ -27,12 +27,9 @@ g_help="""
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - remove globals: g_res_dflt, g_compute_grid_dflt, g_yaml_file
-# - remove globals (if needed): g_help, g_debug, g_args
 # - figure out corner for GRIB files
 # - move plots_draw and plots_remove into Class definitions?
 # - understand why things get sluggish when we remove LambertConformal
-# - address remaining FIXMEs
 #
 # Validation
 # - recreate various predefined grids (should be identical!)
@@ -87,9 +84,6 @@ parser.add_argument("--close", "-x", help="close after saving plot of grib file"
 ###########
 
 g_debug = False
-g_res_dflt=25000                                          # 3000, 13000, 25000, or -1 (auto)
-g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
-g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_args = parser.parse_args()
 
 #####################
@@ -97,7 +91,7 @@ g_args = parser.parse_args()
 #####################
 
 class forecast():
-    def __init__(self):
+    def __init__(self, yaml_file):
         s = self
         s.dt_atmos = 36
         s.blocksize = 40
@@ -111,6 +105,7 @@ class forecast():
         s.lbc_spec_intvl_hrs = 6
         s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
         s.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
+        s.yaml_file = yaml_file
 
 class grid():
     def __init__(self, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
@@ -122,6 +117,7 @@ class grid():
         s.WRTCMP_lat_lwr_left = lwr_lat
         s.WRTCMP_output_grid = proj
         s.WRTCMP_res = s.ESGgrid_DELX = s.ESGgrid_DELY = res
+        debug(f"created grid {label} res {res}")
 
 class grib():
     def init(self, file, uds):
@@ -186,7 +182,7 @@ class grib():
         self.initialized = True
 
     def plot(self, file, parent):
-        debug("grib: plotting")
+        debug("grib: *** plotting ***")
         if not self.initialized:
             self.init(file, self)
 
@@ -214,20 +210,36 @@ class grib():
         self.uds = uds
         self.initialized = False
 
-class ufs_domain_select:
+class ufs_domain_select():
+
+    def __init__(self, compute_grid_dflt, yaml_file_output):
+        plt.rcParams["figure.raise_window"] = False
+        self.fig = plt.figure(figsize=(8, 5))
+        self.fig_control = plt.figure(figsize=(5.5, 5))
+        self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
+        self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self.fig_control.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self.grib = grib(self)
+        self.grids = {}
+        self.radio_buttons = []
+        self.yaml_file_output = yaml_file_output
+        if g_args.file:
+            print("INITIALIZING GRIB")
+            self.grib.init(g_args.file, self)
+        self.compute_grid_dflt = compute_grid_dflt
 
     def set_dflts(self):
         s = self
+        s.grid = s.grid_dflt
         s.cen_lon = self.grids[s.grid_dflt].WRTCMP_cen_lon
         s.cen_lat = self.grids[s.grid_dflt].WRTCMP_cen_lat
         s.crn_lon = self.grids[s.grid_dflt].WRTCMP_lon_lwr_left
         s.crn_lat = self.grids[s.grid_dflt].WRTCMP_lat_lwr_left
         s.index = s.index_dflt
-        s.compute_grid = g_compute_grid_dflt
-        s.res = g_res_dflt
+        s.compute_grid = s.compute_grid_dflt
+        s.res = self.grids[s.grid_dflt].WRTCMP_res
 
-        debug(f"set_dflts: setting s.grid to default ({s.grid_dflt})")
-        s.grid = s.grid_dflt
+        debug(f"set_dflts: set s.grid to default ({s.grid_dflt}, res {s.res})")
 
     def projs_create(self, mode):
         s = self
@@ -437,7 +449,7 @@ class ufs_domain_select:
             self.radio.set_active(active_radio_index)
         elif event.key == 'y':
             if (self.index == "LambertConformal" or self.index == "RotatedPole"):
-                output_config(self, self.index)
+                output_config(self, self.index, self.yaml_file_output)
             else:
                 print("choose from LambertConformal or RotatedPole")
                 return
@@ -541,20 +553,6 @@ class ufs_domain_select:
 
         plots_draw(self, "set")
 
-    def __init__(self):
-        plt.rcParams["figure.raise_window"] = False
-        self.fig = plt.figure(figsize=(8, 5))
-        self.fig_control = plt.figure(figsize=(5.5, 5))
-        self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
-        self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
-        self.fig_control.canvas.mpl_connect('key_press_event', self.on_key_press)
-        self.grib = grib(self)
-        self.grids = {}
-        self.radio_buttons = []
-        if g_args.file:
-            print("INITIALIZING GRIB")
-            self.grib.init(g_args.file, self)
-
 ########################
 # Function definitions #
 ########################
@@ -612,9 +610,9 @@ def pick_max_delta(xspan, yspan):
     else:
         return 25000
 
-def output_config(uds, index):
+def output_config(uds, index, yaml_file):
 
-    f = forecast()
+    f = forecast(yaml_file)
 
     res = uds.res
 
@@ -734,10 +732,10 @@ task_run_fcst:
 
     print(config_text+config_text_wrtcmp)
 
-    with open(g_yaml_file, "w") as file:
+    with open(f.yaml_file, "w") as file:
         file.write(config_text)
         file.write(config_text_wrtcmp)
-    print(f"       YAML file output: {g_yaml_file}")
+    print(f"       YAML file output: {f.yaml_file}")
     print(f"                    cmd: export DATE={f.date} CYCLE={f.cycle} LEN={f.fcst_len_hrs} LBC={f.lbc_spec_intvl_hrs}; time ./forecast")
 
 def get_index(uds, ax):
@@ -828,7 +826,7 @@ def plots_draw(uds, mode):
     #
     # Notes on variables:
     #
-    # uds.index is the index of the source axis that we're trransforming from.
+    # uds.index is the index of the source axis that we're transforming from.
     # uds.projs is the list of projections, only one of which is uds.index.
     #
 
@@ -932,17 +930,18 @@ def plots_draw(uds, mode):
         uds.extent[uds.index] = new_extent
         debug("plots_draw: CASE 2")
 
-    # FIXME: plot and save (before)
-    if g_args.file:
-        uds.grib.plot(g_args.file, uds)
-        for p in uds.projs:
-            if uds.plotted[p]:
-                uds.axis[p].set_title(p)
-        uds.fig.suptitle(uds.grib.title)
-        print(f"plots_draw: BEFORE: saving forecast to {g_args.file + '.png'} ***")
-        uds.fig.savefig(g_args.file + ".A.png")
-        if False and g_args.close:
-            exit(0)
+    if True:
+        if g_args.file:
+            uds.grib.plot(g_args.file, uds)
+            for p in uds.projs:
+                if uds.plotted[p]:
+                    uds.axis[p].set_title(p)
+            uds.fig.suptitle(uds.grib.title)
+            print(f"plots_draw: saving forecast to {g_args.file + '.png'} ***")
+            uds.fig.savefig(g_args.file + ".A.png")
+            if g_args.close:
+                print("plots_draw: exiting on -x")
+                exit(0)
 
     if True:
 
@@ -1049,18 +1048,20 @@ def plots_draw(uds, mode):
     callback_plus_args = partial(radio_func, uds=uds)
     uds.radio.on_clicked(callback_plus_args)
 
-    # FIXME: plot and save (after)
-    if mode == "init":
+    # Plot and save
+    if False:
         if g_args.file:
-            print(f"plots_draw: AFTER: saving forecast to {g_args.file + '.png'} ***")
+            print(f"AFTER: plots_draw: saving forecast to {g_args.file + '.png'} ***")
             uds.fig.savefig(g_args.file + ".B.png")
             if g_args.close:
                 exit(0)
+
+    # Show/draw 
+    if mode == "init":
         plt.show()
     else:
         uds.fig_control.canvas.draw()
         uds.fig.canvas.draw()
-
 
 # Find index of active grid in uds.radio_buttons. We do this
 # so that the default grid shows up as selected.
@@ -1076,11 +1077,8 @@ def find_active_radio_index(uds):
     return i
 
 def radio_func(grid, uds):
-    global g_res_dflt
-
     uds.grid_dflt = grid
     if not g_args.file:
-        g_res_dflt = uds.grids[grid].ESGgrid_DELX
         match uds.grids[grid].WRTCMP_output_grid:
             case "lambert_conformal":
                 debug("radio_func: selecting lambert_conformal")
@@ -1185,22 +1183,17 @@ def register_from_yaml(uds, file):
         yaml_data = yaml.safe_load(file)
         for label in yaml_data:
             try:
-                this_grid = grid(label, 
-                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lon'], 
-                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lat'], 
-                                 yaml_data[label]['QUILTING']['WRTCMP_lon_lwr_left'],
-                                 yaml_data[label]['QUILTING']['WRTCMP_lat_lwr_left'],
-                                 WRTCMP_output_grid[label]['WRTCMP_output_grid'],
-                                 yaml_data[label]['ESGgrid_DELX'])
+                res = yaml_data[label]['ESGgrid_DELX']
             except:
-                print(f"*** CLASS: No ESGgrid_DELX or ESGgrid_DELY for {label}; setting res to AUTO")
-                this_grid = grid(label, 
-                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lon'], 
-                                 yaml_data[label]['QUILTING']['WRTCMP_cen_lat'], 
-                                 yaml_data[label]['QUILTING']['WRTCMP_lon_lwr_left'],
-                                 yaml_data[label]['QUILTING']['WRTCMP_lat_lwr_left'],
-                                 yaml_data[label]['QUILTING']['WRTCMP_output_grid'],
-                                 -1)
+                res = yaml_data[label]['QUILTING']['WRTCMP_dlon']
+                res = round((res*1852*60)/1000)*1000
+            this_grid = grid(label, 
+                             yaml_data[label]['QUILTING']['WRTCMP_cen_lon'], 
+                             yaml_data[label]['QUILTING']['WRTCMP_cen_lat'], 
+                             yaml_data[label]['QUILTING']['WRTCMP_lon_lwr_left'],
+                             yaml_data[label]['QUILTING']['WRTCMP_lat_lwr_left'],
+                             yaml_data[label]['QUILTING']['WRTCMP_output_grid'],
+                             res)
             uds.grids[label] = this_grid
             uds.radio_buttons.append(label)
 
@@ -1210,10 +1203,11 @@ def register_from_yaml(uds, file):
 
 show_help()
 
-myuds = ufs_domain_select()
+myuds = ufs_domain_select(compute_grid_dflt=0.1, 
+                          yaml_file_output=f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml")
 
 register_grid(myuds, "Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
-register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', -1)
+register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', 13000)
 register_grid(myuds, "Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', -1)
 register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
 register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
