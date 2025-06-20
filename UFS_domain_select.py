@@ -34,7 +34,7 @@ g_help="""
 #
 # Validation
 # - recreate various predefined grids (should be identical!)
-# - make sure uds.compute_grid (gnomonic) is correct and add option to show it
+# - make sure compute grid (gnomonic) is correct and add option to show it
 # - test w/ GFS files (currently filters based on lon/lat spans)
 #
 # Features
