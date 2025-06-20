@@ -796,14 +796,6 @@ def no_cen_lat(index):
     else:
             return False
 
-def plots_remove(uds):
-    if uds.projs:
-        for p in uds.projs:
-            if uds.plotted[p]:
-                debug(f"plots_remove: removing {p} axis")
-                uds.axis[p].remove()
-                uds.plotted[p] = False
-
 def find_extent(tx, ty):
     min_x = tx[0]; max_x = tx[0]
     min_y = ty[0]; max_y = ty[0]
@@ -1065,55 +1057,17 @@ def plots_draw(uds, mode):
         uds.fig_control.canvas.draw()
         uds.fig.canvas.draw()
 
-# Find index of active grid in uds.radio_buttons. We do this
-# so that the default grid shows up as selected.
+def plots_remove(uds):
+    if uds.projs:
+        for p in uds.projs:
+            if uds.plotted[p]:
+                debug(f"plots_remove: removing {p} axis")
+                uds.axis[p].remove()
+                uds.plotted[p] = False
 
-def find_active_radio_index(uds):
-    debug(f"looking for {uds.grid} in uds.radio_buttons")
-    i=0
-    for val in uds.radio_buttons:
-        if val == uds.grid:
-            debug(f"active grid is {uds.grid} (index {i})")
-            break
-        i+=1
-    return i
-
-def radio_func(grid, uds):
-    uds.grid_dflt = grid
-    if not g_args.file:
-        match uds.grids[grid].WRTCMP_output_grid:
-            case "lambert_conformal":
-                debug("radio_func: selecting lambert_conformal")
-                uds.index_dflt = "LambertConformal"
-            case "rotated_latlon":
-                debug("radio_func: selecting rotated_latlon")
-                uds.index_dflt = "RotatedPole"
-    plots_draw(uds, "init")
-    uds.fig_control.canvas.draw()
-
-def create_box_xy(extent):
-    x1, x2, y1, y2 = extent 
-    xs = []
-    ys = []
-    steps = 256
-    #left
-    for i in range(0, steps+1):
-        xs.append(x1)
-        ys.append(y1+i*(y2-y1)/steps)
-    #top
-    for i in range(0, steps+1):
-        xs.append(x1+i*(x2-x1)/steps)
-        ys.append(y2)
-    #right
-    for i in range(0, steps+1):
-        xs.append(x2)
-        ys.append(y2-i*(y2-y1)/steps)
-    #bottom
-    for i in range(0, steps+1):
-        xs.append(x2-i*(x2-x1)/steps)
-        ys.append(y1)
-
-    return xs, ys
+#################
+# Drawing boxes #
+#################
 
 def create_box_xy_data(uds, src_index, color):
     cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(uds, src_index, color)
@@ -1172,8 +1126,57 @@ def draw_box_xy_data(tgt_index, src_index, color):
 
     return xs, ys
 
-def show_help():
-    print(g_help)
+def create_box_xy(extent):
+    x1, x2, y1, y2 = extent 
+    xs = []
+    ys = []
+    steps = 256
+    #left
+    for i in range(0, steps+1):
+        xs.append(x1)
+        ys.append(y1+i*(y2-y1)/steps)
+    #top
+    for i in range(0, steps+1):
+        xs.append(x1+i*(x2-x1)/steps)
+        ys.append(y2)
+    #right
+    for i in range(0, steps+1):
+        xs.append(x2)
+        ys.append(y2-i*(y2-y1)/steps)
+    #bottom
+    for i in range(0, steps+1):
+        xs.append(x2-i*(x2-x1)/steps)
+        ys.append(y1)
+
+    return xs, ys
+
+#################
+# Radio buttons #
+#################
+
+def find_active_radio_index(uds):
+    debug(f"looking for {uds.grid} in uds.radio_buttons")
+    i=0
+    for val in uds.radio_buttons:
+        if val == uds.grid:
+            debug(f"active grid is {uds.grid} (index {i})")
+            break
+        i+=1
+    return i
+
+def radio_func(grid, uds):
+    uds.grid_dflt = grid
+    if not g_args.file:
+        match uds.grids[grid].WRTCMP_output_grid:
+            case "lambert_conformal":
+                debug("radio_func: selecting lambert_conformal")
+                uds.index_dflt = "LambertConformal"
+            case "rotated_latlon":
+                debug("radio_func: selecting rotated_latlon")
+                uds.index_dflt = "RotatedPole"
+    plots_draw(uds, "init")
+    uds.fig_control.canvas.draw()
+
 
 def register_grid(uds, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
     this_grid = grid(label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res)
@@ -1198,6 +1201,9 @@ def register_from_yaml(uds, file):
                              res)
             uds.grids[label] = this_grid
             uds.radio_buttons.append(label)
+
+def show_help():
+    print(g_help)
 
 ########
 # Main #
