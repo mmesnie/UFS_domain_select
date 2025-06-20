@@ -1,21 +1,37 @@
 #!/usr/bin/env python3
 
 #
+# This script has two uses. First, it automates the creation of the YAML configuration
+# for the compute grid and write component of an SRW forecast. Second, it graphs a grib
+# file (500 MB geopotential and vorticity) using the -f <FILENAME> option. This file can
+# be a GFS grib file (initial or boundary conditions) or the output from a SRW forecast.
+#
+
+g_help="""
+******************************************************************
+*         Zoom: zoom grid                                        *
+*          Pan: shift grid                                       *
+*     Spacebar: set write component                              *
+*        Key g: toggle global view                               *
+*        Key y: output yaml config                               *
+*        Key -: decrement Gnomonic compute grid by 1%            *
+*        Key +: increment Gnomonic compute grid by 1%            *
+*        Key R: set resolution (3km, 13km, 25km, AUTO)           *
+*        Key 0: restore default settings                         *
+*        Key h: show this help                                   *
+* Middle Click: center grid                                      *
+******************************************************************
+"""
+
+#
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - remove globals: g_cen_lon_dflt, g_cen_lat_dflt, g_crn_lon_dflt, g_crn_lat_dflt
-# - remove globals: g_index_dflt
-# - remove globals: g_grid_dflt, g_res_dflt, g_yaml_file, g_compute_grid_dflt
-# - remove globals: g_help, g_args
-# - address remaining FIXMEs
-# - add color decoder for projections
-# - ...
-# - changing domain does nothing when grib file is loaded without -x (by design?)
-# - make selected Orthographic global, by default
+# - remove globals (if needed): g_help, g_debug, g_res_dflt, g_compute_grid_dflt, g_yaml_file, g_args
+# - figure out corner for GRIB files
 # - move plots_draw and plots_remove into Class definitions?
-# - things get sluggish when we remove LambertConformal?
-# - re-organize toplevel script comments, arguments and such
+# - understand why things get sluggish when we remove LambertConformal
+# - address remaining FIXMEs
 #
 # Validation
 # - recreate various predefined grids (should be identical!)
@@ -57,59 +73,22 @@ from functools import partial
 HOME = f"{os.environ['HOME']}"
 UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
 
+#####################
+# Command-line args #
+#####################
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--file", "-f", help="grib file to plot", required=False)
+parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
+
 ###########
 # Globals #
 ###########
 
 g_debug = False
 g_res_dflt=25000                                          # 3000, 13000, 25000, or -1 (auto)
-g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_compute_grid_dflt = 0.1                                 # 5% larger than write component grid
-
-#
-# This script has two uses. First, it automates the creation of the YAML 
-# configuration that specifies the compute grid and write component. The write
-# component will be shown in red and the compute grid in blue.  Usage is -
-#
-g_help="""
-******************************************************************************
-*         Zoom: zoom grid                                                    *
-*          Pan: shift grid                                                   *
-*     Spacebar: set write component (view taken from Lambert Conformal plot) *
-*        Key g: toggle global view                                           *
-*        Key y: output yaml config                                           *
-*        Key -: decrement Gnomonic compute grid by 1%                        *
-*        Key +: increment Gnomonic compute grid by 1%                        *
-*        Key R: set resolution (3km, 13km, 25km, AUTO)                       *
-*        Key 0: restore default settings                                     *
-*        Key h: show this help                                               *
-* Middle Click: center grid                                                  *
-******************************************************************************
-"""
-
-#
-# The second use is to graph a grib file (500 MB geopotential and vorticity), using
-# the -f <FILENAME> option. This can be a GFS grib file (initial or boundary conditions)
-# or the output from a SRW forecast (i.e., the grib files in "postprd" directory). The
-# center latitude and longitude can be specified via the --cen_lon and _cen_lat options,
-# and the lower left cornet longitude and latitude via --crn_lon and --crn_lat. 
-#
-
-#####################
-# Command-line args #
-#####################
-
-parser = argparse.ArgumentParser()
-
-# DEPRECATED
-#parser.add_argument("--cen_lon", help="center longitude", required=False)
-#parser.add_argument("--cen_lat", help="center latitude", required=False)
-#parser.add_argument("--crn_lon", help="lower left corner longitude", required=False)
-#parser.add_argument("--crn_lat", help="lower left corner latitude", required=False)
-#parser.add_argument("--proj", "-p", help="LambertConformal or RotatedPole (required with -f)", required=False)
-
-parser.add_argument("--file", "-f", help="grib file to plot", required=False)
-parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
+g_yaml_file = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml" # Location of YAML output
 g_args = parser.parse_args()
 
 #####################
@@ -127,8 +106,8 @@ class forecast():
         s.write_tasks_per_group = 3
         s.date ='20190615'
         s.cycle ='18'
-        s.fcst_len_hrs = 1
-        s.lbc_spec_intvl_hrs = 1
+        s.fcst_len_hrs = 12
+        s.lbc_spec_intvl_hrs = 6
         s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
         s.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
 
@@ -145,7 +124,6 @@ class grid():
 
 class grib():
     def init(self, file, uds):
-        global g_index_dflt
         global g_grib_grid
 
         debug(f"grib: loading file {file}")
@@ -157,7 +135,7 @@ class grib():
         print(f"grib: params: {msg.projparams}")
         match msg.projparams['proj']:
             case "lcc":
-                g_index_dflt = 'LambertConformal'
+                uds.index_dflt = 'LambertConformal'
                 g_grib_grid = grid("GRIB", 
                                    msg.projparams['lon_0'], msg.projparams['lat_0'],
                                   -1, -1, 'lambert_conformal', 3000)
@@ -165,7 +143,7 @@ class grib():
                 uds.radio_buttons.append("GRIB")
 
             case "ob_tran":
-                g_index_dflt = 'RotatedPole'
+                uds.index_dflt = 'RotatedPole'
                 g_grib_grid = grid("GRIB", 
                                    msg.projparams['lon_0'], 90 - msg.projparams['o_lat_p'],
                                    -1, -1, 'rotated_latlon', 3000)
@@ -174,7 +152,7 @@ class grib():
 
             case _:
                 print(f"grib: unknown projection {msg.projparams['proj']} -- using default")
-        print(f"grib: proj: {msg.projparams['proj']} --> {g_index_dflt}")
+        print(f"grib: proj: {msg.projparams['proj']} --> {uds.index_dflt}")
 
         zmsg = self.data.select(name="Geopotential height", level=500)[0]
         zdata = zmsg.values
@@ -238,41 +216,17 @@ class grib():
 class ufs_domain_select:
 
     def set_dflts(self):
-        global g_grid
-
         s = self
-        s.cen_lon = self.grids[g_grid_dflt].WRTCMP_cen_lon
-        s.cen_lat = self.grids[g_grid_dflt].WRTCMP_cen_lat
-        s.crn_lon = self.grids[g_grid_dflt].WRTCMP_lon_lwr_left
-        s.crn_lat = self.grids[g_grid_dflt].WRTCMP_lat_lwr_left
-        s.index = g_index_dflt
+        s.cen_lon = self.grids[s.grid_dflt].WRTCMP_cen_lon
+        s.cen_lat = self.grids[s.grid_dflt].WRTCMP_cen_lat
+        s.crn_lon = self.grids[s.grid_dflt].WRTCMP_lon_lwr_left
+        s.crn_lat = self.grids[s.grid_dflt].WRTCMP_lat_lwr_left
+        s.index = s.index_dflt
         s.compute_grid = g_compute_grid_dflt
         s.res = g_res_dflt
 
-        debug(f"set_dflts: setting g_grid to default ({g_grid_dflt})")
-        g_grid = g_grid_dflt
-
-        # DEPRECATED
-        #if g_args.cen_lon:
-        #    s.cen_lon = float(g_args.cen_lon)
-        #else:
-        #    s.cen_lon = self.grids[g_grid_dflt].WRTCMP_cen_lon
-        #if g_args.cen_lat:
-        #    s.cen_lat = float(g_args.cen_lat)
-        #else:
-        #    s.cen_lat = self.grids[g_grid_dflt].WRTCMP_cen_lat
-        #if g_args.crn_lon:
-        #    s.crn_lon = float(g_args.crn_lon)
-        #else:
-        #    s.crn_lon = self.grids[g_grid_dflt].WRTCMP_lon_lwr_left
-        #if g_args.crn_lat:
-        #    s.crn_lat = float(g_args.crn_lat)
-        #else:
-        #    s.crn_lat = self.grids[g_grid_dflt].WRTCMP_lat_lwr_left
-        #if g_args.proj:
-        #    s.index = g_args.proj
-        #else:
-        #    s.index = g_index_dflt
+        debug(f"set_dflts: setting s.grid to default ({s.grid_dflt})")
+        s.grid = s.grid_dflt
 
     def projs_create(self, mode):
         s = self
@@ -316,8 +270,8 @@ class ufs_domain_select:
         if mode == "init":
             for p in s.proj:
                 s.enabled[p] = False
-            debug(f"projs_create: g_index_dflt = {g_index_dflt}")
-            s.enabled[g_index_dflt] = True
+            debug(f"projs_create: s.index_dflt = {s.index_dflt}")
+            s.enabled[s.index_dflt] = True
             if not g_args.file:
                 #s.enabled['PlateCarree'] = True
                 #s.enabled['Mercator'] = True
@@ -426,15 +380,12 @@ class ufs_domain_select:
         self.axis[index].add_feature(cfeature.BORDERS)
         self.axis[index].add_feature(cfeature.STATES)
         self.axis[index].gridlines()
-        if g_debug:
-            self.axis[index].set_title(index + " (centered)")
-        else:
-            self.axis[index].set_title(index)
+        set_title(self, index, "A", f"centered regional")
         self.axis[index].plot(*(self.cen_lon, self.cen_lat), transform=ccrs.Geodetic(), 
                              marker='*', ms=20, color='green')
         if force_global:
             self.axis[index].set_global()
-            self.axis[index].set_title(index + " (centered forced global)")
+            set_title(self, index, "B", f"centered forced global")
         else:
             try:
                 self.axis[index].set_extent(self.extent[index], crs=self.proj[index])
@@ -448,7 +399,7 @@ class ufs_domain_select:
     
         if restore:
             self.axis[index].set_global()
-            self.axis[index].set_title(index + " (global center restored)")
+            set_title(self, index, "C", f"global center restored")
             debug(f"restore: global extent is {self.axis[index].get_extent()}")
     
         # Now overlay the actual center
@@ -474,17 +425,14 @@ class ufs_domain_select:
         return False
 
     def on_key_press(self, event):
-        global g_index_dflt
-
-        self.index = g_index_dflt
+        self.index = self.index_dflt
         if event.inaxes:
             self.index = get_index(self, event.inaxes)
-    
         if event.key == 'h':
             show_help()
         elif event.key == '0':
             print(f"on_key_press: restoring default settings")
-            active_radio_index =  find_active_radio_index(self)
+            active_radio_index = find_active_radio_index(self)
             self.radio.set_active(active_radio_index)
         elif event.key == 'y':
             if (self.index == "LambertConformal" or self.index == "RotatedPole"):
@@ -541,18 +489,12 @@ class ufs_domain_select:
                 debug(f"regional extent is {self.extent[self.index]}")
                 self.view[self.index] = "global"
                 self.axis[self.index].set_global()
-                if g_debug:
-                    self.axis[self.index].set_title(self.index + " (global toggle)")
-                else:
-                    self.axis[self.index].set_title(self.index + " (global)")
+                set_title(self, self.index, "D", f"global toggle")
             elif self.view[self.index] == "global": 
                 debug(f"setting regional: {self.extent[self.index]}")
                 self.view[self.index] = "regional"
                 self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
-                if g_debug:
-                    self.axis[self.index].set_title(self.index + " (regional toggle)")
-                else:
-                    self.axis[self.index].set_title(self.index + " (regional)")
+                set_title(self, self.index, "E", f"regional toggle")
         elif event.key == 'q':
             exit(0)
 
@@ -599,7 +541,6 @@ class ufs_domain_select:
         plots_draw(self, "set")
 
     def __init__(self):
-        print("*** INITIALIZING UFS DOMAIN SELECT ***")
         plt.rcParams["figure.raise_window"] = False
         self.fig = plt.figure(figsize=(8, 5))
         self.fig_control = plt.figure(figsize=(5.5, 5))
@@ -858,7 +799,7 @@ def plots_remove(uds):
     if uds.projs:
         for p in uds.projs:
             if uds.plotted[p]:
-                print(f"plots_remove: removing {p} axis")
+                debug(f"plots_remove: removing {p} axis")
                 uds.axis[p].remove()
                 uds.plotted[p] = False
 
@@ -873,6 +814,14 @@ def find_extent(tx, ty):
         if y > max_y: max_y = y
     return (min_x, max_x, min_y, max_y)
 
+def set_title(uds, index, tag, label):
+    if index == uds.index:
+        uds.axis[index].set_title(index + f" ({uds.color[index]})" + f"\n{uds.view[index]} view")
+    else:
+        uds.axis[index].set_title(index + f" ({uds.color[index]})" + f"\n{uds.view[index]} view")
+    if g_debug:
+        uds.axis[index].set_title(uds.axis[index].get_title() + "\n" + f"{tag}, {label}")
+
 def plots_draw(uds, mode):
 
     #
@@ -886,7 +835,7 @@ def plots_draw(uds, mode):
     # axis in global view will be returned to global view
     # at the end of this procedure.
 
-    debug(f"plots_draw: g_index_dflt = {g_index_dflt}")
+    debug(f"plots_draw: uds.index_dflt = {uds.index_dflt}")
 
     if not mode == "init":
         restore_global = {}
@@ -909,7 +858,6 @@ def plots_draw(uds, mode):
             uds.cen_lon, uds.cen_lat, uds.crn_lon, uds.crn_lat, (x1, x2, y1, y2) = get_dims(uds, uds.index, 'blue')
         elif mode == "center":
             _, _, _, _, (x1, x2, y1, y2) = get_dims(uds, uds.index, 'blue')
-
         if no_cen_lat(uds.index):
             xc, yc = uds.proj[uds.index].transform_point(uds.cen_lon, uds.cen_lat, ccrs.Geodetic())
             # This calculation doesn't work for InterruptedGoodeHomolosine
@@ -950,18 +898,12 @@ def plots_draw(uds, mode):
         debug(f"plots_draw: p is {p}, mode is {mode}, uds.view[{p}] is {uds.view[p]}")
 
         if ((p != uds.index) and uds.view[p] == "global"):
-            uds.axis[p].set_title(f"{p} ({mode} global)")
             uds.axis[p].set_global()
+            set_title(uds, p, "F", f"{mode} global")
 
         else:
             uds.view[p] = "regional"
-            if p == uds.index:
-                uds.axis[p].set_title(f"{p} (regional index)")
-            else:
-                if g_debug:
-                    uds.axis[p].set_title(f"{p} (regional non-index)")
-                else:
-                    uds.axis[p].set_title(f"{p} (regional)")
+            set_title(uds, p, "G", "regional")
 
         uds.plotted[p] = True
 
@@ -970,14 +912,11 @@ def plots_draw(uds, mode):
     if mode == "init":
         if uds.index == "RotatedPole":
             # Transform the RotatedPole corner to Geodetic
-            print("plots_draw: init for RotatedPole")
-            #DEPRECATED
-            #uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(g_crn_lon_dflt, g_crn_lat_dflt, uds.proj[uds.index])
-            uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(uds.grids[g_grid_dflt].WRTCMP_cen_lon, 
-                                                                          uds.grids[g_grid_dflt].WRTCMP_cen_lat,
+            uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(uds.grids[uds.grid_dflt].WRTCMP_cen_lon, 
+                                                                          uds.grids[uds.grid_dflt].WRTCMP_cen_lat,
                                                                           uds.proj[uds.index])
-            print(f"plots_draw: rotated corner: lon {uds.grids[g_grid_dflt].WRTCMP_cen_lon} "
-                  f"lat {uds.grids[g_grid_dflt].WRTCMP_cen_lat}")
+            print(f"plots_draw: rotated corner: lon {uds.grids[uds.grid_dflt].WRTCMP_cen_lon} "
+                  f"lat {uds.grids[uds.grid_dflt].WRTCMP_cen_lat}")
             print(f"plots_draw: geodetic corner: lon {uds.crn_lon} lat {uds.crn_lat}")
 
         xc, yc = uds.proj[uds.index].transform_point(uds.cen_lon, uds.cen_lat, ccrs.Geodetic())
@@ -1010,25 +949,21 @@ def plots_draw(uds, mode):
         assert(mode=="set" or mode=="init")
 
         try:
-            # HERE (added True hack below)
-            if True or not g_args.file:
+            if not g_args.file:
                 debug(f"plots_draw: grib file not specified: setting default extent for {uds.index}")
                 uds.axis[uds.index].set_extent(uds.extent[uds.index], crs=uds.proj[uds.index])
                 debug(f"plots_draw:   set uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
             else:
                 debug(f"plots_draw: grib file specified: not setting extent for {uds.index}")
-            if g_debug:
-                uds.axis[uds.index].set_title(f"{uds.index} (STILL REGIONAL after mode {mode})")
-            else:
-                uds.axis[uds.index].set_title(f"{uds.index} (regional)")
+            set_title(uds, uds.index, "H", f"regional mode {mode}")
         except:
             print(f"*** CASE 2: FAILED TO SET EXTENT ({uds.index}): {uds.extent[uds.index]} ***")
 
         # Outline the extent of the index's axis
         x, y = create_box_xy_data(uds, uds.index, uds.color[uds.index])
-        uds.axis[uds.index].plot(x, y, color=uds.color[uds.index], linewidth=2, alpha=1.0, linestyle='dashed')
+        uds.axis[uds.index].plot(x, y, color=uds.color[uds.index], linewidth=5, alpha=1.0, linestyle='dashed')
         uds.axis[uds.index].plot(*(uds.cen_lon, uds.cen_lat), transform=ccrs.Geodetic(), 
-                               marker='*', ms=10, color='purple')
+                               marker='*', ms=10, color='green')
 
         targets = [t for t in uds.projs if not t == uds.index]
         for p in targets:
@@ -1063,10 +998,7 @@ def plots_draw(uds, mode):
                     uds.extent[p] = uds.axis[p].get_extent()
                     uds.view[p] = "global"
                     uds.axis[p].set_global()
-                    if g_debug:
-                        uds.axis[p].set_title(p + " (global init)")
-                    else:
-                        uds.axis[p].set_title(p + " (global)")
+                    set_title(uds, p, "I", "global init")
     else:
         for p in restore_global:
             if uds.enabled[p]:
@@ -1074,10 +1006,7 @@ def plots_draw(uds, mode):
                 uds.extent[p] =  uds.axis[p].get_extent()
                 uds.axis[p].set_global()
                 uds.view[p] = "global"
-                if g_debug:
-                    uds.axis[p].set_title(p + " (global restore)")
-                else:
-                    uds.axis[p].set_title(p + " (global)")
+                set_title(uds, p, "J", f"global restore")
 
     # Keep track of what the global extent is
     for p in uds.projs:
@@ -1136,43 +1065,28 @@ def plots_draw(uds, mode):
 # so that the default grid shows up as selected.
 
 def find_active_radio_index(uds):
-    print(f"looking for {g_grid} in uds.radio_buttons")
+    debug(f"looking for {uds.grid} in uds.radio_buttons")
     i=0
     for val in uds.radio_buttons:
-        if val == g_grid:
-            print(f"active grid is {g_grid} (index {i})")
+        if val == uds.grid:
+            debug(f"active grid is {uds.grid} (index {i})")
             break
         i+=1
     return i
 
 def radio_func(grid, uds):
-    global g_grid_dflt
     global g_res_dflt
-    global g_index_dflt
 
-    # DEPRECATED
-    #global g_cen_lon_dflt
-    #global g_cen_lat_dflt
-    #global g_crn_lon_dflt
-    #global g_crn_lat_dflt
-
-    g_grid_dflt = grid
+    uds.grid_dflt = grid
     if not g_args.file:
-
-        # DEPRECATED
-        #g_cen_lon_dflt = uds.grids[grid].WRTCMP_cen_lon
-        #g_cen_lat_dflt = uds.grids[grid].WRTCMP_cen_lat
-        #g_crn_lon_dflt = uds.grids[grid].WRTCMP_lon_lwr_left
-        #g_crn_lat_dflt = uds.grids[grid].WRTCMP_lat_lwr_left
-
         g_res_dflt = uds.grids[grid].ESGgrid_DELX
         match uds.grids[grid].WRTCMP_output_grid:
             case "lambert_conformal":
                 debug("radio_func: selecting lambert_conformal")
-                g_index_dflt = "LambertConformal"
+                uds.index_dflt = "LambertConformal"
             case "rotated_latlon":
                 debug("radio_func: selecting rotated_latlon")
-                g_index_dflt = "RotatedPole"
+                uds.index_dflt = "RotatedPole"
     plots_draw(uds, "init")
     uds.fig_control.canvas.draw()
 
@@ -1306,5 +1220,5 @@ register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_
 if g_args.file:
     radio_func("GRIB", myuds)
 else:
-    g_index_dflt = 'LambertConformal'
+    myuds.index_dflt = 'LambertConformal'
     radio_func("Oregon Coast auto", myuds)
