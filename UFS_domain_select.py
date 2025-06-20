@@ -27,6 +27,7 @@ g_help="""
 # TODO
 #
 # Bugs/tweaks/cleanup
+# - add ufs option for location of pre-defined yaml file
 # - figure out corner for GRIB files?  Is this needed?
 # - move plots_draw and plots_remove into Class definitions?
 # - understand why things get sluggish when we remove LambertConformal
