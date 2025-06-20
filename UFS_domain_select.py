@@ -27,7 +27,7 @@ g_help="""
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - figure out corner for GRIB files
+# - figure out corner for GRIB files?  Is this needed?
 # - move plots_draw and plots_remove into Class definitions?
 # - understand why things get sluggish when we remove LambertConformal
 #
