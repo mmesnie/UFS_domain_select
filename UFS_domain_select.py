@@ -27,7 +27,7 @@ g_help="""
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - add ufs option for location of pre-defined yaml file
+# - add command-line option for predef_grid_params.yam and config.yaml?
 # - figure out corner for GRIB files?  Is this needed?
 # - move plots_draw and plots_remove into Class definitions?
 # - understand why things get sluggish when we remove LambertConformal
@@ -38,7 +38,8 @@ g_help="""
 # - test w/ GFS files (currently filters based on lon/lat spans)
 #
 # Features
-# - make it so that all projections go to Orthographic
+# - make it so that all projections go to Orthographic (so we can see compute grid). Compare to -
+#   https://ufs-srweather-app.readthedocs.io/en/release-public-v2.2.0/CustomizingTheWorkflow/LAMGrids.html
 # - filter big GFS by grid
 # - update Makefile to download latest cycle and integrate into GUI
 # - write status to screen (e.g., YAML written, res selected, ...)?
