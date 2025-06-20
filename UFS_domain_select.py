@@ -27,7 +27,8 @@ g_help="""
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - remove globals (if needed): g_help, g_debug, g_res_dflt, g_compute_grid_dflt, g_yaml_file, g_args
+# - remove globals: g_res_dflt, g_compute_grid_dflt, g_yaml_file
+# - remove globals (if needed): g_help, g_debug, g_args
 # - figure out corner for GRIB files
 # - move plots_draw and plots_remove into Class definitions?
 # - understand why things get sluggish when we remove LambertConformal
