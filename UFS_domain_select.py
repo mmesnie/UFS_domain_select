@@ -27,9 +27,12 @@ g_help="""
 # TODO
 #
 # Bugs/tweaks/cleanup
+# - update res radio button immediately, if possible, and render in the background
+# - move g_scale to class definition
+# - do "gnomonic" tranform without plot? Do we need an extent?
+# - make key-press for compute component 'x' official
 # - add command-line option for predef_grid_params.yam and config.yaml?
 # - figure out corner for GRIB files?  Is this needed?
-# - move plots_draw and plots_remove into Class definitions?
 # - understand why things get sluggish when we remove LambertConformal
 #
 # Validation
@@ -87,6 +90,8 @@ parser.add_argument("--close", "-x", help="close after saving plot of grib file"
 
 g_debug = False
 g_args = parser.parse_args()
+g_box = None
+g_scale = "110m" 
 
 #####################
 # Class definitions #
@@ -217,7 +222,7 @@ class ufs_domain_select():
     def __init__(self, compute_grid_dflt, yaml_file_output):
         plt.rcParams["figure.raise_window"] = False
         self.fig = plt.figure(figsize=(8, 5))
-        self.fig_control = plt.figure(figsize=(5.5, 5))
+        self.fig_control = plt.figure(figsize=(7, 3))
         self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
         self.fig_control.canvas.mpl_connect('key_press_event', self.on_key_press)
@@ -289,14 +294,14 @@ class ufs_domain_select():
             s.enabled[s.index_dflt] = True
             if not g_args.file:
                 #s.enabled['PlateCarree'] = True
-                #s.enabled['Mercator'] = True
+                s.enabled['Mercator'] = True
                 #s.enabled['Miller'] = True
                 #s.enabled['EquidistantConic'] = True
                 #s.enabled['AlbersEqualArea'] = True
-                #s.enabled['LambertConformal'] = True
+                s.enabled['LambertConformal'] = True
                 #s.enabled['Stereographic'] = True
                 s.enabled['Orthographic'] = True
-                #s.enabled['Gnomonic'] = True
+                s.enabled['Gnomonic'] = True
                 #s.enabled['Robinson'] = True
                 #s.enabled['Mollweide'] = True
                 #s.enabled['Sinusoidal'] = True
@@ -333,9 +338,9 @@ class ufs_domain_select():
             s.color[p] = "brown"
             s.plotted[p] = False
         s.color["LambertConformal"] = "blue"
+        s.color["RotatedPole"] = "blue"
         s.color["Gnomonic"] = "red"
         s.color["Orthographic"] = "black"
-        s.color["RotatedPole"] = "purple"
         s.color["Mercator"] = "yellow"
     
         if mode == "init":
@@ -391,10 +396,25 @@ class ufs_domain_select():
         self.axis[index] = self.fig.add_subplot(self.dim_x, self.dim_y, self.loc[index], 
                                           projection=self.proj[index])
         self.axis[index].margins(x=0.0, y=0.0)
-        self.axis[index].add_feature(cfeature.COASTLINE)
-        self.axis[index].add_feature(cfeature.BORDERS)
-        self.axis[index].add_feature(cfeature.STATES)
+
+        if index == "Orthographic":
+            this_scale = '110m'
+        else:
+            this_scale = g_scale
+
+        if this_scale != "Default":
+            print(f"CENTER: {index} DOING CUSTOM SCALE {this_scale}")
+            self.axis[index].add_feature(cfeature.COASTLINE.with_scale(this_scale))
+            self.axis[index].add_feature(cfeature.BORDERS.with_scale(this_scale))
+            self.axis[index].add_feature(cfeature.STATES.with_scale(this_scale))
+        else:
+            print("CENTER: {index} DOING DEFAULT SCALE")
+            self.axis[index].add_feature(cfeature.COASTLINE)
+            self.axis[index].add_feature(cfeature.BORDERS)
+            self.axis[index].add_feature(cfeature.STATES)
+
         self.axis[index].gridlines()
+
         set_title(self, index, "A", f"centered regional")
         self.axis[index].plot(*(self.cen_lon, self.cen_lat), transform=ccrs.Geodetic(), 
                              marker='*', ms=20, color='green')
@@ -440,6 +460,8 @@ class ufs_domain_select():
         return False
 
     def on_key_press(self, event):
+        global g_box
+
         self.index = self.index_dflt
         if event.inaxes:
             self.index = get_index(self, event.inaxes)
@@ -469,14 +491,13 @@ class ufs_domain_select():
             else:
                 print(f"on_key_press: resolution set to {int(self.res/1000)}km")
         elif event.key == '+':
-            self.compute_grid += .01
-            percent = round(100*(1+self.compute_grid))
-            print(f"on_key_press: set compute grid to {percent}% of write component")
+            self.compute_grid += 0.1
+            print(f"on_key_press: set compute grid to {self.compute_grid} of write component")
             plots_draw(self, "set")
         elif event.key == '-':
-            self.compute_grid -= .01
+            self.compute_grid -= 0.1
             percent = round(100*(1+self.compute_grid))
-            print(f"on_key_press: set compute grid to {percent}% of write component")
+            print(f"on_key_press: set compute grid to {self.compute_grid} of write component")
             plots_draw(self, "set")
         elif event.key == ' ':
             if not event.inaxes:
@@ -510,6 +531,17 @@ class ufs_domain_select():
                 self.view[self.index] = "regional"
                 self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
                 set_title(self, self.index, "E", f"regional toggle")
+        elif event.key == 'x':
+            # HACK
+            try:
+                g_box.remove()
+            except:
+                pass
+            x, y = create_box_xy(self.axis["Gnomonic"].get_extent(), stretch=self.compute_grid)
+            pts = self.proj["Orthographic"].transform_points(self.proj["Gnomonic"], np.array(x), np.array(y))
+            tx = pts[:, 0]; ty = pts[:, 1]
+            g_box, = self.axis["Orthographic"].plot(tx, ty, color="red", linewidth=1, alpha=1.0, linestyle="dashed")
+            self.fig.canvas.draw()
         elif event.key == 'q':
             exit(0)
 
@@ -580,17 +612,18 @@ def cen_lat_adjust(cen_lat):
 def fmt_tuple(tuple_in):
     return tuple([str(round(x,2)) if isinstance(x, float) else x for x in tuple_in])
 
-def get_dims(uds, index, color):
+def get_dims(uds, index, stretch):
     extent = uds.axis[index].get_extent()
     x1, x2, y1, y2 = extent
 
-    if color == "red":
+    if stretch != 1.0:
+        print(f"get_dims: stretching span by {stretch}")
         xspan = abs(x2-x1)
-        x1 -= xspan*uds.compute_grid/2
-        x2 += xspan*uds.compute_grid/2
+        x1 -= xspan*(stretch-1)/2
+        x2 += xspan*(stretch-1)/2
         yspan = abs(y2-y1)
-        y1 -= yspan*uds.compute_grid/2
-        y2 += yspan*uds.compute_grid/2
+        y1 -= yspan*(stretch-1)/2
+        y2 += yspan*(stretch-1)/2
         extent = x1, x2, y1, y2
 
     xc = (x1+x2)/2
@@ -618,16 +651,16 @@ def output_config(uds, index, yaml_file):
 
     res = uds.res
 
-    # computational grid
-    cen_lon_r, cen_lat_r, lwr_lon_r, lwr_lat_r, extent_r = get_dims(uds, index, "red")
-    x1, x2, y1, y2 = extent_r
-    xspan_r = abs(x2-x1)
-    yspan_r = abs(y2-y1)
+    # computational (C) grid
+    cen_lon_C, cen_lat_C, lwr_lon_C, lwr_lat_C, extent_C = get_dims(uds, index, stretch=uds.compute_grid)
+    x1, x2, y1, y2 = extent_C
+    xspan_C = abs(x2-x1)
+    yspan_C = abs(y2-y1)
     if res == -1:
         if uds.index == "RotatedPole":
-            max_delta = pick_max_delta(xspan_r*1852*60, yspan_r*1852*60)
+            max_delta = pick_max_delta(xspan_C*1852*60, yspan_C*1852*60)
         else:
-            max_delta = pick_max_delta(xspan_r, yspan_r)
+            max_delta = pick_max_delta(xspan_C, yspan_C)
         if uds.res == -1:
             res = max_delta
             print(f"             resolution: automatically set to {res} meters")
@@ -637,24 +670,23 @@ def output_config(uds, index, yaml_file):
     else:
         print(f"USING RES is {res}")
 
-    percent = round(100*(1+uds.compute_grid))
-    print(f"      compute grid size: {percent}% of write component")
+    print(f"      compute grid size: {uds.compute_grid}x of write component")
     if uds.index == "RotatedPole":
-        nx_r = int(xspan_r*1852*60/res)
-        ny_r = int(yspan_r*1852*60/res)
+        nx_C = int(xspan_C*1852*60/res)
+        ny_C = int(yspan_C*1852*60/res)
     else:
-        nx_r = int(xspan_r/res)
-        ny_r = int(yspan_r/res)
+        nx_C = int(xspan_C/res)
+        ny_C = int(yspan_C/res)
 
-    print(f"  gnomonic compute grid: nx {nx_r} ny {ny_r}")
+    print(f"  gnomonic compute grid: nx {nx_C} ny {ny_C}")
 
-    # write component grid
-    cen_lon_b, cen_lat_b, lwr_lon_b, lwr_lat_b, extent_b = get_dims(uds, index, "blue")
-    x1, x2, y1, y2 = extent_b
-    xspan_b = abs(x2-x1)
-    yspan_b = abs(y2-y1)
-    nx_b = int(xspan_b/res)
-    ny_b = int(yspan_b/res)
+    # write (W) component grid
+    cen_lon_W, cen_lat_W, lwr_lon_W, lwr_lat_W, extent_W = get_dims(uds, index, stretch=1.0)
+    x1, x2, y1, y2 = extent_W
+    xspan_W = abs(x2-x1)
+    yspan_W = abs(y2-y1)
+    nx_W = int(xspan_W/res)
+    ny_W = int(yspan_W/res)
 
     config_text = f"""
 metadata:
@@ -678,8 +710,8 @@ workflow:
 task_make_grid:
   ESGgrid_LON_CTR: {uds.cen_lon}
   ESGgrid_LAT_CTR: {uds.cen_lat}
-  ESGgrid_NX: {nx_r} 
-  ESGgrid_NY: {ny_r}
+  ESGgrid_NX: {nx_C} 
+  ESGgrid_NY: {ny_C}
   ESGgrid_DELX: {res}
   ESGgrid_DELY: {res} 
   ESGgrid_PAZI: 0.0
@@ -711,10 +743,10 @@ task_run_fcst:
   WRTCMP_cen_lat: {uds.cen_lat} 
   WRTCMP_stdlat1: {uds.cen_lat} 
   WRTCMP_stdlat2: {uds.cen_lat} 
-  WRTCMP_nx: {nx_b}
-  WRTCMP_ny: {ny_b}
-  WRTCMP_lon_lwr_left: {round(lwr_lon_b, 2)} 
-  WRTCMP_lat_lwr_left: {round(lwr_lat_b, 2)}
+  WRTCMP_nx: {nx_W}
+  WRTCMP_ny: {ny_W}
+  WRTCMP_lon_lwr_left: {round(lwr_lon_W, 2)} 
+  WRTCMP_lat_lwr_left: {round(lwr_lat_W, 2)}
   WRTCMP_dx: {res}
   WRTCMP_dy: {res}
 """
@@ -807,6 +839,10 @@ def find_extent(tx, ty):
         if y > max_y: max_y = y
     return (min_x, max_x, min_y, max_y)
 
+##################
+# Plotting grids #
+##################
+
 def set_title(uds, index, tag, label):
     if index == uds.index:
         uds.axis[index].set_title(index + f" ({uds.color[index]})" + f"\n{uds.view[index]} view")
@@ -816,6 +852,8 @@ def set_title(uds, index, tag, label):
         uds.axis[index].set_title(uds.axis[index].get_title() + "\n" + f"{tag}, {label}")
 
 def plots_draw(uds, mode):
+
+    print(f"plots_draw({mode})")
 
     #
     # Notes on variables:
@@ -830,7 +868,7 @@ def plots_draw(uds, mode):
 
     debug(f"plots_draw: uds.index_dflt = {uds.index_dflt}")
 
-    if not mode == "init":
+    if not mode == "init" and not mode == "res":
         restore_global = {}
         for p in uds.projs:
             if p == uds.index:
@@ -846,11 +884,13 @@ def plots_draw(uds, mode):
 
     if mode == "init":
         uds.set_dflts()
+    elif mode == "res":
+        pass
     else:
         if mode == "set":
-            uds.cen_lon, uds.cen_lat, uds.crn_lon, uds.crn_lat, (x1, x2, y1, y2) = get_dims(uds, uds.index, 'blue')
+            uds.cen_lon, uds.cen_lat, uds.crn_lon, uds.crn_lat, (x1, x2, y1, y2) = get_dims(uds, uds.index, stretch=1.0)
         elif mode == "center":
-            _, _, _, _, (x1, x2, y1, y2) = get_dims(uds, uds.index, 'blue')
+            _, _, _, _, (x1, x2, y1, y2) = get_dims(uds, uds.index, stretch=1.0)
         if no_cen_lat(uds.index):
             xc, yc = uds.proj[uds.index].transform_point(uds.cen_lon, uds.cen_lat, ccrs.Geodetic())
             # This calculation doesn't work for InterruptedGoodeHomolosine
@@ -881,9 +921,23 @@ def plots_draw(uds, mode):
 
         uds.axis[p] = uds.fig.add_subplot(uds.dim_x, uds.dim_y, j, projection=uds.proj[p])
         uds.axis[p].margins(x=0.0, y=0.0)
-        uds.axis[p].add_feature(cfeature.COASTLINE)
-        uds.axis[p].add_feature(cfeature.BORDERS)
-        uds.axis[p].add_feature(cfeature.STATES)
+
+        if p == "Orthographic":
+            this_scale = "110m"
+        else:
+            this_scale = g_scale 
+        print(f"this_scale {p} is {this_scale}")
+
+        if this_scale != "Default":
+            print(f"plots_draw: {p} DOING CUSTOM SCALE {this_scale}")
+            uds.axis[p].add_feature(cfeature.COASTLINE.with_scale(this_scale))
+            uds.axis[p].add_feature(cfeature.BORDERS.with_scale(this_scale))
+            uds.axis[p].add_feature(cfeature.STATES.with_scale(this_scale))
+        else:
+            print(f"plots_draw: {p} DOING DEFAULT SCALE")
+            uds.axis[p].add_feature(cfeature.COASTLINE)
+            uds.axis[p].add_feature(cfeature.BORDERS)
+            uds.axis[p].add_feature(cfeature.STATES)
         uds.axis[p].gridlines()
         uds.loc[p] = j
 
@@ -905,8 +959,8 @@ def plots_draw(uds, mode):
     if mode == "init":
         if uds.index == "RotatedPole":
             # Transform the RotatedPole corner to Geodetic
-            uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(uds.grids[uds.grid_dflt].WRTCMP_cen_lon, 
-                                                                          uds.grids[uds.grid_dflt].WRTCMP_cen_lat,
+            uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(uds.grids[uds.grid_dflt].WRTCMP_lon_lwr_left, 
+                                                                          uds.grids[uds.grid_dflt].WRTCMP_lat_lwr_left,
                                                                           uds.proj[uds.index])
             print(f"plots_draw: rotated corner: lon {uds.grids[uds.grid_dflt].WRTCMP_cen_lon} "
                   f"lat {uds.grids[uds.grid_dflt].WRTCMP_cen_lat}")
@@ -920,6 +974,8 @@ def plots_draw(uds, mode):
         uds.extent[uds.index] = (xll, xlr, yll, yul)
 
         debug(f"plots_draw: saved uds.extent[{uds.index}] = {fmt_tuple(uds.extent[uds.index])}")
+    elif mode == "res":
+        pass
     else:
         uds.extent[uds.index] = new_extent
         debug("plots_draw: CASE 2")
@@ -940,7 +996,7 @@ def plots_draw(uds, mode):
     if True:
 
         assert(uds.view[uds.index] == "regional")
-        assert(mode=="set" or mode=="init")
+        assert(mode=="set" or mode=="init" or mode == "res")
 
         try:
             if not g_args.file:
@@ -954,8 +1010,8 @@ def plots_draw(uds, mode):
             print(f"*** CASE 2: FAILED TO SET EXTENT ({uds.index}): {uds.extent[uds.index]} ***")
 
         # Outline the extent of the index's axis
-        x, y = create_box_xy_data(uds, uds.index, uds.color[uds.index])
-        uds.axis[uds.index].plot(x, y, color=uds.color[uds.index], linewidth=5, alpha=1.0, linestyle='dashed')
+        x, y = create_box_xy(uds.extent[uds.index], stretch=1.0)
+        box_index, = uds.axis[uds.index].plot(x, y, color=uds.color[uds.index], linewidth=1, alpha=1.0, linestyle='dashed')
         uds.axis[uds.index].plot(*(uds.cen_lon, uds.cen_lat), transform=ccrs.Geodetic(), 
                                marker='*', ms=10, color='green')
 
@@ -967,24 +1023,29 @@ def plots_draw(uds, mode):
             # Draw the transformed index's extent on the target's axis
             pts = uds.proj[p].transform_points(uds.proj[uds.index], np.array(x), np.array(y))
             tx = pts[:, 0]; ty = pts[:, 1]
-            uds.axis[p].plot(tx, ty, color=uds.color[uds.index], linewidth=2, alpha=1.0, linestyle=style)
+            uds.axis[p].plot(tx, ty, color=uds.color[uds.index], linewidth=1, alpha=1.0, linestyle='dashed')
 
-            # Outline the extent of the target's axis
-            min_x, max_x, min_y, max_y = find_extent(tx, ty)
-            xp, yp = create_box_xy((min_x, max_x, min_y, max_y))
-            uds.axis[p].plot(xp, yp, color=uds.color[p], linewidth=2, alpha=1.0, linestyle=style)
+            if False:
+                # Outline the extent of the target's axis
+                min_x, max_x, min_y, max_y = find_extent(tx, ty)
+                xp, yp = create_box_xy((min_x, max_x, min_y, max_y), stretch=1.0)
+                box1, = uds.axis[p].plot(xp, yp, color=uds.color[p], linewidth=2, alpha=1.0, linestyle=style)
+    
+                # Draw the transformed target's extent on the index's axis
+                pts = uds.proj[uds.index].transform_points(uds.proj[p], np.array(xp), np.array(yp))
+                tx = pts[:, 0]; ty = pts[:, 1]
+                box2, = uds.axis[uds.index].plot(tx, ty, color=uds.color[p], linewidth=2, alpha=1.0, linestyle=style)
 
-            # Draw the transformed targets's extent on the index's axis
-            pts = uds.proj[uds.index].transform_points(uds.proj[p], np.array(xp), np.array(yp))
-            tx = pts[:, 0]; ty = pts[:, 1]
-            uds.axis[uds.index].plot(tx, ty, color=uds.color[p], linewidth=2, alpha=1.0, linestyle=style)
+        if False and uds.index == "Orthographic":
+            print("*** REMOVING BOXES ***")
+            box_index.remove()
 
     if mode == "center":
         x1, x2, y1, y2 = uds.axis[uds.index].get_extent()
         uds.crn_lon, uds.crn_lat = ccrs.PlateCarree().transform_point(x1, y1, uds.proj[uds.index])
 
     # Set/restore view
-    if mode == "init":
+    if mode == "init" or mode == "res":
         for p in uds.projs:
             if uds.plotted[p]:
                 if p == "Orthographic":
@@ -1016,31 +1077,42 @@ def plots_draw(uds, mode):
             except:
                 print(f"plots_draw: *** FAILED TO SET EXTENT FOR {p} ***: {uds.extent[p]}")
 
-    # Check buttons
-    uds.axis['menu1'] = uds.fig_control.add_axes([0.10, 0.0, 0.10, 1.0], frameon=False)
-    uds.axis['menu3'] = uds.fig_control.add_axes([0.50, 0.0, 0.25, 1.0], frameon=False)
+    # Check buttons (left, bottom, width, height)
+    if mode == "init":
+        uds.axis['menu1'] = uds.fig_control.add_axes([0.13, 0.0, 0.5, 1.0], frameon=False)  # Check (projection)
+        uds.axis['menu2'] = uds.fig_control.add_axes([0.0, 0.0, 0.25, 0.25], frameon=False) # Radio (resolution)
+        uds.axis['menu3'] = uds.fig_control.add_axes([0.5, 0.0, 0.5, 1.0], frameon=False)   # Radio (grid)
 
-    proj1 = []
-    proj2 = []
-    status1 = []
-    count = 1
-    for p in uds.proj:
-        if uds.enabled[p]:
-            status1.append(True)
-        else:
-            status1.append(False)
-        proj1.append(p)
-        count += 1
+    if mode == "init":
+        proj1 = []
+        proj2 = []
+        status1 = []
+        count = 1
+        for p in uds.proj:
+            if uds.enabled[p]:
+                status1.append(True)
+            else:
+                status1.append(False)
+            proj1.append(p)
+            count += 1
 
-    # Projection checkbuttons
-    uds.check = CheckButtons(uds.axis['menu1'], proj1, status1)
-    uds.check.on_clicked(uds.checkfunc)
+    if mode == "init":
 
-    # Grid radiobuttons
-    active_radio_index = find_active_radio_index(uds)
-    uds.radio = RadioButtons(uds.axis['menu3'], uds.radio_buttons, active=active_radio_index)
-    callback_plus_args = partial(radio_func, uds=uds)
-    uds.radio.on_clicked(callback_plus_args)
+        # Projection checkbuttons
+        uds.check = CheckButtons(uds.axis['menu1'], proj1, status1)
+        uds.check.on_clicked(uds.checkfunc)
+
+        # Grid radiobuttons
+        active_radio_index = find_active_radio_index(uds)
+        uds.radio = RadioButtons(uds.axis['menu3'], uds.radio_buttons, active=active_radio_index)
+        callback_plus_args = partial(radio_func, uds=uds)
+        uds.radio.on_clicked(callback_plus_args)
+
+        # Resolution radiobuttons
+        active_radio_res_index = find_active_radio_res_index(uds)
+        uds.radio_res = RadioButtons(uds.axis['menu2'], [ "Default", "110m", "50m", "10m" ], active=active_radio_res_index)
+        callback_plus_args = partial(radio_res_func, uds=uds)
+        uds.radio_res.on_clicked(callback_plus_args)
 
     # Plot and save
     if False:
@@ -1051,13 +1123,20 @@ def plots_draw(uds, mode):
                 exit(0)
 
     # Show/draw 
-    if mode == "init":
-        plt.show()
-    else:
-        uds.fig_control.canvas.draw()
-        uds.fig.canvas.draw()
+    #if mode == "init":
+    #    # This path causes buttons to update before the plots
+    #    plt.show()
+    #else:
+    #    # This path causes buttons to update after the plots
+    #    # This is also related to things getting "slow" when Lambert is removed
+    #    uds.fig_control.canvas.draw()
+    #    uds.fig.canvas.draw()
+
+    plt.show()
+    uds.fig_control.canvas.draw() # To avoid delay in radio buttons getting upated
 
 def plots_remove(uds):
+    print("*** REMOVING PLOTS ***")
     if uds.projs:
         for p in uds.projs:
             if uds.plotted[p]:
@@ -1069,65 +1148,18 @@ def plots_remove(uds):
 # Drawing boxes #
 #################
 
-def create_box_xy_data(uds, src_index, color):
-    cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(uds, src_index, color)
+def create_box_xy(extent, stretch):
     x1, x2, y1, y2 = extent 
-    xs = []
-    ys = []
 
-    #print(f"cen_lon {cen_lon} cen_lat {cen_lat} lwr_lon {lwr_lon} lwr_lat {lwr_lat}")
+    if stretch != 1.0:
+        print(f"create_box_xy: stretching span by {stretch}")
+        xspan = abs(x2-x1)
+        x1 -= xspan*(stretch-1)/2
+        x2 += xspan*(stretch-1)/2
+        yspan = abs(y2-y1)
+        y1 -= yspan*(stretch-1)/2
+        y2 += yspan*(stretch-1)/2
 
-    #left
-    for i in range(0, 33):
-        xs.append(x1)
-        ys.append(y1+i*(y2-y1)/32)
-    #top
-    for i in range(0, 33):
-        xs.append(x1+i*(x2-x1)/32)
-        ys.append(y2)
-    #right
-    for i in range(0, 33):
-        xs.append(x2)
-        ys.append(y2-i*(y2-y1)/32)
-    #bottom
-    for i in range(0, 33):
-        xs.append(x2-i*(x2-x1)/32)
-        ys.append(y1)
-
-    return xs, ys
-
-def draw_box_xy_data(tgt_index, src_index, color):
-    cen_lon, cen_lat, lwr_lon, lwr_lat, extent = get_dims(uds, src_index, color)
-    x1, x2, y1, y2 = extent 
-    if color == "blue":
-        uds.axis[tgt_index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
-                               marker='*', ms=10, color='orange')
-    xs = []
-    ys = []
-    #left
-    for i in range(0, 33):
-        xs.append(x1)
-        ys.append(y1+i*(y2-y1)/32)
-    #top
-    for i in range(0, 33):
-        xs.append(x1+i*(x2-x1)/32)
-        ys.append(y2)
-    #right
-    for i in range(0, 33):
-        xs.append(x2)
-        ys.append(y2-i*(y2-y1)/32)
-    #bottom
-    for i in range(0, 33):
-        xs.append(x2-i*(x2-x1)/32)
-        ys.append(y1)
-
-    uds.axis[tgt_index].plot(xs, ys, transform=uds.axis[src_index].projection, 
-                           color=color, linewidth=2, alpha=1.0, linestyle='solid')
-
-    return xs, ys
-
-def create_box_xy(extent):
-    x1, x2, y1, y2 = extent 
     xs = []
     ys = []
     steps = 256
@@ -1164,6 +1196,22 @@ def find_active_radio_index(uds):
         i+=1
     return i
 
+def find_active_radio_res_index(uds):
+    debug(f"looking for {g_scale} in {[ "Default", "110m", "50m", "10m"]}")
+    i=0
+    for val in [ "Default", "110m", "50m", "10m" ] :
+        if val == g_scale:
+            debug(f"active g_scale is {g_scale} (index {i})")
+            break
+        i+=1
+    return i
+
+def radio_res_func(res, uds):
+    global g_scale
+
+    g_scale = res
+    plots_draw(uds, "res")
+
 def radio_func(grid, uds):
     uds.grid_dflt = grid
     if not g_args.file:
@@ -1175,8 +1223,6 @@ def radio_func(grid, uds):
                 debug("radio_func: selecting rotated_latlon")
                 uds.index_dflt = "RotatedPole"
     plots_draw(uds, "init")
-    uds.fig_control.canvas.draw()
-
 
 def register_grid(uds, label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res):
     this_grid = grid(label, cen_lon, cen_lat, lwr_lon, lwr_lat, proj, res)
@@ -1211,17 +1257,21 @@ def show_help():
 
 show_help()
 
-myuds = ufs_domain_select(compute_grid_dflt=0.1, 
+myuds = ufs_domain_select(compute_grid_dflt=1.1, 
                           yaml_file_output=f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml")
 
 register_grid(myuds, "Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
 register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', 13000)
 register_grid(myuds, "Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', -1)
 register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
-register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
+#register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
+register_from_yaml(myuds, "/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml")
 
 if g_args.file:
     radio_func("GRIB", myuds)
 else:
     myuds.index_dflt = 'LambertConformal'
-    radio_func("Oregon Coast auto", myuds)
+    #radio_func("Oregon Coast auto", myuds)
+    #radio_func("RRFS_NA_13km", myuds)
+    #radio_func("Falkland Islands auto", myuds)
+    radio_func("Trinidad and Tobago auto", myuds)
