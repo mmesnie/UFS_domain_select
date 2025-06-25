@@ -217,6 +217,11 @@ class grib():
         self.uds = uds
         self.initialized = False
 
+def on_draw(event):
+    debug("DONE RENDERING")
+    myuds.fig.canvas.manager.set_window_title('Ready')
+    myuds.fig_control.canvas.manager.set_window_title('Ready')
+
 class ufs_domain_select():
 
     def __init__(self, compute_grid_dflt, yaml_file_output):
@@ -225,6 +230,7 @@ class ufs_domain_select():
         self.fig_control = plt.figure(figsize=(7, 3))
         self.fig.canvas.mpl_connect('button_press_event', self.on_button_press)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self.fig.canvas.mpl_connect('draw_event', on_draw)
         self.fig_control.canvas.mpl_connect('key_press_event', self.on_key_press)
         self.grib = grib(self)
         self.grids = {}
@@ -403,12 +409,12 @@ class ufs_domain_select():
             this_scale = g_scale
 
         if this_scale != "Default":
-            print(f"CENTER: {index} DOING CUSTOM SCALE {this_scale}")
+            debug(f"CENTER: {index} DOING CUSTOM SCALE {this_scale}")
             self.axis[index].add_feature(cfeature.COASTLINE.with_scale(this_scale))
             self.axis[index].add_feature(cfeature.BORDERS.with_scale(this_scale))
             self.axis[index].add_feature(cfeature.STATES.with_scale(this_scale))
         else:
-            print("CENTER: {index} DOING DEFAULT SCALE")
+            debug("CENTER: {index} DOING DEFAULT SCALE")
             self.axis[index].add_feature(cfeature.COASTLINE)
             self.axis[index].add_feature(cfeature.BORDERS)
             self.axis[index].add_feature(cfeature.STATES)
@@ -443,6 +449,9 @@ class ufs_domain_select():
                                                                self.axis[index].projection)
         self.axis[index].plot(*(cen_lon, cen_lat), transform=ccrs.Geodetic(), 
                              marker='*', ms=10, color='red')
+
+        debug("CENTERING...")
+        self.fig.canvas.manager.set_window_title('Centering...')
         plt.draw()
 
     def too_big(self): 
@@ -526,11 +535,15 @@ class ufs_domain_select():
                 self.view[self.index] = "global"
                 self.axis[self.index].set_global()
                 set_title(self, self.index, "D", f"global toggle")
+                self.fig.canvas.manager.set_window_title('Rendering... (to global)')
+                self.fig_control.canvas.manager.set_window_title('Rendering... (to global)')
             elif self.view[self.index] == "global": 
                 debug(f"setting regional: {self.extent[self.index]}")
                 self.view[self.index] = "regional"
                 self.axis[self.index].set_extent(self.extent[self.index], crs=self.proj[self.index])
                 set_title(self, self.index, "E", f"regional toggle")
+                self.fig.canvas.manager.set_window_title('Rendering... (to regional)')
+                self.fig_control.canvas.manager.set_window_title('Rendering... (to regional)')
         elif event.key == 'x':
             # HACK
             try:
@@ -853,7 +866,7 @@ def set_title(uds, index, tag, label):
 
 def plots_draw(uds, mode):
 
-    print(f"plots_draw({mode})")
+    debug(f"plots_draw({mode})")
 
     #
     # Notes on variables:
@@ -926,15 +939,15 @@ def plots_draw(uds, mode):
             this_scale = "110m"
         else:
             this_scale = g_scale 
-        print(f"this_scale {p} is {this_scale}")
+        debug(f"this_scale {p} is {this_scale}")
 
         if this_scale != "Default":
-            print(f"plots_draw: {p} DOING CUSTOM SCALE {this_scale}")
+            debug(f"plots_draw: {p} DOING CUSTOM SCALE {this_scale}")
             uds.axis[p].add_feature(cfeature.COASTLINE.with_scale(this_scale))
             uds.axis[p].add_feature(cfeature.BORDERS.with_scale(this_scale))
             uds.axis[p].add_feature(cfeature.STATES.with_scale(this_scale))
         else:
-            print(f"plots_draw: {p} DOING DEFAULT SCALE")
+            debug(f"plots_draw: {p} DOING DEFAULT SCALE")
             uds.axis[p].add_feature(cfeature.COASTLINE)
             uds.axis[p].add_feature(cfeature.BORDERS)
             uds.axis[p].add_feature(cfeature.STATES)
@@ -1132,11 +1145,13 @@ def plots_draw(uds, mode):
     #    uds.fig_control.canvas.draw()
     #    uds.fig.canvas.draw()
 
+    debug("RENDERING...")
     plt.show()
     uds.fig_control.canvas.draw() # To avoid delay in radio buttons getting upated
+    uds.fig.canvas.manager.set_window_title('Rendering...')
+    uds.fig_control.canvas.manager.set_window_title('Rendering...')
 
 def plots_remove(uds):
-    print("*** REMOVING PLOTS ***")
     if uds.projs:
         for p in uds.projs:
             if uds.plotted[p]:
