@@ -91,7 +91,7 @@ parser.add_argument("--close", "-x", help="close after saving plot of grib file"
 g_debug = False
 g_args = parser.parse_args()
 g_box = None
-g_scale = "110m" 
+g_scale = "Default" 
 
 #####################
 # Class definitions #
@@ -107,8 +107,10 @@ class forecast():
         s.write_groups = 1
         s.write_tasks_per_group = 3
         s.date ='20190615'
-        s.cycle ='18'
-        s.fcst_len_hrs = 12
+        s.date ='20250626'
+        s.date ='20250627'
+        s.cycle ='00'
+        s.fcst_len_hrs = 24
         s.lbc_spec_intvl_hrs = 6
         s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
         s.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
@@ -219,8 +221,9 @@ class grib():
 
 def on_draw(event):
     debug("DONE RENDERING")
-    myuds.fig.canvas.manager.set_window_title('Ready')
-    myuds.fig_control.canvas.manager.set_window_title('Ready')
+    if not g_args.file:
+        myuds.fig.canvas.manager.set_window_title(        f"Source: {myuds.index}")
+        myuds.fig_control.canvas.manager.set_window_title(f"Source: {myuds.index}")
 
 class ufs_domain_select():
 
@@ -341,13 +344,13 @@ class ufs_domain_select():
     
         # Give each projection a color (brown is the default).
         for p in s.projs:
-            s.color[p] = "brown"
+            s.color[p] = "blue"
             s.plotted[p] = False
-        s.color["LambertConformal"] = "blue"
-        s.color["RotatedPole"] = "blue"
+        #s.color["LambertConformal"] = "blue"
+        #s.color["RotatedPole"] = "blue"
         s.color["Gnomonic"] = "red"
-        s.color["Orthographic"] = "black"
-        s.color["Mercator"] = "yellow"
+        #s.color["Orthographic"] = "black"
+        #s.color["Mercator"] = "yellow"
     
         if mode == "init":
             for p in s.proj:
@@ -510,7 +513,7 @@ class ufs_domain_select():
             plots_draw(self, "set")
         elif event.key == ' ':
             if not event.inaxes:
-                print(f"on_key_press: hover over an axis to select source projection)")
+                print(f"on_key_press: hover over axis to select source projection")
                 return
             debug(f"on_key_press: setting source projection ({self.index})")
             if (self.axis[self.index].get_extent() == self.globe[self.index]):
@@ -857,10 +860,10 @@ def find_extent(tx, ty):
 ##################
 
 def set_title(uds, index, tag, label):
-    if index == uds.index:
-        uds.axis[index].set_title(index + f" ({uds.color[index]})" + f"\n{uds.view[index]} view")
+    if uds.view[index] == "global":
+        uds.axis[index].set_title(index + f" " + f"({uds.view[index]})")
     else:
-        uds.axis[index].set_title(index + f" ({uds.color[index]})" + f"\n{uds.view[index]} view")
+        uds.axis[index].set_title(index)
     if g_debug:
         uds.axis[index].set_title(uds.axis[index].get_title() + "\n" + f"{tag}, {label}")
 
@@ -1279,14 +1282,10 @@ register_grid(myuds, "Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'l
 register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', 13000)
 register_grid(myuds, "Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', -1)
 register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
-#register_from_yaml(myuds, "/home/mmesnie/tmp/ufs-srweather-app-3.0.0/ush/predef_grid_params.yaml")
 register_from_yaml(myuds, "/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml")
 
 if g_args.file:
     radio_func("GRIB", myuds)
 else:
     myuds.index_dflt = 'LambertConformal'
-    #radio_func("Oregon Coast auto", myuds)
-    #radio_func("RRFS_NA_13km", myuds)
-    #radio_func("Falkland Islands auto", myuds)
-    radio_func("Trinidad and Tobago auto", myuds)
+    radio_func("Eastern Pacific auto", myuds)
