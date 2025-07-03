@@ -203,13 +203,14 @@ class grib():
             cs1_a.cmap.set_over("darkred") # above 40
 
         if True:
+            step = 1
             for p in self.uds.projs:
                 if self.uds.plotted[p]:
                     contours = self.uds.axis[p].contour(self.lons, self.lats, self.z500,
-                                                        np.arange(0, 900, 6),
+                                                        np.arange(0, 900, step),
                                                         colors="blue", linewidths=1,
                                                         transform=cartopy.crs.PlateCarree(), alpha=0.25)
-            self.uds.axis[p].clabel(contours, np.arange(0, 900, 6), inline_spacing=1, fmt="%d", fontsize=16)
+            self.uds.axis[p].clabel(contours, np.arange(0, 900, step), inline_spacing=1, fmt="%d", fontsize=16)
 
         debug("grib: done plotting")
 
