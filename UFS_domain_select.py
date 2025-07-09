@@ -106,8 +106,8 @@ class forecast():
         s.layout_y = 3
         s.write_groups = 1
         s.write_tasks_per_group = 3
-        s.date ='20250703'
-        s.cycle ='06'
+        s.date ='20250704'
+        s.cycle ='12'
         s.fcst_len_hrs = 24
         s.lbc_spec_intvl_hrs = 6
         s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
