@@ -21,10 +21,9 @@ Instructions for generating a forecast
 ======================================
 
 1. cd UFS_domain_select
-2. export UFS_DOMAIN_SELECT_HOME=`pwd`
-3. conda activate regional_workflow-2.2.0
-4. ./UFS_domain_select.py
-5. Hover mouse over LambertConformal grid. Press 'y' to output YAML and
+2. conda activate regional_workflow-2.2.0
+3. ./UFS_domain_select.py
+4. Hover mouse over LambertConformal grid. Press 'y' to output YAML and
    'q' to exit.
-6. cd forecast
-7. ./do-forecast 2.2.0
+5. cd forecast
+6. ./do-forecast 2.2.0

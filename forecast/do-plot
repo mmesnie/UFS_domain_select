@@ -12,7 +12,7 @@ for i in `ls PRSLEV*`; do
 	$cmd
 done
 
-ristretto *.png
+ristretto *.png &
 
 #
 # Old code

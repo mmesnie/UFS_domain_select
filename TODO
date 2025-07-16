@@ -2,6 +2,9 @@
 The app
 =======
 
+--> see ~/UFS_domain_select/build/ufs-srweather-app-v2.2.0/parm/data_locations.yml (line 120)
+--> add GUI option for date and such
+--> create "latest" option for date and such
 --> Zooming in on Global should change it to regional!
 --> InterruptedGoodeHomolosine shifts on center
 --> InterruptedGoodeHomolosine creeps on set

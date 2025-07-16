@@ -91,7 +91,7 @@ parser.add_argument("--close", "-x", help="close after saving plot of grib file"
 g_debug = False
 g_args = parser.parse_args()
 g_box = None
-g_scale = "Default" 
+g_scale = "110m" 
 
 #####################
 # Class definitions #
@@ -106,8 +106,8 @@ class forecast():
         s.layout_y = 3
         s.write_groups = 1
         s.write_tasks_per_group = 3
-        s.date ='20250704'
-        s.cycle ='12'
+        s.date ='yyyymmdd'
+        s.cycle ='hh'
         s.fcst_len_hrs = 24
         s.lbc_spec_intvl_hrs = 6
         s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
@@ -218,11 +218,16 @@ class grib():
         self.uds = uds
         self.initialized = False
 
+g_epoch = 0
+
 def on_draw(event):
+    global g_epoch
+    g_epoch = g_epoch + 1
     debug("DONE RENDERING")
     if not g_args.file:
-        myuds.fig.canvas.manager.set_window_title(        f"Source: {myuds.index}")
-        myuds.fig_control.canvas.manager.set_window_title(f"Source: {myuds.index}")
+        date, cycle = latest()
+        myuds.fig.canvas.manager.set_window_title(        f"Source: {myuds.index} DATE 20{date} CYCLE {cycle} EPOCH {g_epoch}")
+        myuds.fig_control.canvas.manager.set_window_title(f"Source: {myuds.index} DATE 20{date} CYCLE {cycle} EPOCH {g_epoch}")
 
 class ufs_domain_select():
 
@@ -606,6 +611,62 @@ class ufs_domain_select():
 # Function definitions #
 ########################
 
+
+def latest():
+    from datetime import datetime, timezone, timedelta
+
+    utc_now = datetime.now(timezone.utc)
+    utc_date = utc_now.strftime("%y%m%d")
+
+    utc_yesterday = utc_now - timedelta(days=1)
+    utc_yesterday_date = utc_yesterday.strftime("%y%m%d")
+
+    print(f"UTC date: {utc_date}")
+    print(f"UTC yesterday: {utc_yesterday_date}")
+    print(f"UTC time: {utc_now.time()}")
+
+    date = utc_date
+    H = int(utc_now.strftime("%H"))
+    M = int(utc_now.strftime("%M"))
+    TM = H*60+M
+
+    flag_00=""
+    flag_06=""
+    flag_12=""
+    flag_18=""
+
+    if TM < 3*60+30:
+        cycle="18"
+        diff=3*60+30-TM
+        flag_18='*'
+        date = utc_yesterday.strftime("%y%m%d")
+    elif TM < 9*60+30:
+        cycle="00"
+        diff=9*60+30-TM
+        flag_00='*'
+    elif TM < 15*60+30:
+        diff=15*60+30-TM
+        cycle="06"
+        flag_06='*'
+    elif TM < 21*60+30:
+        diff=21*60+30-TM
+        cycle="12"
+        flag_12='*'
+    else:
+        diff=24*60-TM+3*60+30
+        cycle="18"
+        flag_18='*'
+    print(f"date {date}")
+    print(f"cycle {cycle}")
+    print(f"time {H}:{M}")
+    print(f"00 at 03:30 {flag_00}")
+    print(f"06 at 09:30 {flag_06}")
+    print(f"12 at 15:30 {flag_12}")
+    print(f"18 at 21:30 {flag_18}")
+    print(f"{diff} minutes to next cycle")
+
+    return date, cycle
+
 def debug(format):
     if g_debug:
         print(format)
@@ -663,6 +724,7 @@ def pick_max_delta(xspan, yspan):
 def output_config(uds, index, yaml_file):
 
     f = forecast(yaml_file)
+    f.date, f.cycle = latest()
 
     res = uds.res
 
@@ -715,8 +777,8 @@ workflow:
   EXPT_SUBDIR: {UFS_DOMAIN_SELECT_HOME}/build/expt-2.2.0/test_community
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
-  DATE_FIRST_CYCL: '{f.date}{f.cycle}'
-  DATE_LAST_CYCL: '{f.date}{f.cycle}'
+  DATE_FIRST_CYCL: '20{f.date}{f.cycle}'
+  DATE_LAST_CYCL: '20{f.date}{f.cycle}'
   FCST_LEN_HRS: {f.fcst_len_hrs}
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
@@ -785,7 +847,9 @@ task_run_fcst:
         file.write(config_text)
         file.write(config_text_wrtcmp)
     print(f"       YAML file output: {f.yaml_file}")
-    print(f"                    cmd: export DATE={f.date} CYCLE={f.cycle} LEN={f.fcst_len_hrs} LBC={f.lbc_spec_intvl_hrs}; time ./forecast")
+    print(f"                    cmd: export DATE=20{f.date} CYCLE={f.cycle} LEN={f.fcst_len_hrs} LBC={f.lbc_spec_intvl_hrs}; time ./forecast")
+
+    latest()
 
 def get_index(uds, ax):
     for p in uds.projs:
@@ -1279,12 +1343,12 @@ myuds = ufs_domain_select(compute_grid_dflt=1.1,
 
 register_grid(myuds, "Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
 register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', 13000)
-register_grid(myuds, "Oregon Coast auto", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', -1)
 register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
+register_grid(myuds, "Oregon Coast 25km", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', 25000)
 register_from_yaml(myuds, "/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml")
 
 if g_args.file:
     radio_func("GRIB", myuds)
 else:
     myuds.index_dflt = 'LambertConformal'
-    radio_func("Eastern Pacific auto", myuds)
+    radio_func("Oregon Coast 25km", myuds)
