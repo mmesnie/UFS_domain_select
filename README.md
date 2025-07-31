@@ -6,9 +6,7 @@ Scripts to build the UFS SRW model (version 2.2.0) and HPC stack are also
 included. The scripts are built for Ubuntu 22 and will likely not work
 for other distros.
 
-===================================================
-Instructions for building UFS SRW model (Ubuntu 22)
-===================================================
+# Instructions for building UFS SRW model (Ubuntu 22)
 
 * It's best to start with a fresh Ubuntu 22 installation.
 * Make sure you have sudo access.
@@ -16,9 +14,7 @@ Instructions for building UFS SRW model (Ubuntu 22)
 1. cd UFS_domain_select/stack
 2. ./do-all 2.2.0
 
-======================================
-Instructions for generating a forecast
-======================================
+# Instructions for generating a forecast
 
 1. cd UFS_domain_select
 2. conda activate regional_workflow-2.2.0

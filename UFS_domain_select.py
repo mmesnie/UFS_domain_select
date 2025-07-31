@@ -27,7 +27,7 @@ g_help="""
 # TODO
 #
 # Bugs/tweaks/cleanup
-# - document key-press for compute component 'x'
+# - document key-press for compute component 'x' - or just always do it?
 # - add command-line option for predef_grid_params.yam and config.yaml
 # - move g_scale to class definition
 # - try gnomonic transform without plotting it. Do we need an extent?
@@ -55,6 +55,7 @@ from matplotlib.backend_bases import MouseButton
 from matplotlib.widgets import RadioButtons
 from matplotlib.widgets import CheckButtons
 from functools import partial
+from datetime import datetime, timezone, timedelta
 
 ###############
 # Environment #
@@ -151,9 +152,23 @@ class grib():
         vdata = self.data.select(name="Absolute vorticity", level=500)[0].values
         sio = io.StringIO()
         print(zmsg, file=sio)
-        fcst = sio.getvalue().split(':')[6]
-        time = sio.getvalue().split(':')[7]
-        self.title = fcst + " " + time
+
+        print(f"grib: message is \"{sio.getvalue().rstrip()}\"")
+        fcst = sio.getvalue().split(':')[6].split(' ')[2].rstrip() # number of hours forecasted
+        time = sio.getvalue().split(':')[7].rstrip()               # starting date and time
+
+        now_string = time
+        now_format = "from %Y%m%d%H%M"
+        now_object = datetime.strptime(now_string, now_format)
+        now = now_object.strftime("%y%m%d%H")
+        valid_object_utc = now_object + timedelta(hours=int(fcst))
+        valid_utc = valid_object_utc.strftime("%y%m%d%H")
+        valid_object_pdt = now_object + timedelta(hours=int(fcst)) - timedelta(hours=7)
+        valid_pdt = valid_object_pdt.strftime("%y%m%d%H")
+
+        title = f"valid utc {valid_utc} (+{fcst}), valid pdt {valid_pdt} (+{fcst})"
+        print(f"grib: {title}")
+        self.title = title
 
         # Parse geopotential height
         z500 = zdata * 0.1
@@ -600,7 +615,6 @@ class ufs_domain_select():
 
 
 def latest():
-    from datetime import datetime, timezone, timedelta
 
     utc_now = datetime.now(timezone.utc)
     utc_date = utc_now.strftime("%y%m%d")
