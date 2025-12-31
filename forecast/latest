@@ -1,0 +1,43 @@
+#!/bin/bash
+
+H=`date -u +%H`
+M=`date -u +%M`
+TM=`expr $H \* 60 + $M`
+date=`date -u +20%y%m%d`
+
+flag_00=""
+flag_06=""
+flag_12=""
+flag_18=""
+
+if [ $TM -lt `expr 3 \* 60 + 30` ]; then
+	cycle="18"
+	date=`date +20%y%m%d`
+	diff=`expr 3 \* 60 + 30 - $TM`
+	flag_18='*'
+elif [ $TM -lt `expr 9 \* 60 + 30` ]; then
+	cycle="00"
+	diff=`expr 9 \* 60 + 30 - $TM`
+	flag_00='*'
+elif [ $TM -lt `expr 15 \* 60 + 30` ]; then
+	diff=`expr 15 \* 60 + 30 - $TM`
+	cycle="06"
+	flag_06='*'
+elif [ $TM -lt `expr 21 \* 60 + 30`  ]; then
+	diff=`expr 21 \* 60 + 30 - $TM`
+	cycle="12"
+	flag_12='*'
+else
+	diff=`expr 24 \* 60 - $TM + 3 \* 60 + 30`
+	cycle="18"
+	flag_18='*'
+fi
+
+echo date $date
+echo cycle $cycle
+echo time $H:$M >&2
+echo "00 at 03:30 $flag_00" >&2
+echo "06 at 09:30 $flag_06" >&2
+echo "12 at 15:30 $flag_12" >&2
+echo "18 at 21:30 $flag_18" >&2
+echo $diff minutes to next cycle >&2
