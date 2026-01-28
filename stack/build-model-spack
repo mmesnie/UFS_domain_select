@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+        echo "usage: build-model <2.1.0|2.2.0>"
+        exit 1
+fi
+
+spack load python
+
+VER=v$1
+
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
+SRC=${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER
+
+cd
+git clone -b release/public-$VER https://github.com/ufs-community/ufs-srweather-app.git $SRC
+cd $SRC
+./manage_externals/checkout_externals
+
+cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/config.yaml ush
+cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/devbuild.sh .
+
+PACKAGES="gcc@9.3.0 openmpi@4.0.1 cmake@3.20.6 netcdf-c@4.9.2 netcdf-fortran esmf@8.4.2 fms@2023.01 bacio@2.4.1 crtm@2.4.0 g2@3.4.5 g2tmpl@1.10.2 nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 ip@3.3.3"
+
+for i in $PACKAGES; do
+	echo "loading $i"
+        spack load $i
+done
+
+cd $SRC
+./devbuild.sh --platform=linux --compiler=gnu
