@@ -1,0 +1,59 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.1.0|2.2.0>"
+        exit 1
+fi
+
+VER=$1
+
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
+# UFS_domain_select will write this directly
+echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
+cp ~/config.yaml /home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/config.yaml
+echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
+
+cd ${UFS_DOMAIN_SELECT_HOME}/stack/patch
+
+#cp linux-$VER.yaml ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/ush/machine/linux.yaml
+cat linux-$VER.yaml | sed "s|UFS_DOMAIN_SELECT_HOME|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/ush/machine/linux.yaml
+
+cp wflow_linux-$VER.lua ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/modulefiles/wflow_linux.lua
+# DEFUNCT cp predef_grid_params-2.2.0.yaml ~/ufs-srweather-app-v$VER/ush/predef_grid_params.yaml 
+# DEFUNCT cp valid_param_vals-2.2.0.yaml ~/ufs-srweather-app-v$VER/ush/valid_param_vals.yaml
+
+export EXPT_BASEDIR=${UFS_DOMAIN_SELECT_HOME}/build/expt-$VER
+export EXPTDIR=${EXPT_BASEDIR}/test_community
+
+if [ $VER == "2.1.0" ]; then
+	eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
+	conda activate regional_workflow-2.1.0
+fi
+if [ $VER == "2.2.0" ]; then
+	#source /usr/local/lmod/lmod/init/profile
+	#module use ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/modulefiles
+	#module load wflow_linux
+	eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
+	conda activate workflow_tools
+fi
+
+cd ${UFS_DOMAIN_SELECT_HOME}/build//ufs-srweather-app-v$VER/ush/
+./generate_FV3LAM_wflow.py
+cd ${EXPTDIR}
+cp ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/ush/wrappers/* .
+
+#source /usr/local/lmod/lmod/init/profile
+#module use ${UFS_DOMAIN_SELECT_HOME}/build//opt-$VER/modulefiles/stack
+#module load hpc hpc-gnu hpc-openmpi
+#module load netcdf
+
+if ! ./run_make_grid.sh; then echo "MAKE GRID FAILED"; exit 1; fi
+./run_get_ics.sh || exit 1
+./run_get_lbcs.sh || exit 1
+./run_make_orog.sh || exit 1
+./run_make_sfc_climo.sh || exit 1
+./run_make_ics.sh || exit 1
+./run_make_lbcs.sh || exit 1
+./run_fcst.sh || exit 1
+./run_post.sh || exit 1
