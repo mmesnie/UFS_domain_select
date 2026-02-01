@@ -1279,7 +1279,7 @@ def find_active_radio_index(uds):
     return i
 
 def find_active_radio_res_index(uds):
-    debug(f"looking for {g_scale} in {[ "Default", "110m", "50m", "10m"]}")
+    debug(f"looking for {g_scale} in {[ 'Default', '110m', '50m', '10m']}")
     i=0
     for val in [ "Default", "110m", "50m", "10m" ] :
         if val == g_scale:
@@ -1340,13 +1340,16 @@ def show_help():
 show_help()
 
 myuds = ufs_domain_select(compute_grid_dflt=1.1, 
-                          yaml_file_output=f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml")
+                          yaml_file_output=f"/home/mmesnie/ufs-srweather-app/ush/config.yaml")
+
+                          #yaml_file_output=f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml")
 
 register_grid(myuds, "Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
 register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', 13000)
 register_grid(myuds, "Eastern Pacific auto", -141.87, 40.48, -160.29, 16.64, 'lambert_conformal', -1)
 register_grid(myuds, "Oregon Coast 25km", -127.68, 45.72, -132.86, 41.77, 'lambert_conformal', 25000)
-register_from_yaml(myuds, "/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml")
+#register_from_yaml(myuds, "/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml")
+register_from_yaml(myuds, "/home/mmesnie/ufs-srweather-app/ush/predef_grid_params.yaml")
 
 if g_args.file:
     radio_func("GRIB", myuds)

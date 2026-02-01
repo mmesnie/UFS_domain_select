@@ -10,19 +10,25 @@ git clone -c feature.manyFiles=true https://github.com/spack/spack.git
 echo "source ~/spack/share/spack/setup-env.sh" >> ~/.bashrc
 source ~/spack/share/spack/setup-env.sh
 
-spack env create foobar --without-view
-spack env activate foobar -p
-echo "spack env activate foobar -p" >> ~/.bashrc
+spack env create ufs
+spack env activate ufs -p
+echo "spack env activate ufs -p" >> ~/.bashrc
 
 echo "\"spack edit fms\" and add args.append(\"-D64BIT:BOOL=ON\") to fms cmake_args"
 read -p "Enter to continue"
 
-PACKAGES="gcc@9.3.0 openmpi@4.0.1 cmake@3.20.6 netcdf-c@4.9.2 netcdf-fortran esmf@8.4.2 fms@2023.01 bacio@2.4.1 crtm@2.4.0 g2@3.4.5 g2tmpl@1.10.2 nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 ip@3.3.3"
+spack compiler find
 
-for i in $PACKAGES; do
-	spack install --add --deprecated --force $i
-	spack load $i
-done
+spack add openmpi@5.0.9 jasper@2.0.32 libpng@1.6.37 netcdf-c@4.9.2 netcdf-fortran@4.6.1 parallelio@2.5.10
+spack add esmf@8.6.0 fms@2024.01
+spack add bacio@2.4.1 crtm@2.4.0.1 g2@3.5.1 g2tmpl@1.13.0 ip@4.3.0 sp@2.5.0 w3emc@2.10.0 gftl-shared@1.6.1
+spack add mapl@2.40.3 ^esmf@8.6.0
+spack add nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 w3nco@2.4.1 wrf-io@1.2.0
+spack add wgrib2@3.1.1
 
-export ESMFMKFILE=`find ~/spack -name esmf.mk`
-echo export ESMFMKFILE=`find ~/spack -name esmf.mk` >> ~/.bashrc
+spack concretize
+
+spack install
+
+#export ESMFMKFILE=`find ~/spack -name esmf.mk`
+#echo export ESMFMKFILE=`find ~/spack -name esmf.mk` >> ~/.bashrc
