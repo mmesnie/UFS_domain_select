@@ -1342,8 +1342,9 @@ show_help()
 config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml"
 predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml"
 
-#config_yaml = "/home/mmesnie/ufs-srweather-app/ush/config.yaml"
-#predef_grid_params_yaml = "/home/mmesnie/ufs-srweather-app/ush/predef_grid_params.yaml"
+# work-in-progress for v3.0.0
+config_yaml = "/home/mmesnie/ufs-srweather-app/ush/config.yaml"
+predef_grid_params_yaml = "/home/mmesnie/ufs-srweather-app/ush/predef_grid_params.yaml"
 
 myuds = ufs_domain_select(compute_grid_dflt=1.1, yaml_file_output=config_yaml)
 
