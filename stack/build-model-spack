@@ -21,3 +21,9 @@ cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/config.yaml ush
 cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/devbuild.sh .
 
 ./devbuild.sh --platform=foo --compiler=bar
+
+echo
+echo "### ADD THIS TO .bashrc ###"
+echo 'export LD_LIBRARY_PATH="/home/mmesnie/spack/opt/spack/linux-skylake/jasper-2.0.32-rtkl4gq4motlfphdsabecabljnlin3ts/lib:/home/mmesnie/spack//opt/spack/linux-skylake/netcdf-c-4.9.2-xrs73ogct56pkfrhtqzhh7eix7bmnxzu/lib/:/home/mmesnie//opt/spack/linux-skylake/netcdf-fortran-4.6.0-vjmlso57ad3ndhx74frkk3zlkd3mzbeq/lib:/home/mmesnie/spack/opt/spack/linux-skylake/netcdf-fortran-4.6.0-vjmlso57ad3ndhx74frkk3zlkd3mzbeq/lib/:/home/mmesnie/spack/opt/spack/linux-skylake/parallelio-2.5.10-zue5grdujkeen543zdbtveezhfm2jjul/lib:$LD_LIBRARY_PATH"'
+echo "###########################"
+echo

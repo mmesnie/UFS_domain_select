@@ -24,30 +24,7 @@ read -p "Enter to continue"
 
 spack compiler find
 
-spack add netcdf-c@4.9.2 netcdf-fortran@4.6.0
+spack add netcdf-c@4.9.2 netcdf-fortran@4.6.0 parallelio@2.5.10 esmf@8.4.2 bacio@2.4.1 crtm@2.4.0 g2@3.4.5 g2tmpl@1.10.2 nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 fms@2023.01 ip@3.3.3 jasper@2.0.32 libpng@1.6.37 jpeg@9.1.0 mapl@2.35.2 ^esmf@8.4.2 wgrib2@2.0.8 w3emc@2.9.2 gftl-shared@1.5.0 w3nco@2.4.1 wrf-io@1.2.0
+
 spack concretize
 spack install
-
-spack install --add bacio@2.4.1
-spack install --add esmf@8.4.2
-spack install --add crtm@2.4.0
-spack install --add g2@3.4.5
-spack install --add g2tmpl@1.10.2
-spack install --add nemsio@2.5.4
-spack install --add sfcio@1.4.1
-spack install --add sigio@2.3.2
-spack install --add sp@2.3.3
-spack install --add fms@2023.01
-spack install --add ip@3.3.3
-
-# Don't need these anymore???
-#spack add openmpi@5.0.9
-#spack add jasper@2.0.32 libpng@1.6.37 parallelio@2.5.10
-#spack add w3emc@2.10.0 gftl-shared@1.6.1
-#spack add mapl@2.40.3 ^esmf@8.6.0
-#spack add w3nco@2.4.1 wrf-io@1.2.0
-#spack add wgrib2@3.1.1
-#spack add jpeg@9.1.0
-
-# Don't need this anymore???
-#echo export ESMFMKFILE=`find ~/spack -name esmf.mk` >> ~/.bashrc

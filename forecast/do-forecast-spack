@@ -10,9 +10,9 @@ VER=$1
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
 
 # UFS_domain_select will write this directly
-echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
-cp ~/config.yaml /home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/config.yaml
-echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
+#echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
+#cp ~/config.yaml /home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/config.yaml
+#echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
 
 cd ${UFS_DOMAIN_SELECT_HOME}/stack/patch
 
