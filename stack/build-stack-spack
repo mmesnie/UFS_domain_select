@@ -7,8 +7,11 @@ fi
 
 cd ~
 git clone -c feature.manyFiles=true https://github.com/spack/spack.git
+cd ~/spack
+git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
 echo "source ~/spack/share/spack/setup-env.sh" >> ~/.bashrc
 source ~/spack/share/spack/setup-env.sh
+cd ~
 
 spack env create ufs
 spack env activate ufs -p

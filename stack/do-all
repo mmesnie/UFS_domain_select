@@ -57,18 +57,3 @@ echo "* Be sure to add \"conda activate regional_workflow-$VER\" to your .bashrc
 echo "* You can now run $UFS_DOMAIN_SELECT_HOME/forecast/do-forecast $VER"
 echo "*"
 echo
-
-#read -p "<[y]|n> generate forecast?" val
-#if [ "$val" == "y" ] || [ "$val" == "" ]; then
-#	time ../forecast/do-forecast $VER
-#fi
-
-#read -p "<[y]|n> generate plots?" val
-#if [ "$val" == "y" ] || [ "$val" == "" ]; then
-#	time ../forecast/do-plot $VER
-#fi
-
-#read -p "<[y]|n> view plots?" val
-#if [ "$val" == "y" ] || [ "$val" == "" ]; then
-#	ristretto ~/expt-$VER/test_community/2024121518/postprd/*.png
-#fi
