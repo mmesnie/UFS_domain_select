@@ -23,6 +23,12 @@ echo "args.append(\"-DGFS_PHYS:BOOL=ON\")"
 echo "args.append(\"-DOPENMP:BOOL=ON\")"
 echo "args.append(\"-DCONSTANTS=GFS\")"
 
+#read -p "Enter to setup LMOD"
+#spack config add "modules:default:enable:[tcl]"
+#spack install --add lmod
+#. $(spack location -i lmod)/lmod/lmod/init/bash
+#. ~/spack/share/spack/setup-env.sh
+
 read -p "Enter to continue"
 
 spack compiler find

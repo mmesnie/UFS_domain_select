@@ -86,7 +86,7 @@ g_scale = "110m"
 #####################
 
 class forecast():
-    def __init__(self, yaml_file):
+    def __init__(self, yaml_file, date, cycle):
         s = self
         s.dt_atmos = 36
         s.blocksize = 40
@@ -94,8 +94,8 @@ class forecast():
         s.layout_y = 3
         s.write_groups = 1
         s.write_tasks_per_group = 3
-        s.date ='yyyymmdd'
-        s.cycle ='hh'
+        s.date = date
+        s.cycle = cycle
         s.fcst_len_hrs = 24
         s.lbc_spec_intvl_hrs = 6
         s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
@@ -228,8 +228,8 @@ def on_draw(event):
     debug("DONE RENDERING")
     if not g_args.file:
         date, cycle = latest()
-        myuds.fig.canvas.manager.set_window_title(        f"Source: {myuds.index} DATE 20{date} CYCLE {cycle} EPOCH {g_epoch}")
-        myuds.fig_control.canvas.manager.set_window_title(f"Source: {myuds.index} DATE 20{date} CYCLE {cycle} EPOCH {g_epoch}")
+        myuds.fig.canvas.manager.set_window_title(        f"Source: {myuds.index} DATE {date} CYCLE {cycle} EPOCH {g_epoch}")
+        myuds.fig_control.canvas.manager.set_window_title(f"Source: {myuds.index} DATE {date} CYCLE {cycle} EPOCH {g_epoch}")
 
 class ufs_domain_select():
 
@@ -617,10 +617,10 @@ class ufs_domain_select():
 def latest():
 
     utc_now = datetime.now(timezone.utc)
-    utc_date = utc_now.strftime("%y%m%d")
+    utc_date = utc_now.strftime("%Y%m%d")
 
     utc_yesterday = utc_now - timedelta(days=1)
-    utc_yesterday_date = utc_yesterday.strftime("%y%m%d")
+    utc_yesterday_date = utc_yesterday.strftime("%Y%m%d")
 
     print(f"UTC date: {utc_date}")
     print(f"UTC yesterday: {utc_yesterday_date}")
@@ -724,8 +724,8 @@ def pick_max_delta(xspan, yspan):
 
 def output_config(uds, index, yaml_file):
 
-    f = forecast(yaml_file)
-    f.date, f.cycle = latest()
+    date, cycle = latest()
+    f = forecast(yaml_file, date, cycle)
 
     res = uds.res
 
@@ -778,8 +778,8 @@ workflow:
   EXPT_SUBDIR: {UFS_DOMAIN_SELECT_HOME}/build/expt-2.2.0/test_community
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
-  DATE_FIRST_CYCL: '20{f.date}{f.cycle}'
-  DATE_LAST_CYCL: '20{f.date}{f.cycle}'
+  DATE_FIRST_CYCL: '{f.date}{f.cycle}'
+  DATE_LAST_CYCL: '{f.date}{f.cycle}'
   FCST_LEN_HRS: {f.fcst_len_hrs}
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
@@ -848,7 +848,7 @@ task_run_fcst:
         file.write(config_text)
         file.write(config_text_wrtcmp)
     print(f"       YAML file output: {f.yaml_file}")
-    print(f"                    cmd: export DATE=20{f.date} CYCLE={f.cycle} LEN={f.fcst_len_hrs} LBC={f.lbc_spec_intvl_hrs}; time ./forecast")
+    print(f"                    cmd: export DATE={f.date} CYCLE={f.cycle} LEN={f.fcst_len_hrs} LBC={f.lbc_spec_intvl_hrs}; time ./forecast")
 
     latest()
 

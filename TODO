@@ -1,6 +1,35 @@
-=======
-The app
-=======
+==========
+SPACK TODO
+==========
+
+1. Test current recipe and create do-all script -
+
+. ./build-stack-spack (automate "spack edit fms"; ~/.spack/package_repos/fncqgg4/repos/spack_repo/builtin/packages/fms/package.py)
+./build-model-spack 2.2.0 (be clear on model version; 2.2.0 vs. 3.0.0)
+./install-anaconda
+./config-anaconda
+conda activate regional_workflow-2.2.0; ./install-plotting
+./download-earth
+./download-data 2.2.0
+./do-forecast-spack 2.2.0
+./do-post 2.2.0
+./do-plot
+
+-Is Anaconda needed to build the model??
+-Is regional_workflow-2.2.0 only needed for UFS_domain_select?
+
+==========
+Other TODO
+==========
+  - check for python version with wrapper (python via workflow_tools is too old)
+  - experiment with all-in-one distribution
+  - pip install h5py (be sure to "conda activate regional_workflow-2.2.0")
+  - resolve "leonard" for data download
+  - Reintegrate Makefile that downloads the data, please!
+
+========
+GUI TODO
+========
 
 --> see ~/UFS_domain_select/build/ufs-srweather-app-v2.2.0/parm/data_locations.yml (line 120)
 --> add GUI option for date and such
@@ -19,10 +48,3 @@ The app
 - Output args for recreating the plot (on 'y' press) and make
   it so that it can be copy-pasted as one of the default grids.
   Eventually, we can add an option to "save" as predefined. ;-)
-
-====
-TODO
-====
-  - pip install h5py (be sure to "conda activate regional_workflow-2.2.0")
-  - resolve "leonard" for data download
-  - Reintegrate Makefile that downloads the data, please!
