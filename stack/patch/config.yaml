@@ -18,10 +18,10 @@ workflow:
   COMPILER: gnu
   GRID_GEN_METHOD: "ESGgrid"
 task_make_grid:
-  ESGgrid_LON_CTR: -59.43218079563817
-  ESGgrid_LAT_CTR: -51.7232093747396
-  ESGgrid_NX: 16 
-  ESGgrid_NY: 13
+  ESGgrid_LON_CTR: -127.68
+  ESGgrid_LAT_CTR: 45.72
+  ESGgrid_NX: 37 
+  ESGgrid_NY: 37
   ESGgrid_DELX: 25000
   ESGgrid_DELY: 25000 
   ESGgrid_PAZI: 0.0
@@ -46,13 +46,13 @@ task_run_fcst:
   WRTCMP_write_groups: 1
   WRTCMP_write_tasks_per_group: 3
   WRTCMP_output_grid: "lambert_conformal"
-  WRTCMP_cen_lon: -59.43218079563817
-  WRTCMP_cen_lat: -51.7232093747396 
-  WRTCMP_stdlat1: -51.7232093747396 
-  WRTCMP_stdlat2: -51.7232093747396 
-  WRTCMP_nx: 15
-  WRTCMP_ny: 12
-  WRTCMP_lon_lwr_left: -62.26 
-  WRTCMP_lat_lwr_left: -53.11
+  WRTCMP_cen_lon: -127.68
+  WRTCMP_cen_lat: 45.72 
+  WRTCMP_stdlat1: 45.72 
+  WRTCMP_stdlat2: 45.72 
+  WRTCMP_nx: 34
+  WRTCMP_ny: 34
+  WRTCMP_lon_lwr_left: -132.86 
+  WRTCMP_lat_lwr_left: 41.77
   WRTCMP_dx: 25000
   WRTCMP_dy: 25000
