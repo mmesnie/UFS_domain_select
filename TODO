@@ -1,29 +1,13 @@
 ==========
-SPACK TODO
+Build TODO
 ==========
 
-TODO: source ~/spack/share/spack/setup-env.sh + spack edit fms
-
-./do-all-spack
-	./build-stack-spack
-	./build-model-spack
-	./install-anaconda
-	./config-anaconda
-	./install-plotting
-
-./download-earth 
-./download-data 2.2.0
-./do-forecast-spack 2.2.0
-./do-post-spack 2.2.0
-./do-plot 2.2.0
-
-==========
-Other TODO
-==========
-  - experiment with all-in-one distribution
-  - pip install h5py (be sure to "conda activate regional_workflow-2.2.0")
-  - resolve "leonard" for data download
-  - Reintegrate Makefile that downloads the data, please!
+- "python" missing, initially
+- Automate source ~/spack/share/spack/setup-env.sh + spack edit fms
+- Resolve "leonard" for data download
+- Experiment with all-in-one distribution (so conda isn't needed)
+- Reintegrate Makefile that downloads the data, please!
+- pip install h5py? (be sure to "conda activate regional_workflow-2.2.0")
 
 ========
 GUI TODO

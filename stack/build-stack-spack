@@ -16,7 +16,7 @@ if [ "$VER" == "2.2.0" ]; then
 
 	echo; echo "### $0: apt installing build essentials"
         sudo apt update
-        sudo apt install git cmake build-essential gfortran -y
+        sudo apt install curl git cmake build-essential gfortran -y
 
 	echo; echo "### $0: cloning spack stack"
 	cd ~
