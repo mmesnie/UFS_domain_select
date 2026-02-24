@@ -7,7 +7,7 @@ user:
   MACHINE: linux
   ACCOUNT: an_account
 workflow:
-  EXPT_SUBDIR: /home/mmesnie/UFS_domain_select/build/expt-2.2.0/test_community
+  EXPT_SUBDIR: ../expt-2.2.0/test_community
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
   DATE_FIRST_CYCL: '2019061518'
@@ -29,12 +29,12 @@ task_make_grid:
 task_get_extrn_ics:
   EXTRN_MDL_NAME_ICS: FV3GFS
   FV3GFS_FILE_FMT_ICS: grib2
-  EXTRN_MDL_SOURCE_BASEDIR_ICS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
+  EXTRN_MDL_SOURCE_BASEDIR_ICS: ../../../../../DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
 task_get_extrn_lbcs:
   EXTRN_MDL_NAME_LBCS: FV3GFS
   LBC_SPEC_INTVL_HRS: 6 
   FV3GFS_FILE_FMT_LBCS: grib2
-  EXTRN_MDL_SOURCE_BASEDIR_LBCS: /home/mmesnie/UFS_domain_select/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
+  EXTRN_MDL_SOURCE_BASEDIR_LBCS: ../../../../../DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
 task_run_post:
   POST_OUTPUT_DOMAIN_NAME: 'mesnier'
 task_run_fcst:
