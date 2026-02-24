@@ -1,0 +1,75 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.2.0|3.0.0>"
+        exit 1
+fi
+
+VER=$1
+
+if [ ! "$VER" == "2.2.0" ]; then
+	echo "ufs-srweather-app-v$VER not yet supported"
+	exit 1
+fi
+
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
+cd $UFS_DOMAIN_SELECT_HOME/stack
+
+read -p "<[y]|n> build spack stack?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./build-stack-spack $VER
+fi
+
+read -p "<[y]|n> build model?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./build-model-spack $VER
+fi
+
+read -p "<[y]|n> install anaconda?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./install-anaconda
+        echo
+        echo "*** You can ignore any messages above regarding re-opening your current shell. ***"
+        echo
+fi
+
+read -p "<[y]|n> config anaconda?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./config-anaconda $VER
+        echo
+        echo "*** You can ignore any messages above regarding activating a conda environment. ***"
+        echo
+fi
+
+read -p "<[y]|n> install plotting tools?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./install-plotting
+fi
+
+read -p "<[y]|n> download input data?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./download-data $VER
+fi
+
+read -p "<[y]|n> download earth?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./download-earth
+fi
+
+read -p "<[y]|n> generate and plot a forecast?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ../forecast/do-forecast-spack $VER
+	time ../forecast/do-post-spack $VER
+	time ../forecast/do-plot $VER
+fi
+
+echo
+echo "*** FORECAST COMPLETE ***"
+echo
+echo "*"
+echo "* You can modify $UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-$VER/ush/config.yaml"
+echo "* and execute $UFS_DOMAIN_SELECT_HOME/forecast/do-forecast-spack $VER to generate"
+echo "* another forecast."
+echo "*"
+echo

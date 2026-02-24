@@ -1,0 +1,41 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.2.0|3.0.0>"
+        exit 1
+fi
+
+if [ "$1" == "2.2.0" ]; then
+        VER=$1
+elif [ "$1" == "3.0.0" ]; then
+        echo "$1 not yet implemented"
+        exit 1
+else
+        echo "$1 not supported"
+        exit 1
+fi
+
+VER=$1
+
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
+export EXPT_BASEDIR=${UFS_DOMAIN_SELECT_HOME}/build/expt-$VER
+export EXPTDIR=${EXPT_BASEDIR}/test_community
+
+if [ $VER == "2.2.0" ]; then
+
+	echo "### $0: activating ufs spack environment"
+        source ~/spack/share/spack/setup-env.sh
+        spack env activate ufs -p
+        export LD_LIBRARY_PATH="`spack location -i jasper`/lib:$LD_LIBRARY_PATH"
+        export LD_LIBRARY_PATH="`spack location -i netcdf-fortran`/lib:$LD_LIBRARY_PATH"
+
+	echo "### $0: activating conda regional_workflow-$VER environment"
+	eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
+        conda activate regional_workflow-$VER
+fi
+
+cd ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/ush/
+cd $EXPTDIR
+
+./run_post.sh
