@@ -1,49 +1,68 @@
 #!/bin/bash
 
 if [ $# != 1 ]; then
-        echo "usage: $0 <2.1.0|2.2.0>"
+        echo "usage: $0 <2.2.0|3.0.0>"
         exit 1
 fi
 
-VER=$1
+if [ "$1" == "2.2.0" ]; then
+	VER=$1
+elif [ "$1" == "3.0.0" ]; then
+        echo "$1 not yet implemented"
+        exit 1
+else
+        echo "$1 not supported"
+        exit 1
+fi
 
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
 
 # UFS_domain_select will write this directly
 #echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
-#cp ~/config.yaml /home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/config.yaml
+#cp ~/config.yaml /home/mmesnie/UFS_domain_select/build/ufs-srweather-app-2.2.0/ush/config.yaml
 #echo "*** FIX ME - HARDCODED config.yaml in do-forecast-spack ***"
 
 cd ${UFS_DOMAIN_SELECT_HOME}/stack/patch
 
-#cp linux-$VER.yaml ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/ush/machine/linux.yaml
-cat linux-$VER.yaml | sed "s|UFS_DOMAIN_SELECT_HOME|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/ush/machine/linux.yaml
+#cp linux-$VER.yaml ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER/ush/machine/linux.yaml
+cat linux-$VER.yaml | sed "s|UFS_DOMAIN_SELECT_HOME|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER/ush/machine/linux.yaml
 
-cp wflow_linux-$VER.lua ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/modulefiles/wflow_linux.lua
-# DEFUNCT cp predef_grid_params-2.2.0.yaml ~/ufs-srweather-app-v$VER/ush/predef_grid_params.yaml 
-# DEFUNCT cp valid_param_vals-2.2.0.yaml ~/ufs-srweather-app-v$VER/ush/valid_param_vals.yaml
+cp wflow_linux-$VER.lua ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER/modulefiles/wflow_linux.lua
+# DEFUNCT cp predef_grid_params-2.2.0.yaml ~/ufs-srweather-app-$VER/ush/predef_grid_params.yaml 
+# DEFUNCT cp valid_param_vals-2.2.0.yaml ~/ufs-srweather-app-$VER/ush/valid_param_vals.yaml
 
 export EXPT_BASEDIR=${UFS_DOMAIN_SELECT_HOME}/build/expt-$VER
 export EXPTDIR=${EXPT_BASEDIR}/test_community
 
+eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
+
 if [ $VER == "2.1.0" ]; then
-	eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
 	conda activate regional_workflow-2.1.0
 fi
 if [ $VER == "2.2.0" ]; then
-	#source /usr/local/lmod/lmod/init/profile
-	#module use ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/modulefiles
-	#module load wflow_linux
+
+        echo "### $0: activating ufs spack environment"
+	source ~/spack/share/spack/setup-env.sh
+	spack env activate ufs -p
+	export LD_LIBRARY_PATH="`spack location -i jasper`/lib:$LD_LIBRARY_PATH"
+	export LD_LIBRARY_PATH="`spack location -i netcdf-c`/lib:$LD_LIBRARY_PATH"
+	export LD_LIBRARY_PATH="`spack location -i netcdf-fortran`/lib:$LD_LIBRARY_PATH"
+	export LD_LIBRARY_PATH="`spack location -i parallelio`/lib:$LD_LIBRARY_PATH"
+
+        echo "### $0: activating conda environment"
 	eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
-	conda activate workflow_tools
-        export PYTHONPATH="$PYTHONPATH:/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/python_utils/workflow-tools/"
-        export PYTHONPATH="$PYTHONPATH:/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-v2.2.0/ush/python_utils/workflow-tools/src"
+	conda activate regional_workflow-2.2.0
+	export PYTHONPATH="$PYTHONPATH:/home/mmesnie/UFS_domain_select/build/anaconda3/envs/regional_workflow-2.2.0/lib/python3.14/site-packages/"
+
+	#conda activate workflow-tools
+        export PYTHONPATH="$PYTHONPATH:/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-2.2.0/ush/python_utils/workflow-tools/"
+        export PYTHONPATH="$PYTHONPATH:/home/mmesnie/UFS_domain_select/build/ufs-srweather-app-2.2.0/ush/python_utils/workflow-tools/src"
 fi
 
-cd ${UFS_DOMAIN_SELECT_HOME}/build//ufs-srweather-app-v$VER/ush/
+cd ${UFS_DOMAIN_SELECT_HOME}/build//ufs-srweather-app-$VER/ush/
 ./generate_FV3LAM_wflow.py
 cd ${EXPTDIR}
-cp ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER/ush/wrappers/* .
+cp ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER/ush/wrappers/* .
 
 if ! ./run_make_grid.sh; then echo "MAKE GRID FAILED"; exit 1; fi
 ./run_get_ics.sh || exit 1

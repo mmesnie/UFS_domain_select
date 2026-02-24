@@ -9,14 +9,16 @@ VER=$1
 
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
 
-cd ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v$VER
+cd ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER
 
 if ! grep regional_workflow-$VER environment.yml; then
 	sed -i "s/regional_workflow/regional_workflow-$VER/" environment.yml
 fi
 
-${UFS_DOMAIN_SELECT_HOME}/build//anaconda3/bin/conda env create -f environment.yml
+echo ### $0: creating regional_workflow-$VER environment"
+${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda env create -f environment.yml
 
-if [ $VER == "2.2.0" ]; then
-	${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda env create -f ush/python_utils/workflow-tools/environment.yaml
-fi
+#if [ $VER == "2.2.0" ]; then
+#	echo ### $0: creating workflow-tools environment"
+#	${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda env create -f ush/python_utils/workflow-tools/environment.yaml
+#fi

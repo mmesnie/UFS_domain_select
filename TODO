@@ -2,26 +2,24 @@
 SPACK TODO
 ==========
 
-1. Test current recipe and create do-all script -
+TODO: source ~/spack/share/spack/setup-env.sh + spack edit fms
 
-. ./build-stack-spack (automate "spack edit fms"; ~/.spack/package_repos/fncqgg4/repos/spack_repo/builtin/packages/fms/package.py)
-./build-model-spack 2.2.0 (be clear on model version; 2.2.0 vs. 3.0.0)
-./install-anaconda
-./config-anaconda
-conda activate regional_workflow-2.2.0; ./install-plotting
-./download-earth
+./do-all-spack
+	./build-stack-spack
+	./build-model-spack
+	./install-anaconda
+	./config-anaconda
+	./install-plotting
+
+./download-earth 
 ./download-data 2.2.0
 ./do-forecast-spack 2.2.0
-./do-post 2.2.0
-./do-plot
-
--Is Anaconda needed to build the model??
--Is regional_workflow-2.2.0 only needed for UFS_domain_select?
+./do-post-spack 2.2.0
+./do-plot 2.2.0
 
 ==========
 Other TODO
 ==========
-  - check for python version with wrapper (python via workflow_tools is too old)
   - experiment with all-in-one distribution
   - pip install h5py (be sure to "conda activate regional_workflow-2.2.0")
   - resolve "leonard" for data download

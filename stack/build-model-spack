@@ -1,35 +1,51 @@
 #!/bin/bash
 
 if [ $# != 1 ]; then
-        echo "usage: build-model <2.1.0|2.2.0>"
+        echo "usage: $0 <2.2.0|3.0.0>"
         exit 1
 fi
 
-VER=v$1
+if [ "$1" == "2.2.0" ]; then
+        VER=v$1
+elif [ "$1" == "3.0.0" ]; then
+        echo "$1 not yet implemented"
+        exit 1
+else
+        echo "$1 not supported"
+        exit 1
+fi
+
+VER=$1
 
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
-
 SRC=${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER
 
-git clone -b release/public-$VER https://github.com/ufs-community/ufs-srweather-app.git $SRC
+if [ "$VER" == "2.2.0" ]; then
+	echo
+	echo "### $0: cloning ufs-srweather-app"
+	git clone -b release/public-v$VER https://github.com/ufs-community/ufs-srweather-app.git $SRC
+	cd $SRC
+	./manage_externals/checkout_externals
+	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/config.yaml ush
+	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/devbuild.sh .
 
-cd $SRC
+	echo "### $0: activating ufs environment"
+        source ~/spack/share/spack/setup-env.sh
+        spack env activate ufs -p
 
-./manage_externals/checkout_externals
+	echo "### $0: building model"
+	./devbuild.sh --platform=foo --compiler=bar
 
-cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/config.yaml ush
-cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/devbuild.sh .
-
-# Needed to find esmf, without opening a new shell
-spack load esmf
-
-./devbuild.sh --platform=foo --compiler=bar
-
-echo
-echo "### ADD THIS TO .bashrc ###"
-echo 'export LD_LIBRARY_PATH="`spack location -i jasper`/lib:$LD_LIBRARY_PATH"'
-echo 'export LD_LIBRARY_PATH="`spack location -i netcdf-c`/lib:$LD_LIBRARY_PATH"'
-echo 'export LD_LIBRARY_PATH="`spack location -i netcdf-fortran`/lib:$LD_LIBRARY_PATH"'
-echo 'export LD_LIBRARY_PATH="`spack location -i parallelio`/lib:$LD_LIBRARY_PATH"'
-echo "###########################"
-echo
+#	echo
+#	echo "### $0; add the following lines to ~/.bashrc before doing a forecast -"
+#	echo 'export LD_LIBRARY_PATH="`spack location -i jasper`/lib:$LD_LIBRARY_PATH"'
+#	echo 'export LD_LIBRARY_PATH="`spack location -i netcdf-c`/lib:$LD_LIBRARY_PATH"'
+#	echo 'export LD_LIBRARY_PATH="`spack location -i netcdf-fortran`/lib:$LD_LIBRARY_PATH"'
+#	echo 'export LD_LIBRARY_PATH="`spack location -i parallelio`/lib:$LD_LIBRARY_PATH"'
+#	echo
+elif [ "$VER" == "3.0.0" ]; then
+        echo "$VER not yet implemented"
+else
+        echo "$VER not supported"
+        exit 1
+fi

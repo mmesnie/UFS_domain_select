@@ -1,39 +1,66 @@
 #!/bin/bash
 
-if ! [[ "$0" == "bash" ]] || [[ "$0" == "-bash" ]] || [[ "$0" == "/bin/bash" ]]; then
-    echo "Script must be sourced, not executed directly."
-    exit 1
+#if ! [[ "$0" == "bash" ]] || [[ "$0" == "-bash" ]] || [[ "$0" == "/bin/bash" ]]; then
+#    echo "Script must be sourced, not executed directly."
+#    exit 1
+#fi
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.2.0|3.0.0>"
+        exit 1
 fi
 
-cd ~
-git clone -c feature.manyFiles=true https://github.com/spack/spack.git
-cd ~/spack
-git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
-echo "source ~/spack/share/spack/setup-env.sh" >> ~/.bashrc
-source ~/spack/share/spack/setup-env.sh
-cd ~
+VER=$1
 
-spack env create ufs
-spack env activate ufs -p
-echo "spack env activate ufs -p" >> ~/.bashrc
+if [ "$VER" == "2.2.0" ]; then
 
-echo "\"spack edit fms\" and add these to cmake_args"
-echo "args.append(\"-D64BIT:BOOL=ON\")"
-echo "args.append(\"-DGFS_PHYS:BOOL=ON\")"
-echo "args.append(\"-DOPENMP:BOOL=ON\")"
-echo "args.append(\"-DCONSTANTS=GFS\")"
+	echo; echo "### $0: cloning spack stack"
+	cd ~
+	git clone -c feature.manyFiles=true https://github.com/spack/spack.git
+	cd ~/spack
+	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
+	source ~/spack/share/spack/setup-env.sh
 
-#read -p "Enter to setup LMOD"
-#spack config add "modules:default:enable:[tcl]"
-#spack install --add lmod
-#. $(spack location -i lmod)/lmod/lmod/init/bash
-#. ~/spack/share/spack/setup-env.sh
+	echo; echo "### $0: creating ufs environment"
+	spack env create ufs
 
-read -p "Enter to continue"
+	echo; echo "### $0: activating ufs environment"
+	spack env activate ufs -p
 
-spack compiler find
+	#echo "source ~/spack/share/spack/setup-env.sh" >> ~/.bashrc
+	#echo "spack env activate ufs -p" >> ~/.bashrc
 
-spack add netcdf-c@4.9.2 netcdf-fortran@4.6.0 parallelio@2.5.10 esmf@8.4.2 bacio@2.4.1 crtm@2.4.0 g2@3.4.5 g2tmpl@1.10.2 nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 fms@2023.01 ip@3.3.3 jasper@2.0.32 libpng@1.6.37 jpeg@9.1.0 mapl@2.35.2 ^esmf@8.4.2 wgrib2@2.0.8 w3emc@2.9.2 gftl-shared@1.5.0 w3nco@2.4.1 wrf-io@1.2.0
+	echo
+	echo "\"spack edit fms\" and add these to cmake_args"
+	echo
+	echo "args.append(\"-D64BIT:BOOL=ON\")"
+	echo "args.append(\"-DGFS_PHYS:BOOL=ON\")"
+	echo "args.append(\"-DOPENMP:BOOL=ON\")"
+	echo "args.append(\"-DCONSTANTS=GFS\")"
+	echo
 
-spack concretize
-spack install
+	#read -p "Enter to setup LMOD"
+	#spack config add "modules:default:enable:[tcl]"
+	#spack install --add lmod
+	#. $(spack location -i lmod)/lmod/lmod/init/bash
+	#. ~/spack/share/spack/setup-env.sh
+
+	read -p "Enter to continue"
+
+	spack compiler find
+	
+	spack add netcdf-c@4.9.2 netcdf-fortran@4.6.0 parallelio@2.5.10 \
+	esmf@8.4.2 bacio@2.4.1 crtm@2.4.0 g2@3.4.5 g2tmpl@1.10.2 \
+	nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 fms@2023.01 ip@3.3.3 \
+	jasper@2.0.32 libpng@1.6.37 jpeg@9.1.0 mapl@2.35.2 ^esmf@8.4.2 \
+	wgrib2@2.0.8 w3emc@2.9.2 gftl-shared@1.5.0 w3nco@2.4.1 wrf-io@1.2.0
+	
+	spack concretize
+	spack install
+
+elif [ "$VER" == "3.0.0" ]; then
+        echo "$VER not yet implemented"
+else
+        echo "$VER not supported"
+        exit 1
+fi
