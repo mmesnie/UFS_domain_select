@@ -1,3 +1,20 @@
+=================
+Directory cleanup
+=================
+
+- Make sure each stack builds ok, using the flat directory structure.
+  They'll both be overwriting things like anaconda.
+- Commit
+- Create a 2.2.0 directory and do the same. Take note of the files
+  that you modified.
+
+  FILES =
+
+- Within 2.2.0, create "with-hpc-stack" and "with-spack-stack." DATA will
+  stop in the top-level 2.2.0 directory, as will anaconda. Lmod will
+  only go under hpc-stack, as will opt. There will be a separate
+  ufs-srweather-app for each.
+
 ==========
 Build TODO
 ==========
