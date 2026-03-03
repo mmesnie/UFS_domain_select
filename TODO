@@ -3,17 +3,26 @@ Directory cleanup
 =================
 
 - Make sure each stack builds ok, using the flat directory structure.
-  They'll both be overwriting things like anaconda.
+  They'll both be overwriting things like anaconda. Confirm that we're
+  ok not creating the workflow-tools environment.
+- Create the install-prereqs script to remove all sudos, including Lmod.
+- All of this is on the context of environment regional_workflow-v2.2.0 (note the v)
+- Figure out how to make the GUI work for both (writing config.yaml and such)
 - Commit
-- Create a 2.2.0 directory and do the same. Take note of the files
-  that you modified.
 
-  FILES =
+--> we really need to deprecate anything related to the hpc stack!
 
-- Within 2.2.0, create "with-hpc-stack" and "with-spack-stack." DATA will
-  stop in the top-level 2.2.0 directory, as will anaconda. Lmod will
-  only go under hpc-stack, as will opt. There will be a separate
-  ufs-srweather-app for each.
+AT HOME: do each do-all completely fresh! Then cleanup the scripts, as needed.
+
+=========================
+All of this assumes 2.2.0
+=========================
+
+--> spack should be in top-level build directory
+--> anaconda should be on top-level too (shared by both hpc and spack)
+--> stacks and models should be in either  "with-hpc-stack" or "with-spack-stack" 
+--> DATA should stay in the top level
+--> Experiments should go in the top level
 
 ==========
 Build TODO
