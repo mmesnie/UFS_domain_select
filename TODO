@@ -2,17 +2,8 @@
 Directory cleanup
 =================
 
-- Make sure each stack builds ok, using the flat directory structure.
-  They'll both be overwriting things like anaconda. Confirm that we're
-  ok not creating the workflow-tools environment.
-- Create the install-prereqs script to remove all sudos, including Lmod.
-- All of this is on the context of environment regional_workflow-v2.2.0 (note the v)
+- Currently in the context of environment regional_workflow-v2.2.0 (note the v)
 - Figure out how to make the GUI work for both (writing config.yaml and such)
-- Commit
-
---> we really need to deprecate anything related to the hpc stack!
-
-AT HOME: do each do-all completely fresh! Then cleanup the scripts, as needed.
 
 =========================
 All of this assumes 2.2.0
@@ -28,7 +19,6 @@ All of this assumes 2.2.0
 Build TODO
 ==========
 
-- "python" missing, initially
 - Automate source ~/spack/share/spack/setup-env.sh + spack edit fms
 - Resolve "leonard" for data download
 - Experiment with all-in-one distribution (so conda isn't needed)
