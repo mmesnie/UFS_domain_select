@@ -26,7 +26,7 @@ if [ "$VER" == "2.2.0" ]; then
 	echo "### $0: cloning ufs-srweather-app"
 	git clone -b release/public-v$VER https://github.com/ufs-community/ufs-srweather-app.git $SRC
 	cd $SRC
-	./manage_externals/checkout_externals
+	./manage_externals/checkout_externals || exit 1
 	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/config.yaml ush
 	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/devbuild.sh .
 
