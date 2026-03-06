@@ -1,34 +1,22 @@
-=================
-Directory cleanup
-=================
+============
+Non-GUI TODO
+============
 
-- Currently in the context of environment regional_workflow-v2.2.0 (note the v)
-- Figure out how to make the GUI work for both (writing config.yaml and such)
+* reintegrate Makefile that downloads the data, please!
+* resolve "leonard" for fix data download
 
-=========================
-All of this assumes 2.2.0
-=========================
-
---> spack should be in top-level build directory
---> anaconda should be on top-level too (shared by both hpc and spack)
---> stacks and models should be in either  "with-hpc-stack" or "with-spack-stack" 
---> DATA should stay in the top level
---> Experiments should go in the top level
-
-==========
-Build TODO
-==========
-
-- Automate source ~/spack/share/spack/setup-env.sh + spack edit fms
-- Resolve "leonard" for data download
-- Experiment with all-in-one distribution (so conda isn't needed)
-- Reintegrate Makefile that downloads the data, please!
-- pip install h5py? (be sure to "conda activate regional_workflow-2.2.0")
+- see if modulefiles is needed to run the model, or just build it
+- check if our "spack edit fms" fix portable
+- see if wflow_linux-2.2.0.lua is being used anymore -- rocoto maybe??
+- archive hdf5-meta.py, or make a misc/utils script directory
 
 ========
 GUI TODO
 ========
 
+--> Experiment with all-in-one distribution (so conda isn't needed)
+--> UFS_domain_select points to with-hpc-stack for predefined grids
+--> update GUI to write config.yaml, as needed
 --> see ~/UFS_domain_select/build/ufs-srweather-app-v2.2.0/parm/data_locations.yml (line 120)
 --> add GUI option for date and such
 --> create "latest" option for date and such

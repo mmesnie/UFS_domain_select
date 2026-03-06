@@ -15,10 +15,10 @@ mkdir -p $TOP
 
 if [ "$VER" == "2.2.0" ]; then
 
-	echo; echo "### $0: cloning spack stack"
+	echo echo "### $0: cloning spack stack"
 	cd $TOP
-	git clone -c feature.manyFiles=true https://github.com/spack/spack.git
-	cd spack
+	git clone -c feature.manyFiles=true https://github.com/spack/spack.git spack-stack-for-$VER
+	cd spack-stack-for-$VER
 	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
 	source ./share/spack/setup-env.sh
 
@@ -28,20 +28,20 @@ if [ "$VER" == "2.2.0" ]; then
 	echo; echo "### $0: activating ufs environment"
 	spack env activate ufs -p
 
-	echo
-	echo "The 4 lines below need to be added to the cmake_args for fms."
-	echo "Select and copy these lines with your mouse."
-	echo
-	echo "        args.append(\"-D64BIT:BOOL=ON\")"
-	echo "        args.append(\"-DGFS_PHYS:BOOL=ON\")"
-	echo "        args.append(\"-DOPENMP:BOOL=ON\")"
-	echo "        args.append(\"-DCONSTANTS=GFS\")"
-	echo
-
-	read -p "<Enter> to launch \"spack edit fms\" and paste the lines before \"return args\""
-	spack edit fms
-
-	read -p "Enter to continue"
+#	echo
+#	echo "The 4 lines below need to be added to the cmake_args for fms."
+#	echo "Select and copy these lines with your mouse."
+#	echo
+#	echo "        args.append(\"-D64BIT:BOOL=ON\")"
+#	echo "        args.append(\"-DGFS_PHYS:BOOL=ON\")"
+#	echo "        args.append(\"-DOPENMP:BOOL=ON\")"
+#	echo "        args.append(\"-DCONSTANTS=GFS\")"
+#	echo
+#
+#	read -p "<Enter> to launch \"spack edit fms\" and paste the lines before \"return args\""
+#	spack edit fms
+#
+#	read -p "Enter to continue"
 
 	spack compiler find
 	
@@ -50,7 +50,10 @@ if [ "$VER" == "2.2.0" ]; then
 	nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 fms@2023.01 ip@3.3.3 \
 	jasper@2.0.32 libpng@1.6.37 jpeg@9.1.0 mapl@2.35.2 ^esmf@8.4.2 \
 	wgrib2@2.0.8 w3emc@2.9.2 gftl-shared@1.5.0 w3nco@2.4.1 wrf-io@1.2.0
-	
+
+	# Apply cmake flags for the fms package. Is this portable?
+	cp $TOP/../stack/patch/package.py $HOME/.spack/package_repos/fncqgg4/repos/spack_repo/builtin/packages/fms/package.py
+
 	spack concretize
 	spack install
 

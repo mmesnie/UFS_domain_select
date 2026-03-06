@@ -1341,7 +1341,7 @@ show_help()
 
 #config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml"
 config_yaml = f"{HOME}/config.yaml"
-predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/predef_grid_params.yaml"
+predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-2.2.0-with-spack-stack/ush/predef_grid_params.yaml"
 
 # work-in-progress for v3.0.0
 #config_yaml = "/home/mmesnie/ufs-srweather-app/ush/config.yaml"
