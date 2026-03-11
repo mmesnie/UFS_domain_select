@@ -2,14 +2,10 @@
 Non-GUI TODO
 ============
 
-build-hpc-stack
-monitor-hpc-stack-build
-build-spack-stack
-monitor-spack-stack-build
+double-check that stacks build and monitor - ...
+make sure models all build ok -
 
-build-model-with-hpc-stack
-build-model-with-spack-stack
-build-model-with-spack-stack-lmod
+--> then do some forecasts!!
 
 3. all the rest -
    - try 2.1.0?? Just for comparison, please!
