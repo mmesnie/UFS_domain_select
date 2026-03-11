@@ -14,7 +14,7 @@ sudo apt-get install tcl tcl8.6-dev libtcl8.6 -y
 sudo ln -sf bash /bin/sh
 
 #
-# Lmod
+# Lmod (only needed when using hpc-stack)
 #
 
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
