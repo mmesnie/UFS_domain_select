@@ -28,7 +28,6 @@ g_help="""
 #
 # Bugs/tweaks/cleanup
 # - document key-press for compute component 'x' - or just always do it?
-# - add command-line option for predef_grid_params.yam and config.yaml
 # - move g_scale to class definition
 # - try gnomonic transform without plotting it. Do we need an extent?
 # - figure out corner for GRIB files?  Is this needed?
@@ -1339,13 +1338,8 @@ def show_help():
 
 show_help()
 
-#config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-v2.2.0/ush/config.yaml"
-config_yaml = f"{HOME}/config.yaml"
-predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-2.2.0-with-spack-stack/ush/predef_grid_params.yaml"
-
-# work-in-progress for v3.0.0
-#config_yaml = "/home/mmesnie/ufs-srweather-app/ush/config.yaml"
-#predef_grid_params_yaml = "/home/mmesnie/ufs-srweather-app/ush/predef_grid_params.yaml"
+config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/forecast/config.yaml"
+predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/forecast/predef_grid_params-2.2.0.yaml"
 
 myuds = ufs_domain_select(compute_grid_dflt=1.1, yaml_file_output=config_yaml)
 

@@ -7,7 +7,7 @@ user:
   MACHINE: linux
   ACCOUNT: an_account
 workflow:
-  EXPT_SUBDIR: test_hpc
+  EXPT_SUBDIR: ufs_domain_select_test_hpc
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
   DATE_FIRST_CYCL: '2019061518'

@@ -2,20 +2,20 @@
 Non-GUI TODO
 ============
 
-* reintegrate Makefile that downloads the data, please!
-* resolve "leonard" for fix data download
+-clean up patch directory: subdirs for spack, spack+lua, and hpc??
 
-- see if modulefiles is needed to run the model, or just build it
-- check if our "spack edit fms" fix portable
-- see if wflow_linux-2.2.0.lua is being used anymore -- rocoto maybe??
-- archive hdf5-meta.py, or make a misc/utils script directory
+3. all the rest -
+   - try 2.1.0?? Just for comparison, please!
+   - reintegrate Makefile that downloads the data, please!
+   - resolve "leonard" for fix data download
+   - see if wflow_linux-2.2.0.lua is being used anymore -- rocoto maybe??
+   - archive hdf5-meta.py, or make a misc/utils script directory
 
 ========
 GUI TODO
 ========
 
 --> Experiment with all-in-one distribution (so conda isn't needed)
---> UFS_domain_select points to with-hpc-stack for predefined grids
 --> update GUI to write config.yaml, as needed
 --> see ~/UFS_domain_select/build/ufs-srweather-app-v2.2.0/parm/data_locations.yml (line 120)
 --> add GUI option for date and such
