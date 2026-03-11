@@ -11,14 +11,10 @@ build-model-with-hpc-stack
 build-model-with-spack-stack
 build-model-with-spack-stack-lmod
 
--clean up patch directory: subdirs for spack, spack+lua, and hpc??
-
 3. all the rest -
    - try 2.1.0?? Just for comparison, please!
    - reintegrate Makefile that downloads the data, please!
    - resolve "leonard" for fix data download
-   - see if wflow_linux-2.2.0.lua is being used anymore -- rocoto maybe??
-   - archive hdf5-meta.py, or make a misc/utils script directory
 
 ========
 GUI TODO

@@ -32,7 +32,7 @@ if [ "$VER" == "2.2.0" ]; then
 	echo "*** COPYING DEVBUILD.SH ***"
 	echo
 
-	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/devbuild-spack.sh devbuild.sh
+	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-spack-stack/devbuild.sh .
 
 	echo "### $0: activating ufs environment"
         source $TOP/spack-stack-for-2.2.0/share/spack/setup-env.sh

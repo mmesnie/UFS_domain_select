@@ -29,20 +29,9 @@ if [ "$VER" == "2.2.0" ]; then
 
 	echo "### $0: applying needed patches"
 
-	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/lmod-setup-spack-hpc.sh etc/lmod-setup.sh || exit 1
-	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/srw_common-spack-hpc.lua modulefiles/srw_common.lua || exit 1
-	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/build_linux_gnu-spack-hpc.lua modulefiles/build_linux_gnu.lua || exit 1
-
-	#echo "edit etc/lmod-setup.sh with 'export BASH_ENV=\`spack location -i lmod\`/lmod/lmod/init/bash'"
-	#read -p "<Enter> to continue"
-	#echo "comment out all load(\"hpc-*\") in modulefiles/build_linux_gnu.lua"
-	#read -p "<Enter> to continue"
-	#echo "edit parallelio, gftl-shared, yafyaml and mapl in  modulefiles/srw_common.lua as follows -"
-	#echo 'load_any("parallelio/2.5.10")'
-	#echo 'load_any("gftl-shared/1.5.0")'
-	#echo 'load_any("yafyaml/0.5.1")'
-	#echo 'load("mapl/2.35.2")'
-	#read -p "<Enter> to continue"
+	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/lmod-setup.sh etc || exit 1
+	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/srw_common.lua modulefiles || exit 1
+	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/build_linux_gnu.lua modulefiles || exit 1
 
 	echo "### $0: initializing lmod"
         source $TOP/spack-stack-for-2.2.0/share/spack/setup-env.sh || exit 1
