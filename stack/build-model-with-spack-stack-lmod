@@ -29,9 +29,9 @@ if [ "$VER" == "2.2.0" ]; then
 
 	echo "### $0: applying needed patches"
 
-	cp $TOP/../stack/patch/lmod-setup-spack-hpc.sh etc/lmod-setup.sh || exit 1
-	cp $TOP/../stack/patch/srw_common-spack-hpc.lua modulefiles/srw_common.lua || exit 1
-	cp $TOP/../stack/patch/build_linux_gnu-spack-hpc.lua modulefiles/build_linux_gnu.lua || exit 1
+	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/lmod-setup-spack-hpc.sh etc/lmod-setup.sh || exit 1
+	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/srw_common-spack-hpc.lua modulefiles/srw_common.lua || exit 1
+	cp $TOP/../stack/patch/ufs-srweather-app-$VER-with-spack-stack-lmod/build_linux_gnu-spack-hpc.lua modulefiles/build_linux_gnu.lua || exit 1
 
 	#echo "edit etc/lmod-setup.sh with 'export BASH_ENV=\`spack location -i lmod\`/lmod/lmod/init/bash'"
 	#read -p "<Enter> to continue"
