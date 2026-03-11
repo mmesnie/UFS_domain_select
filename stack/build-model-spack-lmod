@@ -1,0 +1,62 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.2.0|3.0.0>"
+        exit 1
+fi
+
+if [ "$1" == "2.2.0" ]; then
+        VER=v$1
+elif [ "$1" == "3.0.0" ]; then
+        echo "$1 not yet implemented"
+        exit 1
+else
+        echo "$1 not supported"
+        exit 1
+fi
+
+VER=$1
+
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+TOP=${UFS_DOMAIN_SELECT_HOME}/build
+SRC=${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-spack-stack-lmod
+
+if [ "$VER" == "2.2.0" ]; then
+
+	echo "### $0: cloning ufs-srweather-app"
+	git clone -b release/public-v$VER https://github.com/ufs-community/ufs-srweather-app.git $SRC || exit 1
+	cd $SRC || exit 1
+
+	echo "### $0: applying needed patches"
+
+	cp $TOP/../stack/patch/lmod-setup-spack-hpc.sh etc/lmod-setup.sh || exit 1
+	cp $TOP/../stack/patch/srw_common-spack-hpc.lua modulefiles/srw_common.lua || exit 1
+	cp $TOP/../stack/patch/build_linux_gnu-spack-hpc.lua modulefiles/build_linux_gnu.lua || exit 1
+
+	#echo "edit etc/lmod-setup.sh with 'export BASH_ENV=\`spack location -i lmod\`/lmod/lmod/init/bash'"
+	#read -p "<Enter> to continue"
+	#echo "comment out all load(\"hpc-*\") in modulefiles/build_linux_gnu.lua"
+	#read -p "<Enter> to continue"
+	#echo "edit parallelio, gftl-shared, yafyaml and mapl in  modulefiles/srw_common.lua as follows -"
+	#echo 'load_any("parallelio/2.5.10")'
+	#echo 'load_any("gftl-shared/1.5.0")'
+	#echo 'load_any("yafyaml/0.5.1")'
+	#echo 'load("mapl/2.35.2")'
+	#read -p "<Enter> to continue"
+
+	echo "### $0: initializing lmod"
+        source $TOP/spack-stack-for-2.2.0/share/spack/setup-env.sh || exit 1
+	source `spack location -i lmod`/lmod/lmod/init/bash || exit 1
+	module use $SPACK_ROOT/share/spack/lmod/linux-ubuntu22.04-x86_64/Core || exit 1
+	module use $SPACK_ROOT/share/spack/lmod/linux-ubuntu22.04-x86_64/openmpi/5.0.10-fi4liwp/Core || exit 1
+
+	echo "### $0: building model"
+	./manage_externals/checkout_externals || exit 1
+	./devbuild.sh --platform=linux --compiler=gnu || exit 1
+
+elif [ "$VER" == "3.0.0" ]; then
+        echo "$VER not yet implemented"
+else
+        echo "$VER not supported"
+        exit 1
+fi
