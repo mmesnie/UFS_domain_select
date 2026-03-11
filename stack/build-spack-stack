@@ -46,8 +46,6 @@ if [ "$VER" == "2.2.0" ]; then
 
 	spack install
 
-	#spack module lmod refresh
-
 elif [ "$VER" == "3.0.0" ]; then
         echo "$VER not yet implemented"
 else

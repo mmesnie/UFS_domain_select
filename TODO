@@ -2,6 +2,15 @@
 Non-GUI TODO
 ============
 
+build-hpc-stack
+monitor-hpc-stack-build
+build-spack-stack
+monitor-spack-stack-build
+
+build-model-with-hpc-stack
+build-model-with-spack-stack
+build-model-with-spack-stack-lmod
+
 -clean up patch directory: subdirs for spack, spack+lua, and hpc??
 
 3. all the rest -
