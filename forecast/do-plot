@@ -18,7 +18,7 @@ eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
 
 conda activate regional_workflow-$VER || exit 1
 
-cd ${UFS_DOMAIN_SELECT_HOME}/build/expt_dirs/ufs_domain_select_test/*/postprd/
+cd ${UFS_DOMAIN_SELECT_HOME}/build/expt_dirs/ufs_domain_select_OR_coast/*/postprd/
 
 rm -f *.png
 
