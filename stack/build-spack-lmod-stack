@@ -1,0 +1,54 @@
+#!/bin/bash
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.2.0|3.0.0>"
+        exit 1
+fi
+
+VER=$1
+
+export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+
+TOP=${UFS_DOMAIN_SELECT_HOME}/build/
+
+mkdir -p $TOP
+
+if [ "$VER" == "2.2.0" ]; then
+
+	echo echo "### $0: cloning spack stack"
+	cd $TOP
+	git clone -c feature.manyFiles=true https://github.com/spack/spack.git spack-lmod-stack-for-$VER
+	cd spack-lmod-stack-for-$VER
+	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
+	source ./share/spack/setup-env.sh
+
+	echo; echo "### $0: creating ufs-lmod environment"
+	spack env create ufs-lmod
+
+	echo; echo "### $0: activating ufs-lmod environment"
+	spack env activate ufs-lmod -p
+
+	# Apply cmake flags for the fms package.
+	cp $TOP/../stack/patch/spack-lmod-stack-for-$VER/package.py `spack location -p fms`
+
+	spack compiler find
+
+	spack add netcdf-c@4.9.2 netcdf-fortran@4.6.0 parallelio@2.5.10 \
+	esmf@8.4.2 bacio@2.4.1 crtm@2.4.0 g2@3.4.5 g2tmpl@1.10.2 \
+	nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 fms@2023.01 ip@3.3.3 \
+	jasper@2.0.32 libpng@1.6.37 jpeg@9.1.0 mapl@2.35.2 ^esmf@8.4.2 \
+	wgrib2@2.0.8 w3emc@2.9.2 gftl-shared@1.5.0 w3nco@2.4.1 wrf-io@1.2.0 \
+	lmod@9.0.5 zlib@1.3.2 yafyaml@0.5.1
+
+	spack concretize
+
+	spack config add modules:default:enable:[lmod]
+
+	spack install
+
+elif [ "$VER" == "3.0.0" ]; then
+        echo "$VER not yet implemented"
+else
+        echo "$VER not supported"
+        exit 1
+fi
