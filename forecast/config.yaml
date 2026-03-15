@@ -7,7 +7,7 @@ user:
   MACHINE: linux
   ACCOUNT: an_account
 workflow:
-  EXPT_SUBDIR: ufs_domain_select_OR_coast
+  EXPT_SUBDIR: <EXPT_SUBDIR>
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
   DATE_FIRST_CYCL: '2019061518'
