@@ -32,11 +32,10 @@ export EXPTDIR=${EXPT_BASEDIR}/${EXPT_SUBDIR}
 #
 
 cd ${UFS_DOMAIN_SELECT_HOME}/forecast || exit 1
-#cp config.yaml ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush || exit 1
 
-cat config.yaml | sed "s|<EXPT_SUBDIR>|${EXPT_SUBDIR}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/config.yaml || exit 1 
+cat config.yaml.tmpl | sed "s|<EXPT_SUBDIR>|${EXPT_SUBDIR}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/config.yaml || exit 1 
 
-cat linux-$VER.yaml | sed "s|UFS_DOMAIN_SELECT_HOME|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/machine/linux.yaml || exit 1
+cat linux-$VER.yaml.tmpl | sed "s|<UFS_DOMAIN_SELECT_HOME>|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/machine/linux.yaml || exit 1
 
 #
 # Activate spack environment, if needed
