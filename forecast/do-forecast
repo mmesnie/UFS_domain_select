@@ -22,10 +22,25 @@ else
         exit 1
 fi
 
+#
+# Be careful here. The setting of EXPT_SUBDIR leads to strange
+# errors in run_make_orog.sh, particularly if the subdirectory
+# name is greater than 14 bytes. 
+#
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
-export EXPT_BASEDIR=${UFS_DOMAIN_SELECT_HOME}/build/expt_dirs
-EXPT_SUBDIR=test_$STACK
-export EXPTDIR=${EXPT_BASEDIR}/${EXPT_SUBDIR}
+EXPT_BASEDIR=${UFS_DOMAIN_SELECT_HOME}/build/expt_dirs
+EXPT_SUBDIR=test_${STACK}_sta
+
+if [ `echo $EXPT_SUBDIR | wc -c` -gt 16 ]; then
+	echo
+	echo "WARNING: EXPT_SUBDIR ($EXPT_SUBDIR) is too long"
+	echo "WARNING: This may lead to errors in run_make_orog."
+	echo "WARNING: It's best to keep it less than 14 bytes."
+	echo
+	sleep 3
+fi
+
+export EXPTDIR=$EXPT_BASEDIR/$EXPT_SUBDIR
 
 #
 # Apply patches to UFS
@@ -68,6 +83,7 @@ export PYTHONPATH="$PYTHONPATH:$UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-2
 cd ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush || exit 1
 ./generate_FV3LAM_wflow.py || exit 1
 
+mkdir -p ${EXPTDIR} || exit 1
 cd ${EXPTDIR} || exit 1
 cp ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/wrappers/* . || exit 1
 
