@@ -2,11 +2,8 @@
 Non-GUI TODO
 ============
 
-double-check that stacks build and monitor - ...
-make sure models all build ok -
-
---> then do some forecasts!!
-
+1. Confirm that hpc, spack, and zee all work
+2. Change zee to lmod
 3. all the rest -
    - try 2.1.0?? Just for comparison, please!
    - reintegrate Makefile that downloads the data, please!
