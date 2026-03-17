@@ -3,6 +3,9 @@ Non-GUI TODO
 ============
 
 1. Confirm that hpc, spack, and zee all work
+	hpc - OK
+	zee - OK
+	spack -
 2. Change zee to lmod
 3. all the rest -
    - try 2.1.0?? Just for comparison, please!
