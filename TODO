@@ -9,13 +9,6 @@ Non-GUI TODO
    - reintegrate Makefile that downloads the data, please!
    - resolve "leonard" for fix data download
 
-This is wrong, because we overwrite config.yaml -
-
-*
-* You can modify /home/mmesnie/ufs_domain_select/stack/../build/ufs-srweather-app-2.2.0-with-hpc-stack/ush/config.yaml
-* and execute /home/mmesnie/ufs_domain_select/stack/../forecast/do-forecast hpc 2.2.0 to generate another forecast.
-*
-
 ========
 GUI TODO
 ========
