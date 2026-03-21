@@ -13,10 +13,10 @@ export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
 
 cd $UFS_DOMAIN_SELECT_HOME/stack
 
-#read -p "<[y]|n> install prereqs (sudo required)?" val
-#if [ "$val" == "y" ] || [ "$val" == "" ]; then
-#	time ./install-prereqs
-#fi
+read -p "<[y]|n> install prereqs (sudo required)?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	time ./install-prereqs $STACK
+fi
 
 read -p "<[y]|n> build $STACK stack for UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
