@@ -1,4 +1,11 @@
 
+#
+# PE_MEMBER01 represents the number of MPI tasks to use.  It's calculated
+# as follows -
+# (LAYOUT_X*LAYOUT_Y+WRTCMP_write_groups*WRTCMP_write_tasks_per_group)
+# when QUILTING is true
+#
+
 metadata:
   description: >-
     Automatically generated via UFS_domain_select.py
@@ -41,11 +48,11 @@ task_run_post:
 task_run_fcst:
   QUILTING: true
   DT_ATMOS: 36
-  LAYOUT_X: 3 
-  LAYOUT_Y: 3
+  LAYOUT_X: <LAYOUT_X>
+  LAYOUT_Y: <LAYOUT_Y>
   BLOCKSIZE: 40
   WRTCMP_write_groups: 1
-  WRTCMP_write_tasks_per_group: 3
+  WRTCMP_write_tasks_per_group: 1
   WRTCMP_output_grid: "lambert_conformal"
   WRTCMP_cen_lon: -127.68
   WRTCMP_cen_lat: 45.72 
