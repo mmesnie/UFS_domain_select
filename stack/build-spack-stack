@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ $# != 1 ]; then
         echo "usage: $0 <2.2.0|3.0.0>"
         exit 1
@@ -22,26 +24,36 @@ if [ "$VER" == "2.2.0" ]; then
 	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
 	source ./share/spack/setup-env.sh
 
+	echo; echo "### $0: creating gcc build environment"
+	spack env create gcc_build
+	spack env activate gcc_build -p
+	spack install --add gcc@11.5.0
+	compilerPath=$(spack location -i gcc@11.5.0)
+	spack env deactivate
+	spack compiler add $compilerPath
+
 	echo; echo "### $0: creating ufs environment"
 	spack env create ufs
-
-	echo; echo "### $0: activating ufs environment"
 	spack env activate ufs -p
 
 	# Apply cmake flags for the fms package.
 	cp $TOP/../stack/patch/spack-stack-for-$VER/package.py `spack location -p fms`
 
-	spack compiler find
+	# Is this needed?
+	# spack compiler find
 
-	spack add netcdf-c@4.9.2 netcdf-fortran@4.6.0 parallelio@2.5.10 \
-	esmf@8.4.2 bacio@2.4.1 crtm@2.4.0 g2@3.4.5 g2tmpl@1.10.2 \
-	nemsio@2.5.4 sfcio@1.4.1 sigio@2.3.2 sp@2.3.3 fms@2023.01 ip@3.3.3 \
-	jasper@2.0.32 libpng@1.6.37 jpeg@9.1.0 mapl@2.35.2 ^esmf@8.4.2 \
-	wgrib2@2.0.8 w3emc@2.9.2 gftl-shared@1.5.0 w3nco@2.4.1 wrf-io@1.2.0 \
-	openmpi@4.1.2 cmake@3.31.11
+	PACKAGES=("netcdf-c@4.9.2" "netcdf-fortran@4.6.0" "parallelio@2.5.10" \
+		"esmf@8.4.2" "bacio@2.4.1" "crtm@2.4.0" "g2@3.4.5" "g2tmpl@1.10.2" \
+		"nemsio@2.5.4" "sfcio@1.4.1" "sigio@2.3.2" "sp@2.3.3" "fms@2023.01" "ip@3.3.3" \
+		"jasper@2.0.32" "libpng@1.6.37" "jpeg@9.1.0" "mapl@2.35.2 ^esmf@8.4.2" \
+		"wgrib2@2.0.8" "w3emc@2.9.2" "gftl-shared@1.5.0" "w3nco@2.4.1" "wrf-io@1.2.0" \
+		"openmpi@4.1.2" "cmake@3.31.11")
+
+	for pkg in "${PACKAGES[@]}"; do
+		spack add $pkg %gcc@11.5.0
+	done
 
 	spack concretize
-
 	spack install
 
 elif [ "$VER" == "3.0.0" ]; then
