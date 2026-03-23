@@ -24,23 +24,23 @@ if [ "$VER" == "2.2.0" ]; then
 	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
 	source ./share/spack/setup-env.sh
 
-	echo; echo "### $0: creating gcc build environment"
-	spack env create gcc_build
-	spack env activate gcc_build -p
-	spack install --add gcc@11.5.0
-	compilerPath=$(spack location -i gcc@11.5.0)
-	spack env deactivate
-	spack compiler add $compilerPath
+	read -p "<[y]|n> build gcc@11.5.0?" val
+	if [ "$val" == "y" ] || [ "$val" == "" ]; then
+		echo; echo "### $0: creating gcc build environment"
+		spack env create gcc_build
+		spack env activate gcc_build -p
+		spack install --add gcc@11.5.0
+		compilerPath=$(spack location -i gcc@11.5.0)
+		spack env deactivate
+		spack compiler add $compilerPath
+	fi
 
-	echo; echo "### $0: creating ufs environment"
+	echo; echo "### $0: creating ufs build environment"
 	spack env create ufs
 	spack env activate ufs -p
 
 	# Apply cmake flags for the fms package.
 	cp $TOP/../stack/patch/spack-stack-for-$VER/package.py `spack location -p fms`
-
-	# Is this needed?
-	# spack compiler find
 
 	PACKAGES=("netcdf-c@4.9.2" "netcdf-fortran@4.6.0" "parallelio@2.5.10" \
 		"esmf@8.4.2" "bacio@2.4.1" "crtm@2.4.0" "g2@3.4.5" "g2tmpl@1.10.2" \
