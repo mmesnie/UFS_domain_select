@@ -33,12 +33,12 @@ if [ "$val" == "y" ] || [ "$val" == "" ]; then
 	time ./install-anaconda
 fi
 
-read -p "<[y]|n> config anaconda?" val
+read -p "<[y]|n> config anaconda for UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
 	./config-anaconda $VER
 fi
 
-read -p "<[y]|n> download input data?" val
+read -p "<[y]|n> download input data for UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
 	time ./download-data $VER
 fi
@@ -48,7 +48,7 @@ if [ "$val" == "y" ] || [ "$val" == "" ]; then
 	time ./download-earth
 fi
 
-read -p "<[y]|n> generate and plot a forecast?" val
+read -p "<[y]|n> generate and plot a forecast with UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
         time ../forecast/do-forecast $STACK $VER || exit 1
         time ../forecast/do-post $STACK $VER || exit 1

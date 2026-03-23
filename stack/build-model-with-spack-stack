@@ -38,7 +38,7 @@ if [ "$VER" == "2.2.0" ]; then
         source $TOP/spack-stack-for-2.2.0/share/spack/setup-env.sh
         spack env activate ufs -p
 
-	spack load cmake
+	spack load gcc@11.5.0
 
 	echo "### $0: building model"
 	./devbuild.sh --platform=foo --compiler=bar
