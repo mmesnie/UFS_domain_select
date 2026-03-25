@@ -8,6 +8,7 @@ Non-GUI TODO
 4. Try to build 2.1.0 again (archived build scripts needed?)
 5. Reintegrate Makefile that downloads the data, please!
 6. Resolve "leonard" for fix data download
+7. Resolve "monitor" issue when gcc is building. Needed??
 
 ========
 GUI TODO
