@@ -76,11 +76,11 @@ if [ $STACK == "spack" ] || [ $STACK == "zee" ]; then
 	echo "### $0: activating $ENV spack environment"
 	spack env activate $ENV -p || exit 1
 
-	# These are needed to find the libraries below
-	spack config add 'modules:prefix_inspections:lib64:[LD_LIBRARY_PATH]'
-	spack config add 'modules:prefix_inspections:lib:[LD_LIBRARY_PATH]'
-
-	# We don't need to modify LD_LIBRARY_PATH if we ask spack to do it (above)
+	#
+	# Certain shared libraries cannot be found, like the ones below.
+	# Enabling LD_LIBRARY_PATH in the build-spack-stack script fixes
+	# this for now.
+	#
         #export LD_LIBRARY_PATH="`spack location -i jasper`/lib:$LD_LIBRARY_PATH"
         #export LD_LIBRARY_PATH="`spack location -i netcdf-c`/lib:$LD_LIBRARY_PATH"
         #export LD_LIBRARY_PATH="`spack location -i netcdf-fortran`/lib:$LD_LIBRARY_PATH"

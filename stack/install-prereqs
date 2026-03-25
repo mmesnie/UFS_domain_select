@@ -38,4 +38,6 @@ if [ "$STACK" == "hpc" ]; then
 	cd Lmod
 	./configure --with-lua=/usr/bin/lua  --with-luac=/usr/bin/luac
 	sudo make install
+
+	#sudo update-alternatives --install /usr/bin/lua lua-interpreter /usr/bin/lua5.3 130 --slave /usr/share/man/man1/lua.1.gz lua-manual /usr/share/man/man1/lua5.3.1.gz
 fi
