@@ -10,7 +10,7 @@ fi
 VER=$1
 
 # Be as specific as needed (e.g., 11, 11.4, 11.4.0)
-GCC_VERSION=15.2.0
+GCC_VERSION=15
 
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
 
@@ -27,7 +27,7 @@ if [ "$VER" == "2.2.0" ]; then
 	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
 	source ./share/spack/setup-env.sh
 
-	if ! gcc-11 --version | grep $GCC_VERSION; then
+	if ! gcc --version | grep $GCC_VERSION; then
 		echo
 		echo "gcc $GCC_VERSION is needed for this build"
 		echo

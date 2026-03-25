@@ -2,15 +2,12 @@
 Non-GUI TODO
 ============
 
-1. Confirm that hpc, spack, and zee all work
-	hpc - OK
-	zee - OK
-	spack -
-2. Change zee to lmod
-3. all the rest -
-   - try 2.1.0?? Just for comparison, please!
-   - reintegrate Makefile that downloads the data, please!
-   - resolve "leonard" for fix data download
+1. Make sure "gcc-15" works ok with spack
+2. Get hpc stack working again for 2.2.0!
+3. Get Lmod working with spack for 2.2.0! (this is our zee)
+4. Try to build 2.1.0 again (archived build scripts needed?)
+5. Reintegrate Makefile that downloads the data, please!
+6. Resolve "leonard" for fix data download
 
 ========
 GUI TODO
