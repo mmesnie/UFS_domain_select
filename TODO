@@ -3,7 +3,7 @@ Performance
 ===========
 
 Intel(R) Pentium(R) CPU G2030 @ 3.00GHz, 16 GiB DRAM 
-	gcc build:
+	gcc build: 200+ minutes
 	spack build:
 	ufs build:
 	anaconda install

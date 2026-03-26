@@ -60,6 +60,7 @@ if [ "$VER" == "2.2.0" ]; then
 	fi
 
 	spack env activate ufs -p
+	spack compiler find
 
 	# Apply cmake flags for the fms package.
 	cp $TOP/../stack/patch/spack-stack-for-$VER/package.py `spack location -p fms`
@@ -73,6 +74,7 @@ if [ "$VER" == "2.2.0" ]; then
 
 	for pkg in "${PACKAGES[@]}"; do
 		spack add $pkg %gcc@$GCC_VERSION
+		#spack add $pkg %gcc@$GCC_VERSION
 	done
 
 	spack concretize
