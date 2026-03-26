@@ -7,7 +7,7 @@ are also included.  The spack-based build has been tested on Ubuntu 18 and 22.
 
 The hpc-based build is being deprecated.
 
-# Instructions
+# Build instructions -
 
 * It's best to start with a fresh Ubuntu installation.
 * Make sure you have sudo access.
@@ -19,7 +19,7 @@ The do-all script will build and install everything (spack, ufs, anaconda,
 data files, etc.), generate a forecast, and plot the result. The default
 config.yaml is a 6-hour 500mb forecast of the Oregon coast.
 
-# Instructions for generating a new forecast using the GUI -
+# Generating a new forecast using the GUI -
 
 1. cd UFS_domain_select
 2. conda activate regional_workflow-2.2.0
