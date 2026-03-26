@@ -24,11 +24,9 @@ config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
 1. cd UFS_domain_select
 2. conda activate regional_workflow-2.2.0
 3. ./UFS_domain_select.py
-4. Hover mouse over LambertConformal grid. Press 'y' to output YAML and
-   'q' to exit.
+4. Hover mouse over LambertConformal grid. Press 'y' to output the YAML
+   template file (forecast/config.yaml.tmpl) and 'q' to exit.  Note that
+   this will overwrite forecast/config.yaml.tmpl. This template file will
+   be modified by the do-forecast script before generating the forecast.
 5. cd forecast
 6. ./do-forecast spack 2.2.0
-
-UFS_domain_select will overwrite forecast/config.yaml.tmpl. This template
-file will be modified as needed by the do-forecast script before generating
-the forecast.
