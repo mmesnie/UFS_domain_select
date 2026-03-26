@@ -34,7 +34,7 @@ mkdir -p $TOP
 
 if [ "$VER" == "2.2.0" ]; then
 
-	echo echo "### $0: cloning spack stack"
+	echo; echo "### $0: cloning spack stack"
 	cd $TOP
 	git clone -c feature.manyFiles=true https://github.com/spack/spack.git spack-stack-for-$VER
 	cd spack-stack-for-$VER
