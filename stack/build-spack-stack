@@ -41,6 +41,11 @@ if [ "$VER" == "2.2.0" ]; then
 	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
 	source ./share/spack/setup-env.sh
 
+	echo; echo "### $0: creating ufs build environment"
+	spack env create ufs
+	spack env activate ufs -p
+	spack env deactivate
+
 	if $prompt_gcc_build; then
 		read -p "<[y]|n> build gcc@$GCC_VERSION spack package?" val
 		if [ "$val" == "y" ] || [ "$val" == "" ]; then
@@ -54,8 +59,6 @@ if [ "$VER" == "2.2.0" ]; then
 		fi
 	fi
 
-	echo; echo "### $0: creating ufs build environment"
-	spack env create ufs
 	spack env activate ufs -p
 
 	# Apply cmake flags for the fms package.
