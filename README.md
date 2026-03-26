@@ -17,7 +17,7 @@ The hpc-based build is being deprecated.
 
 The do-all script will build and install everything (spack, ufs, anaconda,
 data files, etc.), generate a forecast, and plot the result. The default
-config.yaml is a 6-hour 500mb forecast of the Oregon coast.
+config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
 
 # Generating a new forecast using the GUI -
 
