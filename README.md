@@ -19,6 +19,11 @@ The do-all script will build and install everything (spack, ufs, anaconda,
 data files, etc.), generate a forecast, and plot the result. The default
 config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
 
+This could take any number of hours to complete, depending on your
+platform. My slowest system is a Dell Inspiron with 3 GhZ dual-core
+Pentium and 16 GiB of memory, circa 2013.  The do-all script takes
+x hours.
+
 # Generating a new forecast with the GUI -
 
 1. cd UFS_domain_select
