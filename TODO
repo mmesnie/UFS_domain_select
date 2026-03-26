@@ -11,11 +11,18 @@ Intel(R) Pentium(R) CPU G2030 @ 3.00GHz, 16 GiB DRAM
 	6 hr forecast Oregon coast:
 	do-all (includes data download):
 
+==========
+Validation
+==========
+
+Machine         Distro
+Dell		Ubuntu 18
+Thinkpad	Ubuntu 22
+
 ============
 Non-GUI TODO
 ============
 
-* 1. Make sure "gcc-15" works ok with spack
   2. Get hpc stack working again for 2.2.0!
   3. Get Lmod working with spack for 2.2.0! (this is our zee)
   4. Try to build 2.1.0 again (archived build scripts needed?)
