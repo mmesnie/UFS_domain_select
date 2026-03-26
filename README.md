@@ -7,7 +7,9 @@ are also included.  The spack-based build has been tested on Ubuntu 18 and 22.
 
 The hpc-based build is being deprecated.
 
-# Instructions for building UFS SRW model
+# Instructions for building everything and generating a forecast
+# with the default config.yaml (a 6-hour 500mb forecast of the
+# Oregon coast) -
 
 * It's best to start with a fresh Ubuntu installation.
 * Make sure you have sudo access.
@@ -15,7 +17,7 @@ The hpc-based build is being deprecated.
 1. cd UFS_domain_select/stack
 2. ./do-all spack 2.2.0
 
-# Instructions for generating a forecast
+# Instructions for generating a new forecast using the GUI -
 
 1. cd UFS_domain_select
 2. conda activate regional_workflow-2.2.0
