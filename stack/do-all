@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ $# != 2 ]; then
         echo "usage: $0 <hpc|spack|zee> <2.1.0|2.2.0>"
         exit 1

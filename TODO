@@ -1,14 +1,27 @@
+===========
+Performance
+===========
+
+Intel(R) Pentium(R) CPU G2030 @ 3.00GHz, 16 GiB DRAM 
+	gcc build:
+	spack build:
+	ufs build:
+	anaconda install
+	anaconda config
+	6 hr forecast Oregon coast:
+	do-all (includes data download):
+
 ============
 Non-GUI TODO
 ============
 
-1. Make sure "gcc-15" works ok with spack
-2. Get hpc stack working again for 2.2.0!
-3. Get Lmod working with spack for 2.2.0! (this is our zee)
-4. Try to build 2.1.0 again (archived build scripts needed?)
-5. Reintegrate Makefile that downloads the data, please!
-6. Resolve "leonard" for fix data download
-7. Resolve "monitor" issue when gcc is building. Needed??
+* 1. Make sure "gcc-15" works ok with spack
+  2. Get hpc stack working again for 2.2.0!
+  3. Get Lmod working with spack for 2.2.0! (this is our zee)
+  4. Try to build 2.1.0 again (archived build scripts needed?)
+  5. Reintegrate Makefile that downloads the data, please!
+  6. Resolve "leonard" for fix data download
+  7. Resolve "monitor" issue when gcc is building. Needed??
 
 ========
 GUI TODO
