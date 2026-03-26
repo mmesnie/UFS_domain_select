@@ -20,9 +20,9 @@ data files, etc.), generate a forecast, and plot the result. The default
 config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
 
 This could take any number of hours to complete, depending on your
-platform. My slowest system is a Dell Inspiron with 3 GhZ dual-core
+platform. My slowest system is a Dell Inspiron with a 3 GhZ dual-core
 Pentium and 16 GiB of memory, circa 2013.  The do-all script takes
-x hours.
+about x hours to complete.
 
 # Generating a new forecast with the GUI -
 
