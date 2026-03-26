@@ -19,7 +19,7 @@ The do-all script will build and install everything (spack, ufs, anaconda,
 data files, etc.), generate a forecast, and plot the result. The default
 config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
 
-# Generating a new forecast using the GUI -
+# Generating a new forecast with the GUI -
 
 1. cd UFS_domain_select
 2. conda activate regional_workflow-2.2.0
@@ -28,3 +28,7 @@ config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
    'q' to exit.
 5. cd forecast
 6. ./do-forecast spack 2.2.0
+
+UFS_domain_select will overwrite forecast/config.yaml.tmpl. This template
+file will be modified as needed by the do-forecast script before generating
+the forecast.
