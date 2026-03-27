@@ -88,6 +88,7 @@ fi
 
 cores=`lscpu -p | egrep -v '^#' | wc -l`
 model=`cat /proc/cpuinfo | grep "model name" | head -n 1 | sed 's/^model name\t: //'`
+mem=`awk '$3=="kB"{$2=$2/1024^2;$3="GB";} 1' /proc/meminfo | column -t | head -n 1 | awk '{print $2}'`
 
 echo
 echo "********"
@@ -95,6 +96,7 @@ echo "Platform"
 echo "********"
 echo "   cpu: $model"
 echo " cores: $cores"
+echo "memory: $mem GiB"
 echo
 echo "************************"
 echo "Elapsed times in seconds"
