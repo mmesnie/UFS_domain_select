@@ -2,6 +2,20 @@
 
 set -e
 
+t_elapsed=""
+
+mytime() {
+	t_start=`date +%s`
+	sh -c "$1"
+	t_stop=`date +%s`
+	t_elapsed=`echo $t_start $t_stop | awk '{print $2-$1}'`
+	echo
+	echo "*"
+	echo "* $1: $t_elapsed seconds"
+	echo "*"
+	echo
+}
+
 if [ $# != 2 ]; then
         echo "usage: $0 <hpc|spack|zee> <2.1.0|2.2.0>"
         exit 1
@@ -17,48 +31,84 @@ cd $UFS_DOMAIN_SELECT_HOME/stack
 
 read -p "<[y]|n> install prereqs (sudo required)?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./install-prereqs $STACK
+	mytime "./install-prereqs $STACK"
+	t_prereqs=$t_elapsed
 fi
 
 read -p "<[y]|n> build $STACK stack for UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./build-$STACK-stack $VER
+	mytime "./build-$STACK-stack $VER"
+	t_build_stack=$t_elapsed
 fi
 
 read -p "<[y]|n> build UFS SRW model $VER with $STACK stack?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./build-model-with-$STACK-stack $VER
+	mytime "./build-model-with-$STACK-stack $VER"
+	t_build_model=$t_elapsed
 fi
 
 read -p "<[y]|n> install anaconda?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./install-anaconda
+	mytime "./install-anaconda"
+	t_install_anaconda=$t_elapsed
 fi
 
 read -p "<[y]|n> config anaconda for UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	./config-anaconda $VER
+	mytime "./config-anaconda $VER"
+	t_config_anaconda=$t_elapsed
 fi
 
 read -p "<[y]|n> download input data for UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./download-data $VER
+	mytime "./download-data $VER"
+	t_download_data=$t_elapsed
 fi
 
 read -p "<[y]|n> download earth?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	time ./download-earth
+	mytime "./download-earth"
+	t_download_earth=$t_elapsed
 fi
 
 read -p "<[y]|n> generate and plot a forecast with UFS SRW model $VER?" val
+
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-        time ../forecast/do-forecast $STACK $VER || exit 1
-        time ../forecast/do-post $STACK $VER || exit 1
-        time ../forecast/do-plot $STACK $VER || exit 1
+        mytime "../forecast/do-forecast $STACK $VER"
+        t_do_forecast=$t_elapsed
+        mytime "../forecast/do-post $STACK $VER"
+        t_do_post=$t_elapsed
+        mytime "../forecast/do-plot $STACK $VER"
+        t_do_plot=$t_elapsed
+
         echo
         echo "*** FORECAST COMPLETE ***"
         echo
 fi
+
+cores=`lscpu -p | egrep -v '^#' | wc -l`
+model=`cat /proc/cpuinfo | grep "model name" | head -n 1 | sed 's/^model name\t: //'`
+
+echo
+echo "********"
+echo "Platform"
+echo "********"
+echo "   cpu: $model"
+echo " cores: $cores"
+echo
+echo "************************"
+echo "Elapsed times in seconds"
+echo "************************"
+echo "          prereqs: $t_prereqs"
+echo "      build stack: $t_build_stack"
+echo "      build model: $t_build_model"
+echo " install anaconda: $t_install_anaconda"
+echo "  config anaconda: $t_config_anaconda"
+echo "    download data: $t_download_data"
+echo "   download earth: $t_download_earth"
+echo "         forecast: $t_do_forecast"
+echo "             post: $t_do_post"
+echo "             plot: $t_do_plot"
 
 echo
 echo "*"
