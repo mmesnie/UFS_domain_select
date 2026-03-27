@@ -2,7 +2,8 @@
 ============
 Non-GUI TODO
 ============
-
+ 
+* 1. Rull test of do-all spack 2.2.0
   2. Get hpc stack working again for 2.2.0!
   3. Get Lmod working with spack for 2.2.0! (this is our zee)
   4. Try to build 2.1.0 again (archived build scripts needed?)

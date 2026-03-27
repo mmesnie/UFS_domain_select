@@ -76,8 +76,8 @@ read -p "<[y]|n> generate and plot a forecast with UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
         mytime "../forecast/do-forecast $STACK $VER"
         t_do_forecast=$t_elapsed
-        mytime "../forecast/do-post $STACK $VER"
-        t_do_post=$t_elapsed
+        #mytime "../forecast/do-post $STACK $VER"
+        #t_do_post=$t_elapsed
         mytime "../forecast/do-plot $STACK $VER"
         t_do_plot=$t_elapsed
 
@@ -109,8 +109,8 @@ echo "  config anaconda: $t_config_anaconda"
 echo "    download data: $t_download_data"
 echo "   download earth: $t_download_earth"
 echo "         forecast: $t_do_forecast"
-echo "             post: $t_do_post"
-echo "             plot: $t_do_plot"
+#echo "             post: $t_do_post"
+#echo "             plot: $t_do_plot"
 
 echo
 echo "*"
