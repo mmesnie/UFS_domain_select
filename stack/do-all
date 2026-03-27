@@ -24,8 +24,7 @@ fi
 STACK=$1
 VER=$2
 
-TOP=$(realpath $(dirname $0))
-export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
+export UFS_DOMAIN_SELECT_HOME=`echo $(realpath $(dirname $0)) | sed 's/\/stack//'`
 
 cd $UFS_DOMAIN_SELECT_HOME/stack
 
@@ -114,8 +113,8 @@ echo "         forecast: $t_do_forecast"
 
 echo
 echo "*"
-echo "* You can modify $TOP/config.yaml.tmpl and execute"
-echo "* $TOP/forecast/do-forecast $STACK $VER to generate"
+echo "* You can modify $UFS_DOMAIN_SELECT_HOME/forecast/config.yaml.tmpl and execute"
+echo "* $UFS_DOMAIN_SELECT_HOME/forecast/do-forecast $STACK $VER to generate"
 echo "* another forecast."
 echo "*"
 echo
