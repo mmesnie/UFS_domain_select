@@ -29,7 +29,7 @@ of memory, circa 2013) takes about 10 hours.
 2. Hover your mouse over the Lambert Conformal or Rotated Pole grid and press 'y'
    to output the YAML template file for the selected region. This will overwrite
    the config.yaml.tmpl file in the forecast directory. The do-forecast script
-   will modify this template to create ush/config.yaml. 
+   will modify this template to create ush/config.yaml in the UFS SRW source tree. 
 5. Run "../do-forecast spack 2.2.0" to generate and plot the forecast.
 
 Below is a screengrab of the GUI.  Radio buttons are used to select from one of
