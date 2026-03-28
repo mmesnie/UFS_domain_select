@@ -74,7 +74,7 @@ if [ $STACK == "spack" ]; then
 	if [ $STACK == "spack" ]; then
 		ENV="ufs"
 	fi
-	echo "### Activating $ENV spack environment"
+	echo "### Activating $ENV spack environment..."
 	spack env activate $ENV -p
 
 	#
@@ -93,15 +93,15 @@ fi
 # Activate conda environment
 #
 
-echo "### Initializing conda"
+echo "### Initializing conda..."
 eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
 
-echo "### Activating regional_workflow-$VER"
+echo "### Activating regional_workflow-$VER..."
 conda activate regional_workflow-$VER
 export PYTHONPATH="$PYTHONPATH:$UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-2.2.0-with-$STACK-stack/ush/python_utils/workflow-tools/"
 export PYTHONPATH="$PYTHONPATH:$UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-2.2.0-with-$STACK-stack/ush/python_utils/workflow-tools/src"
 
-echo "### Generating forecast"
+echo "### Generating forecast..."
 cd ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush
 ./generate_FV3LAM_wflow.py
 

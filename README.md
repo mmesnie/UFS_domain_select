@@ -31,3 +31,5 @@ Pentium and 16 GiB of memory, circa 2013) takes about 10 hours.
    config.yaml.tmpl file in the forecast directory. The do-forecast script will modify
    this template to create ush/config.yaml. 
 5. ../do-forecast spack 2.2.0
+
+![Alt text](screenshot.png?raw=true)
