@@ -25,11 +25,11 @@ Pentium and 16 GiB of memory, circa 2013) takes about 10 hours.
 
 # Generating a new forecast with the GUI -
 
-1. ./UFS_domain_select
+1. Run "./UFS_domain_select" to start the GUI.
 2. Hover your mouse over the LambertConformal or RotatedPole grid and press 'y' to
    output the YAML template file for the selected region. This will overwrite the
    config.yaml.tmpl file in the forecast directory. The do-forecast script will modify
    this template to create ush/config.yaml. 
-5. ../do-forecast spack 2.2.0
+5. Run "../do-forecast spack 2.2.0" to generate and plot the forecast.
 
 ![Alt text](screenshot.png?raw=true)
