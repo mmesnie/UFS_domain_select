@@ -310,7 +310,7 @@ class ufs_domain_select():
             s.enabled[s.index_dflt] = True
             if not g_args.file:
                 #s.enabled['PlateCarree'] = True
-                s.enabled['Mercator'] = True
+                #s.enabled['Mercator'] = True
                 #s.enabled['Miller'] = True
                 #s.enabled['EquidistantConic'] = True
                 #s.enabled['AlbersEqualArea'] = True
@@ -322,7 +322,7 @@ class ufs_domain_select():
                 #s.enabled['Mollweide'] = True
                 #s.enabled['Sinusoidal'] = True
                 #s.enabled['InterruptedGoodeHomolosine'] = True
-                #s.enabled['RotatedPole'] = True
+                s.enabled['RotatedPole'] = True
                 pass
 
         count = 0
