@@ -19,17 +19,25 @@ The do-all script will build and install everything (spack, ufs, anaconda,
 data files, etc.), generate a forecast, and plot the result. The default
 config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
 
-This could take any number of hours to complete, depending on your
-platform. My slowest system (a Dell Inspiron with a 3 GhZ dual-core
-Pentium and 16 GiB of memory, circa 2013) takes about 10 hours.
+This could take any number of hours to complete, depending on your platform.
+My slowest system (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB
+of memory, circa 2013) takes about 10 hours.
 
 # Generating a new forecast with the GUI -
 
 1. Run "./UFS_domain_select" to start the GUI.
-2. Hover your mouse over the LambertConformal or RotatedPole grid and press 'y' to
-   output the YAML template file for the selected region. This will overwrite the
-   config.yaml.tmpl file in the forecast directory. The do-forecast script will modify
-   this template to create ush/config.yaml. 
+2. Hover your mouse over the LambertConformal or RotatedPole grid and press 'y'
+   to output the YAML template file for the selected region. This will overwrite
+   the config.yaml.tmpl file in the forecast directory. The do-forecast script
+   will modify this template to create ush/config.yaml. 
 5. Run "../do-forecast spack 2.2.0" to generate and plot the forecast.
+
+Below is a screengrab of the GUI.  Radio buttons are used to select from one of
+the predefined regions (e.g., RRFS_CONUS, SUBCONUS_Ind, Oregon Coast), each of
+which can be modified to select a different region.  Radio buttons are also used
+to select among the various projections (e.g., Lambert Conformal, Rotated Pole,
+Mercator). Hovering the mouse over the LambertConformal or RotatedPole grid and
+pressing 'y' will output the YAML config for that region.  From there, you can
+generate the forecast.
 
 ![Alt text](screenshot.png?raw=true)
