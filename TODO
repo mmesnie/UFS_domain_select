@@ -3,19 +3,17 @@
 Non-GUI TODO
 ============
  
-* 1. Rull test of do-all spack 2.2.0
-
+  --> keep config-anaconda from listing packages and stalling install???
   --> figure out if linux-2.2.0.yaml.tmpl is needed. If not,
       move it to the attic. Or maybe modify this so that it
-      works with --compiler and --platform??
-  --> keep config-anaconda from listing packages and stalling install!
+      works with --compiler and --platform?? Maybe install and
+      get rocoto working, for fun???
 
   2. Get hpc stack working again for 2.2.0!
   3. Get Lmod working with spack for 2.2.0! (this is our zee)
   4. Try to build 2.1.0 again (archived build scripts needed?)
   5. Reintegrate Makefile that downloads the data, please!
   6. Resolve "leonard" for fix data download
-  7. Resolve "monitor" issue when gcc is building. Needed??
 
 ========
 GUI TODO
