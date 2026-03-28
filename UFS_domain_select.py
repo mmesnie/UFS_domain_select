@@ -89,16 +89,18 @@ class forecast():
         s = self
         s.dt_atmos = 36
         s.blocksize = 40
-        s.layout_x = 3
-        s.layout_y = 3
+        s.layout_x = "<LAYOUT_X>"
+        s.layout_y = "<LAYOUT_Y>"
         s.write_groups = 1
-        s.write_tasks_per_group = 3
+        s.write_tasks_per_group = 1
         s.date = date
         s.cycle = cycle
-        s.fcst_len_hrs = 24
+        s.fcst_len_hrs = 6
         s.lbc_spec_intvl_hrs = 6
-        s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
-        s.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
+        #s.extrn_mdl_source_basedir_ics = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
+        #s.extrn_mdl_source_basedir_lbcs = f"{UFS_DOMAIN_SELECT_HOME}/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/{s.date}{s.cycle}"
+        s.extrn_mdl_source_basedir_ics = "<EXTRN_MDL_SOURCE_BASEDIR_ICS>"
+        s.extrn_mdl_source_basedir_lbcs = "<EXTRN_MDL_SOURCE_BASEDIR_LBCS>"
         s.yaml_file = yaml_file
 
 class grid():
@@ -492,7 +494,7 @@ class ufs_domain_select():
             if (self.index == "LambertConformal" or self.index == "RotatedPole"):
                 output_config(self, self.index, self.yaml_file_output)
             else:
-                print("choose from LambertConformal or RotatedPole")
+                print("hover mouse over LambertConformal or RotatedPole before pressing \'y\'")
                 return
         elif event.key == 'R':
             if self.res == 3000:
@@ -774,7 +776,8 @@ user:
   MACHINE: linux
   ACCOUNT: an_account
 workflow:
-  EXPT_SUBDIR: {UFS_DOMAIN_SELECT_HOME}/build/expt-2.2.0/test_community
+  EXPT_BASEDIR: <EXPT_BASEDIR>
+  EXPT_SUBDIR: <EXPT_SUBDIR>
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
   DATE_FIRST_CYCL: '{f.date}{f.cycle}'
@@ -803,7 +806,7 @@ task_get_extrn_lbcs:
   FV3GFS_FILE_FMT_LBCS: grib2
   EXTRN_MDL_SOURCE_BASEDIR_LBCS: {f.extrn_mdl_source_basedir_lbcs}
 task_run_post:
-  POST_OUTPUT_DOMAIN_NAME: 'mesnier'
+  POST_OUTPUT_DOMAIN_NAME: 'ufs_domain_select'
 task_run_fcst:
   QUILTING: true
   DT_ATMOS: {f.dt_atmos}
@@ -846,10 +849,14 @@ task_run_fcst:
     with open(f.yaml_file, "w") as file:
         file.write(config_text)
         file.write(config_text_wrtcmp)
-    print(f"       YAML file output: {f.yaml_file}")
-    print(f"                    cmd: export DATE={f.date} CYCLE={f.cycle} LEN={f.fcst_len_hrs} LBC={f.lbc_spec_intvl_hrs}; time ./forecast")
 
     latest()
+
+    print(f"\n*")
+    print(f"* YAML written to {f.yaml_file}")
+    print(f"*")
+    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/forecast/do-forecast spack 2.2.0\" execute model")
+    print(f"*\n")
 
 def get_index(uds, ax):
     for p in uds.projs:
@@ -1338,7 +1345,7 @@ def show_help():
 
 show_help()
 
-config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/forecast/config.yaml"
+config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/forecast/config.yaml.tmpl"
 predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/forecast/predef_grid_params-2.2.0.yaml"
 
 myuds = ufs_domain_select(compute_grid_dflt=1.1, yaml_file_output=config_yaml)
