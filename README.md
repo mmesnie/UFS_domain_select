@@ -36,7 +36,7 @@ Below is a screengrab of the GUI.  Radio buttons are used to select from one of
 the predefined regions (e.g., RRFS_CONUS, SUBCONUS_Ind, Oregon Coast), each of
 which can be modified to select a different region.  Radio buttons are also used
 to select among the various projections (e.g., Lambert Conformal, Rotated Pole,
-Mercator). Hovering the mouse over the LambertConformal or RotatedPole grid and
+Mercator). Hovering the mouse over Lambert Conformal or Rotated Pole and
 pressing 'y' will output the YAML config for that region.  From there, you can
 generate the forecast.
 
