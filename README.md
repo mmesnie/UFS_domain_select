@@ -40,4 +40,4 @@ Mercator). Hovering the mouse over Lambert Conformal or Rotated Pole and
 pressing 'y' will output the YAML config for that region.  From there, you can
 generate the forecast.
 
-![Alt text](screenshot.png?raw=true)
+![Alt text](screenshot.png)
