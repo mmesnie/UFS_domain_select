@@ -3,13 +3,13 @@
 set -e
 
 if [ $# != 2 ]; then
-        echo "usage: $0 <hpc|spack|zee> <2.2.0|3.0.0>"
+        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0>"
         exit 1
 fi
 
-if [ ! $1 == "hpc" ] && [ ! $1 == "spack" ] && [ ! $1 == "zee" ]; then
+if [ ! $1 == "hpc" ] && [ ! $1 == "spack" ]; then
 	echo \"$1\" is an invalid stack
-        echo "usage: $0 <hpc|spack|zee> <2.2.0|3.0.0>"
+        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0>"
 	exit 1 
 fi
 
@@ -62,18 +62,16 @@ layout=`echo "sqrt($cores - 1)" | bc`
 
 cat config.yaml.tmpl | sed "s|<EXPT_SUBDIR>|${EXPT_SUBDIR}|g" | sed "s|<EXPT_BASEDIR>|${EXPT_BASEDIR}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_ICS>|${EXTRN_MDL_SOURCE_BASEDIR_ICS}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_LBCS>|${EXTRN_MDL_SOURCE_BASEDIR_LBCS}|g" | sed "s|<LAYOUT_X>|${layout}|g" | sed "s|<LAYOUT_Y>|${layout}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/config.yaml
 
-#cat linux-$VER.yaml.tmpl | sed "s|<UFS_DOMAIN_SELECT_HOME>|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/machine/linux.yaml
+cat linux-$VER.yaml.tmpl | sed "s|<UFS_DOMAIN_SELECT_HOME>|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/machine/linux.yaml
 
 #
 # Activate spack environment, if needed
 #
 
-if [ $STACK == "spack" ] || [ $STACK == "zee" ]; then
+if [ $STACK == "spack" ]; then
 	source $UFS_DOMAIN_SELECT_HOME/build/$STACK-stack-for-$VER/share/spack/setup-env.sh
 	if [ $STACK == "spack" ]; then
 		ENV="ufs"
-	elif [ $STACK == "zee" ]; then
-		ENV="zee"
 	fi
 	echo "### $0: activating $ENV spack environment"
 	spack env activate $ENV -p
