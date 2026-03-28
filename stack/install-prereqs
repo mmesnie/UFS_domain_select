@@ -3,7 +3,7 @@
 #set -e
 
 if [ $# != 1 ]; then
-        echo "usage: $0 <hpc|spack|zee>"
+        echo "usage: $0 <hpc|spack>"
         exit 1
 fi
 
