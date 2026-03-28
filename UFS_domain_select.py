@@ -855,7 +855,7 @@ task_run_fcst:
     print(f"\n*")
     print(f"* YAML written to {f.yaml_file}")
     print(f"*")
-    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/forecast/do-forecast spack 2.2.0\" execute model")
+    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/forecast/do-forecast spack 2.2.0\" to execute model")
     print(f"*\n")
 
 def get_index(uds, ax):
