@@ -11,7 +11,7 @@ STACK=$1
 
 sudo apt update
 sudo apt install git curl build-essential -y
-#sudo apt install gcc-11 g++-11 gfortran-11 -y
+sudo apt install gcc-11 g++-11 gfortran-11 -y
 sudo apt install ristretto -y
 
 if [ "$STACK" == "hpc" ]; then
