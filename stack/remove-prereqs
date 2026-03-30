@@ -10,10 +10,11 @@ fi
 STACK=$1
 
 if [ "$STACK" == "hpc" ]; then
-	sudo apt remove cmake -y
+
 	sudo apt remove openmpi-bin -y
 	sudo apt remove openmpi-common libopenmpi-dev -y
 	sudo apt remove libssl-dev -y
+
 	sudo apt remove lua5.3 liblua5.3-0 liblua5.3-dev lua-filesystem-dev lua-posix-dev -y
 	sudo apt remove tcl tcl8.6-dev libtcl8.6 -y
 
