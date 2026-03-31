@@ -3,14 +3,13 @@ gnu:
   version: 9.3.0
 
 mpi:
-  build: YES
+  build: NO
   flavor: openmpi
-  version: 4.1.2
-  bootstrap: YES
+  version: 4.0.1
 
 cmake:
-  build: YES
-  bootstrap: YES
+  build: NO
+  bootstrap: NO
   version: 3.20.1
 
 jpeg:
