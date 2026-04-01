@@ -21,13 +21,15 @@ if [ $# != 2 ]; then
         exit 1
 fi
 
-if ! cat /etc/issue | awk '{print $2}' | grep "^22\."; then
-        echo "this hpc stack build has only tested on Ubuntu 22.04"
-        exit 1
-fi
-
 STACK=$1
 VER=$2
+
+if [ $STACK == "hpc" ]; then
+	if ! cat /etc/issue | awk '{print $2}' | grep "^22\."; then
+        	echo "this hpc stack build has only tested on Ubuntu 22.04"
+        	exit 1
+	fi
+fi
 
 export UFS_DOMAIN_SELECT_HOME=`echo $(realpath $(dirname $0)) | sed 's/\/stack//'`
 
