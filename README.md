@@ -13,6 +13,14 @@ This could take any number of hours to complete, depending on your platform.
 My slowest system (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB
 of memory, circa 2013) takes about 10 hours.
 
+# Validated platforms
+
+| Distribution | Stack | UFS model |
+| ---          | ---   | ---       |
+| Ubuntu 18.04 | spack | 2.2.0     |
+| Ubuntu 22.04 | spack | 2.2.0     |
+| Ubuntu 22.04 | hpc   | 2.2.0     |
+
 # Building with spack stack
 
 It's best to start with a fresh Ubuntu installation.
@@ -47,13 +55,5 @@ to select among the various projections (e.g., Lambert Conformal, Rotated Pole,
 Mercator). Hovering the mouse over Lambert Conformal or Rotated Pole and
 pressing 'y' will output the YAML config for that region.  From there, you can
 generate the forecast.
-
-# Validated platforms
-
-| Distribution | Stack | UFS model |
-| ---          | ---   | ---       |
-| Ubuntu 18.04 | spack | 2.2.0     |
-| Ubuntu 22.04 | spack | 2.2.0     |
-| Ubuntu 22.04 | hpc   | 2.2.0     |
 
 ![Alt text](screenshot.png)
