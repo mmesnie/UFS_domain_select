@@ -51,10 +51,9 @@ generate the forecast.
 # Validated platforms
 
 | Distribution | Stack | UFS model |
-| --- | --- | --- |
-| Ubuntu 18 | spack | 2.2.0
-| Ubuntu 22 | spack| 2.2.0
-| Ubuntu 22 | hpc| 2.2.0
-
+| ---          | ---   | ---       |
+| Ubuntu 18.04 | spack | 2.2.0     |
+| Ubuntu 22.04 | spack | 2.2.0     |
+| Ubuntu 22.04 | hpc   | 2.2.0     |
 
 ![Alt text](screenshot.png)
