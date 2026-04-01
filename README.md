@@ -13,9 +13,7 @@ This could take any number of hours to complete, depending on your platform.
 My slowest system (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB
 of memory, circa 2013) takes about 10 hours.
 
-#############################
-# Building with spack stack #
-#############################
+# Building with spack stack
 
 It's best to start with a fresh Ubuntu installation.
 
@@ -24,9 +22,7 @@ Make sure you have sudo access.
 1. cd UFS_domain_select/stack
 2. ./do-all spack 2.2.0
 
-###########################
-# Building with hpc stack #
-###########################
+# Building with hpc stack
 
 It's best to start with a fresh Ubuntu installation.
 
@@ -35,9 +31,7 @@ Make sure you have sudo access.
 1. cd UFS_domain_select/stack
 2. ./do-all hpc 2.2.0
 
-##########################################
-# Generating a new forecast with the GUI #
-##########################################
+# Generating a new forecast with the GUI
 
 1. Run "./UFS_domain_select" to start the GUI.
 2. Hover your mouse over the Lambert Conformal or Rotated Pole grid and press 'y'
