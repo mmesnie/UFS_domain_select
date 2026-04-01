@@ -3,7 +3,7 @@
 A Cartopy script to generate the YAML config for a UFS SRW regional forecast.
 
 Scripts to build the stack (spack or hpc) and the UFS SRW model (version 2.2.0) 
-are also included.  The spack-based build has been tested on Ubuntu 18 and 22.
+are also included.  
 
 The do-all script will build and install everything (spack stack or hpc stack, 
 ufs, anaconda, data files, etc.), generate a forecast, and plot the result. 
@@ -47,5 +47,13 @@ to select among the various projections (e.g., Lambert Conformal, Rotated Pole,
 Mercator). Hovering the mouse over Lambert Conformal or Rotated Pole and
 pressing 'y' will output the YAML config for that region.  From there, you can
 generate the forecast.
+
+# Validated platforms
+
+| Command | Description |
+| --- | --- |
+| `git status` | List all new or modified files |
+| `git diff` | Show file differences that haven't been staged |
+
 
 ![Alt text](screenshot.png)
