@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Compiler/MPI combination
-export HPC_COMPILER=${HPC_COMPILER:-"gnu/11.4.0"}
+export HPC_COMPILER=${HPC_COMPILER:-"gnu/11.4"}
 export HPC_MPI=${HPC_MPI:-"openmpi/4.1.2"}
 export HPC_PYTHON=${HPC_PYTHON:-"python/3.10.12"}
 

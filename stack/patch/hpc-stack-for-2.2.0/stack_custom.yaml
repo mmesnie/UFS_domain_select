@@ -2,15 +2,16 @@ gnu:
   build: NO
   version: 9.3.0
 
-mpi:
-  build: NO
-  flavor: openmpi
-  version: 4.0.1
-
 cmake:
   build: YES
   bootstrap: YES
   version: 3.20.1
+
+#mpi:
+#  build: YES
+#  flavor: openmpi
+#  version: 4.1.2
+#  bootstrap: YES
 
 jpeg:
   build: YES

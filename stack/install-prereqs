@@ -11,22 +11,22 @@ STACK=$1
 
 sudo apt update
 sudo apt install git curl build-essential -y
-sudo apt install gcc-11 g++-11 gfortran-11 -y
 sudo apt install ristretto -y
 
 if [ "$STACK" == "hpc" ]; then
 
-	sudo apt install gcc-11 g++-11 gfortran-11 -y
-
+	#sudo apt install gcc-11 g++-11 gfortran-11 -y
 	#sudo update-alternatives \
 	#	--install /usr/bin/gcc gcc /usr/bin/gcc-11 1000 \
 	#	--slave /usr/bin/g++ g++ /usr/bin/g++-11 \
 	#	--slave /usr/bin/gfortran gfortran /usr/bin/gfortran-11
 
-	#sudo apt install cmake
 	sudo apt install openmpi-bin -y
 	sudo apt install openmpi-common libopenmpi-dev -y
+
+	#sudo apt install cmake
 	sudo apt install libssl-dev -y
+
 	sudo apt-get install lua5.3 liblua5.3-0 liblua5.3-dev lua-filesystem-dev lua-posix-dev -y
 	sudo apt-get install tcl tcl8.6-dev libtcl8.6 -y
 
