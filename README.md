@@ -50,10 +50,11 @@ generate the forecast.
 
 # Validated platforms
 
-| Command | Description |
-| --- | --- |
-| `git status` | List all new or modified files |
-| `git diff` | Show file differences that haven't been staged |
+| Distribution | Stack | UFS model |
+| --- | --- | --- |
+| Ubuntu 18 | spack | 2.2.0
+| Ubuntu 22 | spack| 2.2.0
+| Ubuntu 22 | hpc| 2.2.0
 
 
 ![Alt text](screenshot.png)
