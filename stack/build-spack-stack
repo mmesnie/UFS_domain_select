@@ -36,13 +36,19 @@ if [ "$VER" == "2.2.0" ]; then
 
 	echo; echo "### $0: cloning spack stack"
 	cd $TOP
-	git clone -c feature.manyFiles=true https://github.com/spack/spack.git spack-stack-for-$VER
+        if [ ! -d spack-stack-for-$VER ]; then
+		git clone -c feature.manyFiles=true https://github.com/spack/spack.git spack-stack-for-$VER
+	fi
 	cd spack-stack-for-$VER
 	git checkout 124b9686d153a7e6d6eb9eed7fb318d7fc65272f
 	source ./share/spack/setup-env.sh
 
 	echo; echo "### $0: creating ufs build environment"
-	spack env create ufs
+	if spack env list | grep ufs; then
+		echo "ufs environment already exists"
+	else 
+		spack env create ufs
+	fi
 	spack env activate ufs -p
 	spack env deactivate
 
