@@ -17,11 +17,13 @@ sudo apt install ristretto -y
 if [ "$STACK" == "hpc" ]; then
 
 	sudo apt install gcc-11 g++-11 gfortran-11 -y
-	sudo update-alternatives \
-		--install /usr/bin/gcc gcc /usr/bin/gcc-11 1000 \
-		--slave /usr/bin/g++ g++ /usr/bin/g++-11 \
-		--slave /usr/bin/gfortran gfortran /usr/bin/gfortran-11
-	sudo apt install cmake
+
+	#sudo update-alternatives \
+	#	--install /usr/bin/gcc gcc /usr/bin/gcc-11 1000 \
+	#	--slave /usr/bin/g++ g++ /usr/bin/g++-11 \
+	#	--slave /usr/bin/gfortran gfortran /usr/bin/gfortran-11
+
+	#sudo apt install cmake
 	sudo apt install openmpi-bin -y
 	sudo apt install openmpi-common libopenmpi-dev -y
 	sudo apt install libssl-dev -y
@@ -36,7 +38,9 @@ if [ "$STACK" == "hpc" ]; then
 	git clone https://github.com/TACC/Lmod.git
 	cd Lmod
 	./configure --with-lua=/usr/bin/lua5.3  --with-luac=/usr/bin/luac5.3 --with-fastTCLInterp=no
+
 	#./configure --with-lua=/usr/bin/lua5.3  --with-luac=/usr/bin/luac5.3
+
 	sudo make install
 
 	#sudo update-alternatives --install /usr/bin/lua lua-interpreter /usr/bin/lua5.3 130 --slave /usr/share/man/man1/lua.1.gz lua-manual /usr/share/man/man1/lua5.3.1.gz

@@ -8,8 +8,8 @@ mpi:
   version: 4.0.1
 
 cmake:
-  build: NO
-  bootstrap: NO
+  build: YES
+  bootstrap: YES
   version: 3.20.1
 
 jpeg:
@@ -19,7 +19,7 @@ jpeg:
 
 zlib:
   build: YES
-  shared: YES
+  shared: NO
   version: 1.2.11
 
 libtiff:

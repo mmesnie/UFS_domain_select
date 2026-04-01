@@ -21,6 +21,11 @@ if [ $# != 2 ]; then
         exit 1
 fi
 
+if ! cat /etc/issue | awk '{print $2}' | grep "^22\."; then
+        echo "this hpc stack build has only tested on Ubuntu 22.04"
+        exit 1
+fi
+
 STACK=$1
 VER=$2
 

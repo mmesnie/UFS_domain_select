@@ -10,7 +10,8 @@ fi
 STACK=$1
 
 if [ "$STACK" == "hpc" ]; then
-	sudo apt remove cmake -y
+
+	#sudo apt remove cmake -y
 	sudo apt remove openmpi-bin -y
 	sudo apt remove openmpi-common libopenmpi-dev -y
 	sudo apt remove libssl-dev -y
