@@ -9,6 +9,11 @@ fi
 
 STACK=$1
 
+# For Ubuntu 22
+if cat /etc/issue | awk '{print $2}' | grep "22\."; then
+	sudo apt install python-is-python3
+fi
+
 # Essential build tools
 sudo apt update
 sudo apt install git curl build-essential gfortran -y

@@ -28,7 +28,7 @@ if [ "$VER" == "2.2.0" ]; then
 		new_cols=$(tput cols)
 		new_rows=$(tput lines)
 		if [ $new_hash != $old_hash ] || [ $new_cols != $old_cols ] || [ $new_rows != $old_rows ]; then
-			echo "REFRESHING...";
+			echo "REFRESHING..."; sleep 0.5
 			clear
 			module avail
 			old_hash=$new_hash
