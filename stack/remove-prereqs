@@ -27,6 +27,5 @@ if [ "$STACK" == "hpc" ]; then
 	sudo rm /usr/lib/x86_64-linux-gnu/lua/5.3/posix.so
 fi
 
-sudo apt remove git curl build-essential -y
-sudo apt remove gcc-11 g++-11 gfortran-11 -y
+sudo apt remove git curl build-essential gfortran -y
 sudo apt remove ristretto -y
