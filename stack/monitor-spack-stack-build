@@ -24,6 +24,7 @@ if [ "$VER" == "2.2.0" ]; then
 		new_cols=$(tput cols)
 		new_rows=$(tput lines)
 		if [ $new_hash != $old_hash ] || [ $new_cols != $old_cols ] || [ $new_rows != $old_rows ]; then
+			echo "REFRESHING..."; sleep 1
 			clear
 			for i in `spack env list`; do
 				spack env activate $i
