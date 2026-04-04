@@ -9,16 +9,17 @@ fi
 
 STACK=$1
 
+sudo apt update
+
 # For Ubuntu 22
 if cat /etc/issue | awk '{print $2}' | grep "22\."; then
 	sudo apt install python-is-python3
 fi
 
 # Essential build tools
-sudo apt update
 sudo apt install git curl build-essential gfortran -y
 
-# For viewing plot forecasts
+# For viewing forecast plots
 sudo apt install ristretto -y
 
 if [ "$STACK" == "hpc" ]; then
