@@ -1,6 +1,6 @@
-gnu:
-  build: NO
-  version: 9.3.0
+#gnu:
+#  build: NO
+#  version: 9.3.0
 
 cmake:
   build: YES
