@@ -13,7 +13,7 @@ This could take any number of hours to complete, depending on your platform.
 My slowest system (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB
 of memory, circa 2013) takes about 10 hours.
 
-# Validated platforms
+# Tested platforms
 
 | Distribution | Stack | UFS model | Status          |
 | ---          | ---   | ---       | ---             | 
