@@ -13,7 +13,7 @@ old_hash=0
 old_cols=0
 old_rows=0
 
-if [ "$VER" == "2.2.0" ]; then
+if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 	while [ ! -f $TOP/build/spack-stack-for-$VER/share/spack/setup-env.sh ]; do
 		echo "waiting for spack to install..."
 		sleep 3
@@ -38,9 +38,6 @@ if [ "$VER" == "2.2.0" ]; then
 		fi
 		sleep 1
 	done
-
-elif [ "$VER" == "3.0.0" ]; then
-        echo "$VER not yet implemented"
 else
         echo "$VER not supported"
         exit 1
