@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+        echo "This script must be sourced, not executed directly."
+        exit 1
+fi
+
+if [ $# != 1 ]; then
+        echo "usage: $0 <2.2.0|3.0.0>"
+fi
+
+VER=$1
+
+TOP=$(realpath $(dirname $0))/..
+
+if [ "$VER" == "2.2.0" ]; then
+	echo "activating ufs environment"
+	source $TOP/build/spack-stack-for-$VER/share/spack/setup-env.sh
+	spack env activate ufs -p
+	if spack find | grep gcc@11 > /dev/null; then
+		echo "loading gcc@11"
+		spack load gcc@11
+	fi
+fi
