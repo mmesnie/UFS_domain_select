@@ -10,8 +10,7 @@ fi
 if [ "$1" == "2.2.0" ]; then
         VER=v$1
 elif [ "$1" == "3.0.0" ]; then
-        echo "$1 not yet implemented"
-        exit 1
+        VER=v$1
 else
         echo "$1 not supported"
         exit 1
@@ -23,7 +22,7 @@ export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
 TOP=${UFS_DOMAIN_SELECT_HOME}/build
 SRC=${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-spack-stack
 
-if [ "$VER" == "2.2.0" ]; then
+if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 	echo
 	echo "### $0: cloning ufs-srweather-app"
 	if [ ! -d $SRC ]; then
