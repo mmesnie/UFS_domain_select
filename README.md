@@ -15,11 +15,14 @@ of memory, circa 2013) takes about 10 hours.
 
 # Validated platforms
 
-| Distribution | Stack | UFS model |
-| ---          | ---   | ---       |
-| Ubuntu 18.04 | spack | 2.2.0     |
-| Ubuntu 22.04 | spack | 2.2.0     |
-| Ubuntu 22.04 | hpc   | 2.2.0     |
+| Distribution | Stack | UFS model | Status          |
+| ---          | ---   | ---       | ---             | 
+| Ubuntu 18.04 | hpc   | 2.2.0     | PIO won't build |
+| Ubuntu 18.04 | spack | 2.2.0     | OK              |
+| Ubuntu 22.04 | hpc   | 2.2.0     | OK              |
+| Ubuntu 22.04 | spack | 2.2.0     | OK              |
+| Ubuntu 24.04 | hpc   | 2.2.0     | NOT TESTED      |
+| Ubuntu 24.04 | spack | 2.2.0     | OK              |
 
 # Building with spack stack
 
