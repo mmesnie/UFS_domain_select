@@ -31,7 +31,7 @@ UFS source tree (ush/config.yaml).
 The rest of this README assumes you don't have your own stack or UFS model and would like
 those built as well (using the do-all script).
 
-# Tested platforms
+# Tested platforms (do-all script)
 
 | Distribution | Stack | UFS model | Status          |
 | ---          | ---   | ---       | ---             | 
