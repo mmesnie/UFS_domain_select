@@ -11,26 +11,6 @@ take any number of hours to complete, depending on your platform. My slowest sys
 (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB of memory, circa 2013) 
 takes about 10 hours.
 
-# If you only plan to use the Cartopy GUI 
-
-If you already have your own stack and UFS model and only want to use the GUI to
-create a config.yaml file, you'll only need to run these installation scripts -
-
-1. ./stack/install-anaconda
-2. ./stack/config-anaconda 2.2.0
-
-You can then start the GUI -
-
-3. ./UFS_domain_select 2.2.0
-
-Once the GUI starts, follow the on-screen instructions to generate a new config.yaml.tmpl
-file (located in the forecast directory). Rename this file to config.yaml, update each 
-\<VARIABLE\> in the file as needed to match your platform, and overwrite the file in your
-UFS source tree (ush/config.yaml).
-
-The rest of this README assumes you don't have your own stack or UFS model and would like
-those built as well (using the do-all script).
-
 # Tested platforms (do-all script)
 
 | Distribution | Stack | UFS model | Status          |
@@ -79,5 +59,22 @@ to select among the various projections (e.g., Lambert Conformal, Rotated Pole,
 Mercator). Hovering the mouse over Lambert Conformal or Rotated Pole and
 pressing 'y' will output the YAML config for that region.  From there, you can
 generate the forecast.
+
+# If you only want to use the Cartopy GUI 
+
+If you already have your own stack and UFS model and only want to use the GUI to
+create a config.yaml file, you'll only need to run these installation scripts -
+
+1. ./stack/install-anaconda
+2. ./stack/config-anaconda 2.2.0
+
+You can then start the GUI -
+
+3. ./UFS_domain_select 2.2.0
+
+Once the GUI starts, follow the on-screen instructions to generate a new config.yaml.tmpl
+file (located in the forecast directory). Rename this file to config.yaml, update each 
+\<VARIABLE\> in the file as needed to match your platform, and overwrite the file in your
+UFS source tree (ush/config.yaml).
 
 ![Alt text](screenshot.png)
