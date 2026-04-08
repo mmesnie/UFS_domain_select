@@ -24,7 +24,7 @@ You can then start the GUI -
 3. ./UFS_domain_select 2.2.0
 
 Once the GUI starts, follow the on-screen instructions to generate a new config.yaml.tmpl
-file. This file can be modified for your UFS model. See the <VARIABLES> in config.yamo.tmpl.
+file. This file can be modified for your UFS model. See the <VARIABLES> in config.yaml.tmpl.
 These will need to be updated for your platform.
 
 The rest of this README assumes you don't have your own stack or UFS model and would like
