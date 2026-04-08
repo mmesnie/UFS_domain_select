@@ -17,8 +17,11 @@ If you already have your own stack and UFS model and only want to use the GUI to
 create a config.yaml file, you'll only need to run these installation scripts -
 
 ./stack/install-prereqs
+
 ./stack/install-anaconda
+
 ./stack/config-anaconda <2.2.0|3.0.0>
+
 ./UFS_domain_select <2.2.0|3.0.0>
 
 Once the GUI starts, wollow the on-screen instructions to generate a new config.yaml.tmpl
