@@ -94,7 +94,6 @@ if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 
 	for pkg in "${PACKAGES[@]}"; do
 		spack add $pkg %gcc@$GCC_VERSION
-		#spack add $pkg %gcc@$GCC_VERSION
 	done
 
 	spack concretize

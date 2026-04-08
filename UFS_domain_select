@@ -18,4 +18,7 @@ echo "Activating regional_workflow-$VER..."
 conda activate regional_workflow-$VER
 
 echo "Launching GUI..."
+
+export QT_QPA_PLATFORM=xcb
+
 ${UFS_DOMAIN_SELECT_HOME}/UFS_domain_select.py
