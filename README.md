@@ -16,12 +16,14 @@ takes about 10 hours.
 If you already have your own stack and UFS model and only want to use the GUI to
 create a config.yaml file, you'll only need to run these installation scripts -
 
-1. ./stack/install-prereqs
-2. ./stack/install-anaconda
-3. ./stack/config-anaconda <2.2.0|3.0.0>
-4. ./UFS_domain_select <2.2.0|3.0.0>
+1. ./stack/install-anaconda
+2. ./stack/config-anaconda 2.2.0
 
-Once the GUI starts, wollow the on-screen instructions to generate a new config.yaml.tmpl
+You can then start the GUI -
+
+3. ./UFS_domain_select 2.2.0
+
+Once the GUI starts, follow the on-screen instructions to generate a new config.yaml.tmpl
 file. This file can be modified for your UFS model. See the <VARIABLES> in config.yamo.tmpl.
 These will need to be updated for your platform.
 
@@ -62,7 +64,7 @@ Make sure you have sudo access to install the prereqs.
 
 # Generating a new forecast with the GUI
 
-1. Run "./UFS_domain_select" to start the GUI.
+1. Run "./UFS_domain_select 2.2.0" to start the GUI.
 2. Hover your mouse over the Lambert Conformal or Rotated Pole grid and press 'y'
    to output the YAML template file for the selected region. This will overwrite
    the config.yaml.tmpl file in the forecast directory. The do-forecast script
