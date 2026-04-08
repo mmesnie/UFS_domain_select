@@ -1,13 +1,13 @@
 #!/bin/bash
 
 if [ $# != 1 ]; then
-        echo "usage: config-anaconda <2.1.0|2.2.0>"
+        echo "usage: config-anaconda <2.1.0|2.2.0|3.0.0>"
         exit 1
 fi
 
 VER=$1
 
-if [ ! "$VER" = "2.2.0" ]; then
+if [ ! "$VER" = "2.2.0" ] && [ ! "$VER" = "3.0.0" ]; then
 	echo $VER not yet implemented
 	exit 1
 fi

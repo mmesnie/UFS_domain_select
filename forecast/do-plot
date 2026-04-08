@@ -11,12 +11,9 @@ if [ ! $1 == "hpc" ] && [ ! $1 == "spack" ] && [ ! $1 == "zee" ]; then
         exit 1
 fi
 
-if [ "$2" == "2.2.0" ]; then
+if [ "$2" == "2.2.0" ] || [ "$2" == "3.0.0" ]; then
         STACK=$1
         VER=$2
-elif [ "$2" == "3.0.0" ]; then
-        echo "$1 not yet implemented"
-        exit 1
 else
         echo "$2 not supported"
         exit 1

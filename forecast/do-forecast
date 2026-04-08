@@ -17,8 +17,8 @@ if [ "$2" == "2.2.0" ]; then
 	STACK=$1
 	VER=$2
 elif [ "$2" == "3.0.0" ]; then
-        echo "$1 not yet implemented"
-        exit 1
+	STACK=$1
+	VER=$2
 else
         echo "$2 not supported"
         exit 1
@@ -46,8 +46,8 @@ if [ $length -gt 63 ]; then
 	exit 1
 fi
 
-EXTRN_MDL_SOURCE_BASEDIR_ICS=$UFS_DOMAIN_SELECT_HOME/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
-EXTRN_MDL_SOURCE_BASEDIR_LBCS=$UFS_DOMAIN_SELECT_HOME/build/DATA-2.2.0/input_model_data/FV3GFS/grib2/2019061518
+EXTRN_MDL_SOURCE_BASEDIR_ICS=$UFS_DOMAIN_SELECT_HOME/build/DATA-$VER/input_model_data/FV3GFS/grib2/2019061518
+EXTRN_MDL_SOURCE_BASEDIR_LBCS=$UFS_DOMAIN_SELECT_HOME/build/DATA-$VER/input_model_data/FV3GFS/grib2/2019061518
 
 export EXPTDIR=$EXPT_BASEDIR/$EXPT_SUBDIR
 
@@ -58,7 +58,11 @@ export EXPTDIR=$EXPT_BASEDIR/$EXPT_SUBDIR
 cd ${UFS_DOMAIN_SELECT_HOME}/forecast
 
 cores=`lscpu -p | egrep -v '^#' | wc -l`
-layout=`echo "sqrt($cores - 1)" | bc`
+if [ "$VER" == "2.2.0" ]; then
+	layout=`echo "sqrt($cores - 1)" | bc`
+elif [ "$VER" == "3.0.0" ]; then
+	layout=2
+fi
 
 cat config.yaml.tmpl | sed "s|<EXPT_SUBDIR>|${EXPT_SUBDIR}|g" | sed "s|<EXPT_BASEDIR>|${EXPT_BASEDIR}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_ICS>|${EXTRN_MDL_SOURCE_BASEDIR_ICS}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_LBCS>|${EXTRN_MDL_SOURCE_BASEDIR_LBCS}|g" | sed "s|<LAYOUT_X>|${layout}|g" | sed "s|<LAYOUT_Y>|${layout}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/config.yaml
 
@@ -98,15 +102,26 @@ eval "$(${UFS_DOMAIN_SELECT_HOME}/build/anaconda3/bin/conda shell.bash hook)"
 
 echo "### Activating regional_workflow-$VER..."
 conda activate regional_workflow-$VER
-export PYTHONPATH="$PYTHONPATH:$UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-2.2.0-with-$STACK-stack/ush/python_utils/workflow-tools/"
-export PYTHONPATH="$PYTHONPATH:$UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-2.2.0-with-$STACK-stack/ush/python_utils/workflow-tools/src"
+
+if [ "$VER" == "2.2.0" ]; then
+	export PYTHONPATH="$PYTHONPATH:$UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/python_utils/workflow-tools/"
+	export PYTHONPATH="$PYTHONPATH:$UFS_DOMAIN_SELECT_HOME/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/python_utils/workflow-tools/src"
+fi
 
 echo "### Generating forecast..."
 cd ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush
 ./generate_FV3LAM_wflow.py
 
 cd $EXPTDIR
-cp ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/wrappers/* .
+
+if [ "$VER" == "2.2.0" ]; then
+	cp ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/wrappers/* .
+elif [ "$VER" == "3.0.0" ]; then
+	export USHdir="${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush"
+	export JOBSdir="${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/jobs"
+	export PW_CSP="foobar"
+	cd $USHdir/wrappers
+fi
 
 ./run_make_grid.sh
 ./run_get_ics.sh

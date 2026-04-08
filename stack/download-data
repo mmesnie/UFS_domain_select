@@ -3,7 +3,7 @@
 local=0
 
 if [ $# != 1 ]; then
-        echo "usage: download-data <2.1.0|2.2.0>"
+        echo "usage: download-data <2.1.0|2.2.0|3.0.0>"
         exit 1
 fi
 
