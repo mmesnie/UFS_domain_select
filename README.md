@@ -36,13 +36,13 @@ those built as well (using the do-all script).
 | Distribution | Stack | UFS model | Status          |
 | ---          | ---   | ---       | ---             | 
 | Ubuntu 24.04 | spack | 3.0.0     | In progress     |
-| Ubuntu 22.04 | spack | 3.0.0     | In progress     |
+| Ubuntu 22.04 | spack | 3.0.0     | TBD             |
 | Ubuntu 18.04 | spack | 3.0.0     | In progress     |
-| Ubuntu 24.04 | spack | 2.2.0     | In progress     |
-| Ubuntu 22.04 | spack | 2.2.0     | In progress     |
-| Ubuntu 18.04 | spack | 2.2.0     | In progress     |
-| Ubuntu 24.04 | hpc   | 2.2.0     | In progress     |
-| Ubuntu 22.04 | hpc   | 2.2.0     | In progress     |
+| Ubuntu 24.04 | spack | 2.2.0     | TBD             |
+| Ubuntu 22.04 | spack | 2.2.0     | TBD             |
+| Ubuntu 18.04 | spack | 2.2.0     | TBD             |
+| Ubuntu 24.04 | hpc   | 2.2.0     | TBD             |
+| Ubuntu 22.04 | hpc   | 2.2.0     | TBD             |
 | Ubuntu 18.04 | hpc   | 2.2.0     | PIO won't build |
 
 # Building with spack stack
