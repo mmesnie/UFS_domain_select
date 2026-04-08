@@ -11,19 +11,22 @@ take any number of hours to complete, depending on your platform. My slowest sys
 (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB of memory, circa 2013) 
 takes about 10 hours.
 
-# If you only plan to use the Cartopy GUI (you have your own stack and UFS model)
+# If you only plan to use the Cartopy GUI 
+
+If you already have your own stack and UFS model and only want to use the GUI to
+create a config.yaml file, you'll only need to run these installation scripts -
 
 ./stack/install-prereqs
 ./stack/install-anaconda
 ./stack/config-anaconda <2.2.0|3.0.0>
 ./UFS_domain_select <2.2.0|3.0.0>
 
-Follow the on-screen instructions to generate a new config.yaml.tmpl file. This file
-can then be modified for your UFS model. See the <VARIABLES> in config.yamo.tmpl.
+Once the GUI starts, wollow the on-screen instructions to generate a new config.yaml.tmpl
+file. This file can be modified for your UFS model. See the <VARIABLES> in config.yamo.tmpl.
 These will need to be updated for your platform.
 
-The rest of this README assumes you don't have your own stack or UFS model and would
-like those built as well (using the do-all script).
+The rest of this README assumes you don't have your own stack or UFS model and would like
+those built as well (using the do-all script).
 
 # Tested platforms
 
