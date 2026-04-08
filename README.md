@@ -6,10 +6,10 @@ Scripts to build the stack (spack or hpc) and the UFS SRW model are also include
 These are useful scripts even if you don't plan to use the GUI. In particular,
 the do-all script will build and install everything (spack or hpc stack, ufs, 
 anaconda, data files, etc.), generate a forecast, and plot the result. The default
-config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast. This could take any 
-number of hours to complete, depending on your platform. My slowest system (a Dell
-Inspiron with a 3 GhZ dual-core Pentium and 16 GiB of memory, circa 2013) takes about
-10 hours.
+config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast. The do-all script could
+take any number of hours to complete, depending on your platform. My slowest system
+(a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB of memory, circa 2013) 
+takes about 10 hours.
 
 # Tested platforms
 
