@@ -25,7 +25,7 @@ You can then start the GUI -
 
 Once the GUI starts, follow the on-screen instructions to generate a new config.yaml.tmpl
 file (located in the forecast directory). Rename this file to config.yaml, update each 
-<VARIABLE> in the file as needed to match your platform, and overwrite the file in your
+\<VARIABLE\> in the file as needed to match your platform, and overwrite the file in your
 UFS source tree (ush/config.yaml).
 
 The rest of this README assumes you don't have your own stack or UFS model and would like
