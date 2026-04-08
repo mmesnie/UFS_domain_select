@@ -1,17 +1,15 @@
 # UFS_domain_select
 
-A Cartopy script to generate the YAML config for a UFS SRW regional forecast.
+A Cartopy GUI script to generate the YAML config for a UFS SRW regional forecast.
 
-Scripts to build the stack (spack or hpc) and the UFS SRW model (version 2.2.0) 
-are also included.  
-
-The do-all script will build and install everything (spack stack or hpc stack, 
-ufs, anaconda, data files, etc.), generate a forecast, and plot the result. 
-The default config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast.
-
-This could take any number of hours to complete, depending on your platform.
-My slowest system (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB
-of memory, circa 2013) takes about 10 hours.
+Scripts to build the stack (spack or hpc) and the UFS SRW model are also included. 
+These are useful scripts even if you don't plan to use the GUI. In particular,
+the do-all script will build and install everything (spack or hpc stack, ufs, 
+anaconda, data files, etc.), generate a forecast, and plot the result. The default
+config.yaml is a 6-hour 500 MB FORECAST of the Oregon coast. This could take any 
+number of hours to complete, depending on your platform. My slowest system (a Dell
+Inspiron with a 3 GhZ dual-core Pentium and 16 GiB of memory, circa 2013) takes about
+10 hours.
 
 # Tested platforms
 
@@ -31,7 +29,7 @@ of memory, circa 2013) takes about 10 hours.
 
 It's best to start with a fresh Ubuntu installation.
 
-Make sure you have sudo access.
+Make sure you have sudo access to install the prereqs.
 
 1. cd UFS_domain_select/stack
 2. ./do-all spack 2.2.0
@@ -40,7 +38,7 @@ Make sure you have sudo access.
 
 It's best to start with a fresh Ubuntu installation.
 
-Make sure you have sudo access.
+Make sure you have sudo access to install the prereqs.
 
 1. cd UFS_domain_select/stack
 2. ./do-all hpc 2.2.0
