@@ -65,6 +65,12 @@ if [ "$val" == "y" ] || [ "$val" == "" ]; then
 	t_config_anaconda=$t_elapsed
 fi
 
+read -p "<[y]|n> config anaconda for UFS_domain_select GUI?" val
+if [ "$val" == "y" ] || [ "$val" == "" ]; then
+	mytime "./config-anaconda-gui"
+	t_config_anaconda_gui=$t_elapsed
+fi
+
 read -p "<[y]|n> download input data for UFS SRW model $VER?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
 	mytime "./download-data $VER"
@@ -102,14 +108,15 @@ echo
 echo "************************"
 echo "Elapsed times in seconds"
 echo "************************"
-echo "          prereqs: $t_prereqs"
-echo "      build stack: $t_build_stack"
-echo "      build model: $t_build_model"
-echo " install anaconda: $t_install_anaconda"
-echo "  config anaconda: $t_config_anaconda"
-echo "    download data: $t_download_data"
-echo "   download earth: $t_download_earth"
-echo "         forecast: $t_do_forecast"
+echo "             prereqs: $t_prereqs"
+echo "         build stack: $t_build_stack"
+echo "         build model: $t_build_model"
+echo "    install anaconda: $t_install_anaconda"
+echo "     config anaconda: $t_config_anaconda"
+echo " config anaconda gui: $t_config_anaconda"
+echo "       download data: $t_download_data"
+echo "      download earth: $t_download_earth"
+echo "            forecast: $t_do_forecast"
 
 echo
 echo "*"
