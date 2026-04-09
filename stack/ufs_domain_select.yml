@@ -1,0 +1,9 @@
+name: ufs_domain_select
+channels:
+  - conda-forge
+dependencies:
+  python: 3.7
+  pyyaml: 5.1.2
+  pygrib: 2.1.8
+  cartopy: 0.25.0
+  scipy: 1.17.1
