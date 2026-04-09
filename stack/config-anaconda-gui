@@ -12,3 +12,4 @@ if $CONDA env list | grep -E "ufs_domain_select$" > /dev/null; then
 else
 	$CONDA env create -f $UFS_DOMAIN_SELECT_HOME/stack/ufs_domain_select.yml
 fi
+
