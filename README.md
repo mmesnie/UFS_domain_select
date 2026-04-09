@@ -15,7 +15,7 @@ takes about 10 hours.
 
 | Distribution | Stack | UFS model | Status          |
 | ---          | ---   | ---       | ---             | 
-| Ubuntu 24.04 | spack | 3.0.0     | In progress     |
+| Ubuntu 24.04 | spack | 3.0.0     | OK              |
 | Ubuntu 22.04 | spack | 3.0.0     | TBD             |
 | Ubuntu 18.04 | spack | 3.0.0     | In progress     |
 | Ubuntu 24.04 | spack | 2.2.0     | TBD             |
