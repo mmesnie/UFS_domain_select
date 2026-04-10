@@ -8,13 +8,14 @@ user:
   ACCOUNT: an_account
 platform:
   RUN_CMD_FCST: mpirun -n ${PE_MEMBER01} --oversubscribe
+  NCORES_PER_NODE: <NCORES_PER_NODE>
 workflow:
   EXPT_BASEDIR: <EXPT_BASEDIR>
   EXPT_SUBDIR: <EXPT_SUBDIR>
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
-  DATE_FIRST_CYCL: '2026040812'
-  DATE_LAST_CYCL: '2026040812'
+  DATE_FIRST_CYCL: '2019061518'
+  DATE_LAST_CYCL: '2019061518'
   FCST_LEN_HRS: 6
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
@@ -45,6 +46,13 @@ task_run_fcst:
   DT_ATMOS: 36
   LAYOUT_X: <LAYOUT_X>
   LAYOUT_Y: <LAYOUT_Y>
+  OMP_NUM_THREADS_RUN_FCST: 1
+
+  # These should be set automatically
+  #PE_MEMBER01: '{{ OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X + WRTCMP_write_groups * WRTCMP_write_tasks_per_group) + fire.FIRE_NUM_TASKS if QUILTING else OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X) + fire.FIRE_NUM_TASKS }}'
+  # PPN_RUN_FCST: '{{ platform.NCORES_PER_NODE // OMP_NUM_THREADS_RUN_FCST }}'
+  # NNODES_RUN_FCST: '{{ (PE_MEMBER01 + PPN_RUN_FCST - 1) // PPN_RUN_FCST }}'
+
   BLOCKSIZE: 40
   WRTCMP_write_groups: 1
   WRTCMP_write_tasks_per_group: 1
