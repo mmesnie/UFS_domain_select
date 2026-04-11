@@ -24,6 +24,17 @@ sudo apt install ristretto -y
 
 if [ "$STACK" == "hpc" ]; then
 
+	# gcc-11
+	if cat /etc/issue | awk '{print $2}' | grep -E "^24\."; then
+		sudo apt-get install gcc-11 g++-11 gfortran-11
+		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 \
+			--slave /usr/bin/g++ g++ /usr/bin/g++-11 \
+			--slave /usr/bin/gcov gcov /usr/bin/gcov-11 \
+			--slave /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-11 \
+			--slave /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-11 \
+			--slave /usr/bin/gfortran gfortran /usr/bin/gfortran-11
+	fi
+
 	# Open MPI
 	sudo apt install openmpi-bin -y
 	sudo apt install openmpi-common libopenmpi-dev -y

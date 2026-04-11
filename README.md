@@ -15,14 +15,14 @@ takes about 10 hours.
 
 | Distribution | Stack | UFS model | Status          |
 | ---          | ---   | ---       | ---             | 
-| Ubuntu 24.04 | spack | 3.0.0     | OK              |
+| Ubuntu 24.04 | spack | 3.0.0     | OK1             |
+| Ubuntu 24.04 | spack | 2.2.0     | OK1             |
+| Ubuntu 24.04 | hpc   | 2.2.0     | gcc-11 needed   |
 | Ubuntu 22.04 | spack | 3.0.0     | TBD             |
-| Ubuntu 18.04 | spack | 3.0.0     | OK              |
-| Ubuntu 24.04 | spack | 2.2.0     | In progress     |
 | Ubuntu 22.04 | spack | 2.2.0     | TBD             |
-| Ubuntu 18.04 | spack | 2.2.0     | In progress     |
-| Ubuntu 24.04 | hpc   | 2.2.0     | TBD             |
 | Ubuntu 22.04 | hpc   | 2.2.0     | TBD             |
+| Ubuntu 18.04 | spack | 3.0.0     | OK1             |
+| Ubuntu 18.04 | spack | 2.2.0     | OK1             |
 | Ubuntu 18.04 | hpc   | 2.2.0     | PIO won't build |
 
 # Building with spack stack

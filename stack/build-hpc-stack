@@ -5,8 +5,8 @@ if [ $# != 1 ]; then
 	exit 1
 fi
 
-if ! cat /etc/issue | awk '{print $2}' | grep "^22\."; then
-	echo "this hpc stack build has only tested on Ubuntu 22.04"
+if ! cat /etc/issue | awk '{print $2}' | grep "^24\."; then
+	echo "this hpc stack build has only been tested on Ubuntu 22.04"
 	exit 1
 fi
 
