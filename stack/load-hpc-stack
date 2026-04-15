@@ -5,8 +5,10 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	exit 1
 fi
 
+export LD_LIBRARY_PATH=""
+
 if [ $# != 1 ]; then
-        echo "usage: $0 <2.1.0|2.2.0>"
+        echo "usage: $0 <2.2.0|3.0.0>"
 else
 	VER=$1
 	export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..

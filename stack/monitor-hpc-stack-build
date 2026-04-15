@@ -15,7 +15,7 @@ old_rows=0
 
 export LMOD_PAGER=none
 
-if [ "$VER" == "2.2.0" ]; then
+if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 	while [ ! -f /usr/local/lmod/lmod/init/profile ]; do
 		echo "waiting for Lmod to install..."
 		sleep 3
@@ -37,9 +37,6 @@ if [ "$VER" == "2.2.0" ]; then
 		fi
 		sleep 1
 	done
-
-elif [ "$VER" == "3.0.0" ]; then
-        echo "$VER not yet implemented"
 else
         echo "$VER not supported"
         exit 1

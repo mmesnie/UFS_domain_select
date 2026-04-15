@@ -17,7 +17,8 @@ takes about 10 hours.
 | ---          | ---   | ---       | ---             | 
 | Ubuntu 24.04 | spack | 3.0.0     | OK1             |
 | Ubuntu 24.04 | spack | 2.2.0     | OK1             |
-| Ubuntu 24.04 | hpc   | 2.2.0     | gcc-11 needed   |
+| Ubuntu 24.04 | hpc   | 3.0.0     | In progress...  |
+| Ubuntu 24.04 | hpc   | 2.2.0     | OK1             |
 | Ubuntu 22.04 | spack | 3.0.0     | TBD             |
 | Ubuntu 22.04 | spack | 2.2.0     | TBD             |
 | Ubuntu 22.04 | hpc   | 2.2.0     | TBD             |

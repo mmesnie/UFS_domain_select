@@ -17,7 +17,7 @@ mytime() {
 }
 
 if [ $# != 2 ]; then
-        echo "usage: $0 <hpc|spack> <2.1.0|2.2.0>"
+        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0>"
         exit 1
 fi
 
