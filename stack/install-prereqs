@@ -25,7 +25,7 @@ sudo apt install ristretto -y
 if [ "$STACK" == "hpc" ]; then
 
 	# gcc-11
-	if cat /etc/issue | awk '{print $2}' | grep -E "^24\."; then
+	if cat /etc/issue | awk '{print $2}' | grep -E "^22\.|^24\.\."; then
 		sudo apt-get install gcc-11 g++-11 gfortran-11
 		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 \
 			--slave /usr/bin/g++ g++ /usr/bin/g++-11 \
@@ -45,6 +45,10 @@ if [ "$STACK" == "hpc" ]; then
 	# For Lmod
 	sudo apt-get install lua5.3 liblua5.3-0 liblua5.3-dev lua-filesystem-dev lua-posix-dev -y
 	sudo apt-get install tcl tcl8.6-dev libtcl8.6 -y
+
+	# For Lua
+	sudo apt install luarocks
+	sudo luarocks install luaposix
 
 	# Lmod
 	export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
