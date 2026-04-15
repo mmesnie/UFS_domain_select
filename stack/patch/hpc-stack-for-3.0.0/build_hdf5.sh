@@ -67,7 +67,7 @@ software=$name-$(echo $version | sed 's/\./_/g')
 [[ -d $software ]] && cd $software || ( echo "$software does not exist, ABORT!"; exit 1 )
 [[ -d build ]] && rm -rf build
 
-git checkout hdf5_1_14_6
+git checkout hdf5-1_14_3
 git branch --show-current
 #read -p "checked out $software <Enter>"
 

@@ -47,12 +47,9 @@ udunits:
   shared: NO
   version: 2.2.28
 
-# MIKE 2
 hdf5:
   build: YES
-# version: 1.10.6
-# version: 1.14.3
-  version: 1.14.6
+  version: 1.14.3
   shared: NO
   enable_szip: NO
   enable_zlib: YES
@@ -96,10 +93,8 @@ esmf:
   enable_pnetcdf: NO
   debug: NO
 
-# MIKE 3
 fms:
   build: YES
-# version: 2023.01
   version: 2024.01
   repo: noaa-gfdl
   cmake_opts: "-DGFS_PHYS=ON -D64BIT=ON -DOPENMP=ON -DCONSTANTS=GFS"
@@ -191,11 +186,8 @@ g2c:
   install_as: 1.6.4
   is_nceplib: YES
 
-# MIKE 1
 g2tmpl:
   build: YES
-# version: v1.10.2
-# install_as: 1.10.2
   version: v1.13.0
   install_as: 1.13.0
   is_nceplib: YES
