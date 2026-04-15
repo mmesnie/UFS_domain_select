@@ -5,7 +5,7 @@ if [ $# != 1 ]; then
 	exit 1
 fi
 
-if ! cat /etc/issue | awk '{print $2}' | grep "^18|^22|^24"; then
+if ! cat /etc/issue | awk '{print $2}' | grep "^18|^24"; then
 	echo "`cat /etc/issue` has not been tested"
 	exit 1
 fi
