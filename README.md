@@ -14,19 +14,19 @@ takes about 10 hours.
 # Tested platforms (execution of ./do-all script)
 
 | Distribution | Stack | UFS model | Last tested OK  |
-| ---          | ---   | ---       | ---             | 
-| Ubuntu 24.04 | spack | 3.0.0     |                 |
-| Ubuntu 24.04 | spack | 2.2.0     |                 |
+| ---          | ---   | ---       | ---             |
+| Ubuntu 24.04 | spack | 3.0.0     | 4/16/26         |
+| Ubuntu 24.04 | spack | 2.2.0     | 4/15/26         |
 | Ubuntu 24.04 | hpc   | 3.0.0     | 4/15/26         |
-| Ubuntu 24.04 | hpc   | 2.2.0     | 4/15/26         |
+| Ubuntu 24.04 | hpc   | 2.2.0     | 4/16/26         |
 | Ubuntu 22.04 | spack | 3.0.0     |                 |
 | Ubuntu 22.04 | spack | 2.2.0     |                 |
 | Ubuntu 22.04 | hpc   | 3.0.0     |                 |
 | Ubuntu 22.04 | hpc   | 2.2.0     |                 |
-| Ubuntu 18.04 | spack | 3.0.0     |                 |
-| Ubuntu 18.04 | spack | 2.2.0     |                 |
+| Ubuntu 18.04 | spack | 3.0.0     | 4/16/26         |
+| Ubuntu 18.04 | spack | 2.2.0     | 4/16/26         |
 | Ubuntu 18.04 | hpc   | 3.0.0     | PIO won't build |
-| Ubuntu 18.04 | hpc   | 2.2.0     |                 |
+| Ubuntu 18.04 | hpc   | 2.2.0     | PIO won't build |
 
 # Building with spack stack
 
