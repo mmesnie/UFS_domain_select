@@ -11,20 +11,22 @@ take any number of hours to complete, depending on your platform. My slowest sys
 (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB of memory, circa 2013) 
 takes about 10 hours.
 
-# Tested platforms (do-all script)
+# Tested platforms (execution of ./do-all script)
 
-| Distribution | Stack | UFS model | Status          |
+| Distribution | Stack | UFS model | Last tested OK  |
 | ---          | ---   | ---       | ---             | 
-| Ubuntu 24.04 | spack | 3.0.0     | OK1             |
-| Ubuntu 24.04 | spack | 2.2.0     | OK1             |
-| Ubuntu 24.04 | hpc   | 3.0.0     | In progress...  |
-| Ubuntu 24.04 | hpc   | 2.2.0     | OK1             |
-| Ubuntu 22.04 | spack | 3.0.0     | TBD             |
-| Ubuntu 22.04 | spack | 2.2.0     | TBD             |
-| Ubuntu 22.04 | hpc   | 2.2.0     | TBD             |
-| Ubuntu 18.04 | spack | 3.0.0     | OK1             |
-| Ubuntu 18.04 | spack | 2.2.0     | OK1             |
-| Ubuntu 18.04 | hpc   | 2.2.0     | PIO won't build |
+| Ubuntu 24.04 | spack | 3.0.0     |                 |
+| Ubuntu 24.04 | spack | 2.2.0     |                 |
+| Ubuntu 24.04 | hpc   | 3.0.0     | 4/15/26         |
+| Ubuntu 24.04 | hpc   | 2.2.0     | 4/15/26         |
+| Ubuntu 22.04 | spack | 3.0.0     |                 |
+| Ubuntu 22.04 | spack | 2.2.0     |                 |
+| Ubuntu 22.04 | hpc   | 3.0.0     |                 |
+| Ubuntu 22.04 | hpc   | 2.2.0     |                 |
+| Ubuntu 18.04 | spack | 3.0.0     |                 |
+| Ubuntu 18.04 | spack | 2.2.0     |                 |
+| Ubuntu 18.04 | hpc   | 3.0.0     | PIO won't build |
+| Ubuntu 18.04 | hpc   | 2.2.0     |                 |
 
 # Building with spack stack
 
