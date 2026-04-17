@@ -270,8 +270,8 @@ if [ "${DEFAULT_BUILD}" = true ]; then
   BUILD_UPP="on"
 fi
 
-read -p "<Enter> to patch /home/mmesnie/ufs_domain_select/build/ufs-srweather-app-3.0.0-with-hpc-stack/sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt"
-cp /home/mmesnie/ufs_domain_select/stack/patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt /home/mmesnie/ufs_domain_select/build/ufs-srweather-app-3.0.0-with-hpc-stack/sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt -i
+#read -p "<Enter> to patch /home/mmesnie/ufs_domain_select/build/ufs-srweather-app-3.0.0-with-hpc-stack/sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt"
+cp /home/mmesnie/ufs_domain_select/stack/patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt /home/mmesnie/ufs_domain_select/build/ufs-srweather-app-3.0.0-with-hpc-stack/sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt
 
 # Choose components to build for air quality modeling (Online-CMAQ)
 if [ "${APPLICATION}" = "ATMAQ" ]; then
