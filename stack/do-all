@@ -25,7 +25,7 @@ STACK=$1
 VER=$2
 
 if [ $STACK == "hpc" ]; then
-	if ! cat /etc/issue | awk '{print $2}' | grep -E "^18|^24"; then
+	if ! cat /etc/issue | awk '{print $2}' | grep -E "^18|^22|^24"; then
 		echo "`cat /etc/issue` has not been tested"
         	exit 1
 	fi
