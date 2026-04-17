@@ -23,14 +23,14 @@ takes about 10 hours.
 | Ubuntu 22.04 | spack | 2.2.0     | 4/16/26         |
 | Ubuntu 22.04 | hpc   | 3.0.0     | 4/17/26         |
 | Ubuntu 22.04 | hpc   | 2.2.0     | 4/17/26         |
-| Ubuntu 20.04 | spack | 3.0.0     |                 |
-| Ubuntu 20.04 | spack | 2.2.0     |                 |
+| Ubuntu 20.04 | spack | 3.0.0     | 4/17/26         |
+| Ubuntu 20.04 | spack | 2.2.0     | In progress     |
 | Ubuntu 20.04 | hpc   | 3.0.0     |                 |
 | Ubuntu 20.04 | hpc   | 2.2.0     |                 |
-| Ubuntu 18.04 | spack | 3.0.0     | 4/16/26         |
+| Ubuntu 18.04 | spack | 3.0.0     | In progress     |
 | Ubuntu 18.04 | spack | 2.2.0     | 4/16/26         |
-| Ubuntu 18.04 | hpc   | 3.0.0     | PIO won't build |
-| Ubuntu 18.04 | hpc   | 2.2.0     | PIO won't build |
+| Ubuntu 18.04 | hpc   | 3.0.0     | PIO build fails |
+| Ubuntu 18.04 | hpc   | 2.2.0     | PIO build fails |
 
 # Building with spack stack
 
@@ -39,7 +39,7 @@ It's best to start with a fresh Ubuntu installation.
 Make sure you have sudo access to install the prereqs.
 
 1. cd UFS_domain_select/stack
-2. ./do-all spack 2.2.0
+2. ./do-all spack 3.0.0
 
 # Building with hpc stack
 
@@ -48,16 +48,16 @@ It's best to start with a fresh Ubuntu installation.
 Make sure you have sudo access to install the prereqs.
 
 1. cd UFS_domain_select/stack
-2. ./do-all hpc 2.2.0
+2. ./do-all hpc 3.0.0
 
 # Generating a new forecast with the GUI
 
-1. Run "./UFS_domain_select 2.2.0" to start the GUI.
+1. Run "./UFS_domain_select" to start the GUI.
 2. Hover your mouse over the Lambert Conformal or Rotated Pole grid and press 'y'
    to output the YAML template file for the selected region. This will overwrite
    the config.yaml.tmpl file in the forecast directory. The do-forecast script
    will modify this template to create ush/config.yaml in the UFS SRW source tree. 
-5. Run "../do-forecast spack 2.2.0" to generate and plot the forecast.
+5. Run "../do-forecast spack 3.0.0" to generate and plot the forecast.
 
 Below is a screengrab of the GUI.  Radio buttons are used to select from one of
 the predefined regions (e.g., RRFS_CONUS, SUBCONUS_Ind, Oregon Coast), each of
