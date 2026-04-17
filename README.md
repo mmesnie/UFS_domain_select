@@ -23,6 +23,10 @@ takes about 10 hours.
 | Ubuntu 22.04 | spack | 2.2.0     |                 |
 | Ubuntu 22.04 | hpc   | 3.0.0     |                 |
 | Ubuntu 22.04 | hpc   | 2.2.0     |                 |
+| Ubuntu 20.04 | spack | 3.0.0     |                 |
+| Ubuntu 20.04 | spack | 2.2.0     |                 |
+| Ubuntu 20.04 | hpc   | 3.0.0     |                 |
+| Ubuntu 20.04 | hpc   | 2.2.0     |                 |
 | Ubuntu 18.04 | spack | 3.0.0     | 4/16/26         |
 | Ubuntu 18.04 | spack | 2.2.0     | 4/16/26         |
 | Ubuntu 18.04 | hpc   | 3.0.0     | PIO won't build |
