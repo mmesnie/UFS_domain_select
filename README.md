@@ -19,8 +19,8 @@ takes about 10 hours.
 | Ubuntu 24.04 | spack | 2.2.0     | 4/15/26         |
 | Ubuntu 24.04 | hpc   | 3.0.0     | 4/15/26         |
 | Ubuntu 24.04 | hpc   | 2.2.0     | 4/16/26         |
-| Ubuntu 22.04 | spack | 3.0.0     |                 |
-| Ubuntu 22.04 | spack | 2.2.0     |                 |
+| Ubuntu 22.04 | spack | 3.0.0     | 4/16/26         |
+| Ubuntu 22.04 | spack | 2.2.0     | 4/16/26         |
 | Ubuntu 22.04 | hpc   | 3.0.0     |                 |
 | Ubuntu 22.04 | hpc   | 2.2.0     |                 |
 | Ubuntu 20.04 | spack | 3.0.0     |                 |
