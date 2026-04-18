@@ -11,27 +11,6 @@ take any number of hours to complete, depending on your platform. My slowest sys
 (a Dell Inspiron with a 3 GhZ dual-core Pentium and 16 GiB of memory, circa 2013) 
 takes about 10 hours.
 
-# Tested platforms (execution of ./do-all script)
-
-| Distribution | Stack | UFS model | Last tested OK  |
-| ---          | ---   | ---       | ---             |
-| Ubuntu 24.04 | spack | 3.0.0     | 4/16/26         |
-| Ubuntu 24.04 | spack | 2.2.0     | 4/15/26         |
-| Ubuntu 24.04 | hpc   | 3.0.0     | 4/15/26         |
-| Ubuntu 24.04 | hpc   | 2.2.0     | 4/16/26         |
-| Ubuntu 22.04 | spack | 3.0.0     | 4/16/26         |
-| Ubuntu 22.04 | spack | 2.2.0     | 4/16/26         |
-| Ubuntu 22.04 | hpc   | 3.0.0     | 4/17/26         |
-| Ubuntu 22.04 | hpc   | 2.2.0     | 4/17/26         |
-| Ubuntu 20.04 | spack | 3.0.0     | 4/17/26         |
-| Ubuntu 20.04 | spack | 2.2.0     | 4/17/26         |
-| Ubuntu 20.04 | hpc   | 3.0.0     | In progress     |
-| Ubuntu 20.04 | hpc   | 2.2.0     | PIO build fails |
-| Ubuntu 18.04 | spack | 3.0.0     | In progress     |
-| Ubuntu 18.04 | spack | 2.2.0     | 4/17/26         |
-| Ubuntu 18.04 | hpc   | 3.0.0     | PIO build fails |
-| Ubuntu 18.04 | hpc   | 2.2.0     | PIO build fails |
-
 # Building with spack stack
 
 It's best to start with a fresh Ubuntu installation.
@@ -41,6 +20,17 @@ Make sure you have sudo access to install the prereqs.
 1. cd UFS_domain_select/stack
 2. ./do-all spack 3.0.0
 
+| Distribution | Stack | UFS model | Last tested OK  |
+| ---          | ---   | ---       | ---             |
+| Ubuntu 24.04 | spack | 3.0.0     | 4/16/26         |
+| Ubuntu 24.04 | spack | 2.2.0     | 4/15/26         |
+| Ubuntu 22.04 | spack | 3.0.0     | 4/16/26         |
+| Ubuntu 22.04 | spack | 2.2.0     | 4/16/26         |
+| Ubuntu 20.04 | spack | 3.0.0     | 4/17/26         |
+| Ubuntu 20.04 | spack | 2.2.0     | 4/17/26         |
+| Ubuntu 18.04 | spack | 3.0.0     | In progress     |
+| Ubuntu 18.04 | spack | 2.2.0     | 4/17/26         |
+
 # Building with hpc stack
 
 It's best to start with a fresh Ubuntu installation.
@@ -49,6 +39,17 @@ Make sure you have sudo access to install the prereqs.
 
 1. cd UFS_domain_select/stack
 2. ./do-all hpc 3.0.0
+
+| Distribution | Stack | UFS model | Last tested OK  |
+| ---          | ---   | ---       | ---             |
+| Ubuntu 24.04 | hpc   | 3.0.0     | 4/15/26         |
+| Ubuntu 24.04 | hpc   | 2.2.0     | 4/16/26         |
+| Ubuntu 22.04 | hpc   | 3.0.0     | 4/17/26         |
+| Ubuntu 22.04 | hpc   | 2.2.0     | 4/17/26         |
+| Ubuntu 20.04 | hpc   | 3.0.0     | In progress     |
+| Ubuntu 20.04 | hpc   | 2.2.0     | PIO build fails |
+| Ubuntu 18.04 | hpc   | 3.0.0     | PIO build fails |
+| Ubuntu 18.04 | hpc   | 2.2.0     | PIO build fails |
 
 # Generating a new forecast with the GUI
 
