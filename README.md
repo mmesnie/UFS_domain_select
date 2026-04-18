@@ -20,6 +20,8 @@ Make sure you have sudo access to install the prereqs.
 1. cd UFS_domain_select/stack
 2. ./do-all spack 3.0.0
 
+# Tested Spack stack platforms (do-all script)
+
 | Distribution | Stack | UFS model | Last tested OK  |
 | ---          | ---   | ---       | ---             |
 | Ubuntu 24.04 | spack | 3.0.0     | 4/16/26         |
@@ -39,6 +41,8 @@ Make sure you have sudo access to install the prereqs.
 
 1. cd UFS_domain_select/stack
 2. ./do-all hpc 3.0.0
+
+# Tested HPC stack platforms (do-all script)
 
 | Distribution | Stack | UFS model | Last tested OK  |
 | ---          | ---   | ---       | ---             |
