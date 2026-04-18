@@ -7,7 +7,7 @@ if [ $# != 1 ]; then
 	exit 1
 fi
 
-if ! cat /etc/issue | awk '{print $2}' | grep -E "^18|^22|^24"; then
+if ! cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^22|^24"; then
 	echo "`cat /etc/issue` has not been tested"
 	exit 1
 fi
@@ -30,8 +30,6 @@ echo "### COPYING PATCH FILES FROM ${UFS_DOMAIN_SELECT_HOME}/stack/patch/hpc-sta
 if [ $VER == "2.2.0" ]; then
 	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/hpc-stack-for-$VER/build_* ./libs
 fi
-
-cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/hpc-stack-for-$VER/build_* ./libs
 
 cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/hpc-stack-for-$VER/config_custom.sh ./config
 cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/hpc-stack-for-$VER/stack_custom.yaml ./stack

@@ -12,7 +12,7 @@ STACK=$1
 sudo apt update
 
 # For Ubuntu 22 and 24
-if cat /etc/issue | awk '{print $2}' | grep -E "^22|^24\."; then
+if cat /etc/issue | awk '{print $2}' | grep -E "^20|^22|^24"; then
 	sudo apt install python-is-python3
 fi
 

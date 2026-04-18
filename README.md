@@ -24,11 +24,11 @@ takes about 10 hours.
 | Ubuntu 22.04 | hpc   | 3.0.0     | 4/17/26         |
 | Ubuntu 22.04 | hpc   | 2.2.0     | 4/17/26         |
 | Ubuntu 20.04 | spack | 3.0.0     | 4/17/26         |
-| Ubuntu 20.04 | spack | 2.2.0     | In progress     |
-| Ubuntu 20.04 | hpc   | 3.0.0     |                 |
-| Ubuntu 20.04 | hpc   | 2.2.0     |                 |
+| Ubuntu 20.04 | spack | 2.2.0     | 4/17/26         |
+| Ubuntu 20.04 | hpc   | 3.0.0     | In progress     |
+| Ubuntu 20.04 | hpc   | 2.2.0     | PIO build fails |
 | Ubuntu 18.04 | spack | 3.0.0     | In progress     |
-| Ubuntu 18.04 | spack | 2.2.0     | 4/16/26         |
+| Ubuntu 18.04 | spack | 2.2.0     | 4/17/26         |
 | Ubuntu 18.04 | hpc   | 3.0.0     | PIO build fails |
 | Ubuntu 18.04 | hpc   | 2.2.0     | PIO build fails |
 
