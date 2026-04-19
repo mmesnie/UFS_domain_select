@@ -2,7 +2,7 @@
 
 # Compiler/MPI combination
 export HPC_COMPILER=${HPC_COMPILER:-"gnu/11"}
-export HPC_MPI=${HPC_MPI:-"openmpi/4.1.6"}
+export HPC_MPI=${HPC_MPI:-"openmpi/4.1.2"}
 export HPC_PYTHON=${HPC_PYTHON:-"python/3.12.13"}
 
 # Build options
