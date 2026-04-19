@@ -24,7 +24,7 @@ sudo apt install ristretto -y
 if [ "$STACK" == "hpc" ]; then
 
 	# gcc-11
-	if cat /etc/issue | awk '{print $2}' | grep -E "^20|^22|^24"; then
+	if cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^22|^24"; then
 		if cat /etc/issue | awk '{print $2}' | grep -E "^20"; then
 		        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
         		sudo apt update
