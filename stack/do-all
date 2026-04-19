@@ -24,6 +24,11 @@ fi
 STACK=$1
 VER=$2
 
+if [ ! $VER == "2.2.0" ] && [ ! $VER == "3.0.0" ]; then
+        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0>"
+        exit 1
+fi
+
 if [ $STACK == "hpc" ]; then
 	if ! cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^22|^24"; then
 		echo "`cat /etc/issue` has not been tested"
