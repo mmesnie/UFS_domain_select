@@ -25,7 +25,10 @@ if [ "$STACK" == "hpc" ]; then
 
 	# gcc-11
 	if cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^22|^24"; then
-		if cat /etc/issue | awk '{print $2}' | grep -E "^20"; then
+		if cat /etc/issue | awk '{print $2}' | grep -E "^18"; then
+			sudo apt-get install m4
+		fi
+		if cat /etc/issue | awk '{print $2}' | grep -E "^18|^20"; then
 		        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
         		sudo apt update
 			sudo apt-get install libexpat1-dev
@@ -41,8 +44,8 @@ if [ "$STACK" == "hpc" ]; then
 	fi
 
 	# Open MPI
-	sudo apt install openmpi-bin -y
-	sudo apt install openmpi-common libopenmpi-dev -y
+	# sudo apt install openmpi-bin -y
+	# sudo apt install openmpi-common libopenmpi-dev -y
 
 	# For cmake
 	sudo apt install libssl-dev -y
