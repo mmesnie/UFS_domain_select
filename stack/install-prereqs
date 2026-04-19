@@ -11,7 +11,6 @@ STACK=$1
 
 sudo apt update
 
-# For Ubuntu 22 and 24
 if cat /etc/issue | awk '{print $2}' | grep -E "^20|^22|^24"; then
 	sudo apt install python-is-python3
 fi
@@ -25,7 +24,12 @@ sudo apt install ristretto -y
 if [ "$STACK" == "hpc" ]; then
 
 	# gcc-11
-	if cat /etc/issue | awk '{print $2}' | grep -E "^22\.|^24\.\."; then
+	if cat /etc/issue | awk '{print $2}' | grep -E "^20|^22|^24"; then
+		if cat /etc/issue | awk '{print $2}' | grep -E "^20"; then
+		        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+        		sudo apt update
+			sudo apt-get install libexpat1-dev
+		fi
 		sudo apt-get install gcc-11 g++-11 gfortran-11
 		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 \
 			--slave /usr/bin/g++ g++ /usr/bin/g++-11 \

@@ -30,7 +30,7 @@ Make sure you have sudo access to install the prereqs.
 | Ubuntu 22.04 | spack | 2.2.0     | 4/16/26         |
 | Ubuntu 20.04 | spack | 3.0.0     | 4/17/26         |
 | Ubuntu 20.04 | spack | 2.2.0     | 4/17/26         |
-| Ubuntu 18.04 | spack | 3.0.0     | In progress     |
+| Ubuntu 18.04 | spack | 3.0.0     | 4/18/26         |
 | Ubuntu 18.04 | spack | 2.2.0     | 4/17/26         |
 
 # Building with hpc stack
@@ -51,9 +51,11 @@ Make sure you have sudo access to install the prereqs.
 | Ubuntu 22.04 | hpc   | 3.0.0     | 4/17/26         |
 | Ubuntu 22.04 | hpc   | 2.2.0     | 4/17/26         |
 | Ubuntu 20.04 | hpc   | 3.0.0     | In progress     |
-| Ubuntu 20.04 | hpc   | 2.2.0     | PIO build fails |
-| Ubuntu 18.04 | hpc   | 3.0.0     | PIO build fails |
-| Ubuntu 18.04 | hpc   | 2.2.0     | PIO build fails |
+| Ubuntu 20.04 | hpc   | 2.2.0     |                 |
+| Ubuntu 18.04 | hpc   | 3.0.0     |                 |
+| Ubuntu 18.04 | hpc   | 2.2.0     |                 |
+
+/usr/bin/ld: /home/mmesnie/ufs_domain_select/build/opt-for-2.2.0/gnu-11/openmpi-4.1.2/hdf5/1.10.6/lib/libhdf5.a(H5Zdeflate.o): undefined reference to symbol 'inflateEnd'
 
 # Generating a new forecast with the GUI
 
