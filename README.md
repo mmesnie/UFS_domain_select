@@ -52,7 +52,7 @@ Make sure you have sudo access to install the prereqs.
 | Ubuntu 22.04 | hpc   | 2.2.0     | 4/17/26         |
 | Ubuntu 20.04 | hpc   | 3.0.0     | 4/19/20         |
 | Ubuntu 20.04 | hpc   | 2.2.0     | FAILED          |
-| Ubuntu 18.04 | hpc   | 3.0.0     | In progress     |
+| Ubuntu 18.04 | hpc   | 3.0.0     | In progress...  |
 | Ubuntu 18.04 | hpc   | 2.2.0     |                 |
 
 # Generating a new forecast with the GUI

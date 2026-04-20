@@ -270,6 +270,7 @@ if [ "${DEFAULT_BUILD}" = true ]; then
   BUILD_UPP="on"
 fi
 
+read -p "not patching /ncep_post.fd/CMakeLists.txt. <Enter> to continue"
 #read -p "<Enter> to patch /home/mmesnie/ufs_domain_select/build/ufs-srweather-app-3.0.0-with-hpc-stack/sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt"
 #cp /home/mmesnie/ufs_domain_select/stack/patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt /home/mmesnie/ufs_domain_select/build/ufs-srweather-app-3.0.0-with-hpc-stack/sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt
 
@@ -323,7 +324,6 @@ fi
 
 source ../../stack/load-hpc-stack 3.0.0
 module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
-module avail
 
 # if build directory already exists then exit
 if [ "${REMOVE}" = true ]; then
@@ -392,10 +392,6 @@ MAKE_SETTINGS="-j ${BUILD_JOBS}"
 if [ "${VERBOSE}" = true ]; then
   MAKE_SETTINGS="${MAKE_SETTINGS} VERBOSE=1"
 fi
-
-# Before we go on load modules, we first need to activate Lmod for some systems
-#echo "MIKE: disabling second source!"
-#source ${SRW_DIR}/etc/lmod-setup.sh $MACHINE
 
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}

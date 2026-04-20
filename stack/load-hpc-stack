@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "This script must be sourced, not executed directly."
 	exit 1
@@ -20,5 +18,6 @@ else
 	#module avail
 	export PATH="${UFS_DOMAIN_SELECT_HOME}/build/opt-for-$VER/core/cmake/3.20.1/bin:"$PATH
 	export PATH="${UFS_DOMAIN_SELECT_HOME}/build/opt-for-$VER/gnu-11/openmpi/4.1.2/bin:"$PATH
-	export LD_LIBRARY_PATH="${UFS_DOMAIN_SELECT_HOME}/build/opt-for-$VER/gnu-11/openmpi/4.1.2/lib:"$LD_LIBRARY_PATH
+	# Note: LDFLAGS is used during compilation, and LD_LIBRARY_PATH is used during execution
+	export LDFLAGS="-L${UFS_DOMAIN_SELECT_HOME}/build/opt-for-$VER/gnu-11/openmpi/4.1.2/lib:"$LD_LIBRARY_PATH
 fi
