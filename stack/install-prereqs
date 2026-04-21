@@ -11,7 +11,9 @@ STACK=$1
 
 sudo apt update
 
-if cat /etc/issue | awk '{print $2}' | grep -E "^20|^22|^24"; then
+if cat /etc/issue | awk '{print $2}' | grep -E "^18"; then
+	sudo apt install python
+elif cat /etc/issue | awk '{print $2}' | grep -E "^20|^22|^24"; then
 	sudo apt install python-is-python3
 fi
 

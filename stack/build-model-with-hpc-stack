@@ -21,9 +21,10 @@ cd $SRC
 ./manage_externals/checkout_externals || exit 1
 
 cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/lmod-setup.sh etc
+cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/devbuild.sh .
+# Do we still need this?
 if [ $VER == "3.0.0" ]; then
 	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/CMakeLists.txt sorc/UPP/sorc/ncep_post.fd
-	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/devbuild.sh .
 fi
 
 export LMOD_PAGER=none
