@@ -30,8 +30,8 @@ Make sure you have sudo access to install the prereqs.
 | Ubuntu 22.04 | spack | 2.2.0     | 4/16/26         |
 | Ubuntu 20.04 | spack | 3.0.0     | 4/17/26         |
 | Ubuntu 20.04 | spack | 2.2.0     | 4/17/26         |
-| Ubuntu 18.04 | spack | 3.0.0     | 4/18/26         |
-| Ubuntu 18.04 | spack | 2.2.0     | 4/17/26         |
+| Ubuntu 18.04 | spack | 3.0.0     | In progress     |
+| Ubuntu 18.04 | spack | 2.2.0     | In progress     |
 
 # Building with hpc stack
 
@@ -50,10 +50,10 @@ Make sure you have sudo access to install the prereqs.
 | Ubuntu 24.04 | hpc   | 2.2.0     | 4/16/26         |
 | Ubuntu 22.04 | hpc   | 3.0.0     | 4/17/26         |
 | Ubuntu 22.04 | hpc   | 2.2.0     | 4/17/26         |
-| Ubuntu 20.04 | hpc   | 3.0.0     | In progress     |
+| Ubuntu 20.04 | hpc   | 3.0.0     | Next up         |
 | Ubuntu 20.04 | hpc   | 2.2.0     | In progress     |
-| Ubuntu 18.04 | hpc   | 3.0.0     | 4/20/26         |
-| Ubuntu 18.04 | hpc   | 2.2.0     | 4/20/26         |
+| Ubuntu 18.04 | hpc   | 3.0.0     | In progress     |
+| Ubuntu 18.04 | hpc   | 2.2.0     | In progress     |
 
 # Generating a new forecast with the GUI
 

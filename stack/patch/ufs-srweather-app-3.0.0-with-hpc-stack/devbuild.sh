@@ -321,7 +321,7 @@ if [ -f ${RUN_VERSION_FILE} ]; then
 fi
 
 source ../../stack/load-hpc-stack 3.0.0
-module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
+#module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
 
 # if build directory already exists then exit
 if [ "${REMOVE}" = true ]; then
