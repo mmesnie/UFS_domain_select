@@ -25,9 +25,10 @@ cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/l
 if [ $VER == "2.2.0" ]; then
 	source ../../stack/load-hpc-stack 2.2.0
 	read -p "hpc stack loaded for $VER <Enter>"
+	# we didn't modify devbuild.sh in 2.2.0
 elif [ $VER == "3.0.0" ]; then
 	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/devbuild.sh .
-	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/CMakeLists.txt sorc/UPP/sorc/ncep_post.fd
+	#cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/CMakeLists.txt sorc/UPP/sorc/ncep_post.fd
 	# load-hpc-stack.sh is sourced in devbuild.sh
 fi
 
