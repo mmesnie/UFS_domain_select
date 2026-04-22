@@ -270,8 +270,6 @@ if [ "${DEFAULT_BUILD}" = true ]; then
   BUILD_UPP="on"
 fi
 
-#cp /home/mmesnie/ufs_domain_select/stack/patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt /home/mmesnie/ufs_domain_select/build/ufs-srweather-app-3.0.0-with-hpc-stack/sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt
-
 # Choose components to build for air quality modeling (Online-CMAQ)
 if [ "${APPLICATION}" = "ATMAQ" ]; then
   if [ "${DEFAULT_BUILD}" = true ]; then
@@ -320,8 +318,24 @@ if [ -f ${RUN_VERSION_FILE} ]; then
   . ${RUN_VERSION_FILE}
 fi
 
-source ../../stack/load-hpc-stack 3.0.0
-#module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
+# set MODULE_FILE for this platform/compiler combination
+MODULE_FILE="build_${PLATFORM}_${COMPILER}"
+if [ ! -f "${SRW_DIR}/modulefiles/${MODULE_FILE}.lua" ]; then
+  printf "ERROR: module file does not exist for platform/compiler\n" >&2
+  printf "  MODULE_FILE=${MODULE_FILE}\n" >&2
+  printf "  PLATFORM=${PLATFORM}\n" >&2
+  printf "  COMPILER=${COMPILER}\n\n" >&2
+  printf "Please make sure PLATFORM and COMPILER are set correctly\n" >&2
+  #usage >&2
+  #exit 64
+  read -p "<Enter> to load modules directly"
+  source ../../stack/load-hpc-stack 3.0.0
+  module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
+  module list
+  read -p "<Enter> to continue build"
+fi
+
+printf "MODULE_FILE=${MODULE_FILE}\n" >&2
 
 # if build directory already exists then exit
 if [ "${REMOVE}" = true ]; then
@@ -389,6 +403,90 @@ fi
 MAKE_SETTINGS="-j ${BUILD_JOBS}"
 if [ "${VERBOSE}" = true ]; then
   MAKE_SETTINGS="${MAKE_SETTINGS} VERBOSE=1"
+fi
+
+if [ -f $MODULE_FILE ]; then
+# Before we go on load modules, we first need to activate Lmod for some systems
+source ${SRW_DIR}/etc/lmod-setup.sh $MACHINE
+
+# source the module file for this platform/compiler combination, then build the code
+printf "... Load MODULE_FILE and create BUILD directory ...\n"
+
+if [ $USE_SUB_MODULES = true ]; then
+    #helper to try and load module
+    function load_module() {
+
+        set +e
+        #try most specialized modulefile first
+        MODF="$1${PLATFORM}.${COMPILER}"
+        if [ $BUILD_TYPE != "RELEASE" ]; then
+            MODF="${MODF}.debug"
+        else
+            MODF="${MODF}.release"
+        fi
+        module is-avail ${MODF}
+        if [ $? -eq 0 ]; then
+            module load ${MODF}
+            return
+        fi
+        # without build type
+        MODF="$1${PLATFORM}.${COMPILER}"
+        module is-avail ${MODF}
+        if [ $? -eq 0 ]; then
+            module load ${MODF}
+            return
+        fi
+        # without compiler
+        MODF="$1${PLATFORM}"
+        module is-avail ${MODF}
+        if [ $? -eq 0 ]; then
+            module load ${MODF}
+            return
+        fi
+        set -e
+
+        # else fallback on app level modulefile
+        printf "... Fall back to app level modulefile ...\n"
+        if [ -f ${MODULE_FILE} ]; then
+            module use ${SRW_DIR}/modulefiles
+       	    module load ${MODULE_FILE}
+        fi
+    }
+    if [ $BUILD_UFS = "on" ]; then
+        printf "... Loading UFS modules ...\n"
+        module use ${SRW_DIR}/sorc/ufs-weather-model/modulefiles
+        load_module "ufs_"
+    fi
+    if [ $BUILD_UFS_UTILS = "on" ]; then
+        printf "... Loading UFS_UTILS modules ...\n"
+        module use ${SRW_DIR}/sorc/UFS_UTILS/modulefiles
+        load_module "build."
+    fi
+    if [ $BUILD_UPP = "on" ]; then
+        printf "... Loading UPP modules ...\n"
+        module use ${SRW_DIR}/sorc/UPP/modulefiles
+        load_module ""
+    fi
+    if [ $BUILD_NEXUS = "on" ]; then
+        printf "... Loading NEXUS modules ...\n"
+        module use ${SRW_DIR}/sorc/arl_nexus/modulefiles
+        load_module ""
+    fi
+    if [ $BUILD_AQM_UTILS = "on" ]; then
+        printf "... Loading AQM-utils modules ...\n"
+        module use ${SRW_DIR}/sorc/AQM-utils/modulefiles
+        load_module ""
+    fi
+else
+    if [ -f ${MODULE_FILE} ]; then
+        module use ${SRW_DIR}/modulefiles
+        module load ${MODULE_FILE}
+    fi
+    if [[ "${PLATFORM}" == "macos" ]]; then
+        export LDFLAGS+=" -L$MPI_ROOT/lib "
+    fi
+fi
+module list
 fi
 
 mkdir -p ${BUILD_DIR}
