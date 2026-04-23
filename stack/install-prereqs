@@ -25,8 +25,12 @@ sudo apt install ristretto -y
 
 if [ "$STACK" == "hpc" ]; then
 
+	#if cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^22"; then
+	#	sudo ln -sf /usr/bin/bash /usr/bin/sh
+	#fi
+
 	# gcc-11
-	if cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^22|^24"; then
+	if cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^24"; then
 		if cat /etc/issue | awk '{print $2}' | grep -E "^18"; then
 			sudo apt-get install m4
 		fi
@@ -35,9 +39,6 @@ if [ "$STACK" == "hpc" ]; then
         		sudo apt update
 			sudo apt-get install libexpat1-dev
 		fi
-		#if cat /etc/issue | awk '{print $2}' | grep -E "^18|^20|^22"; then
-		#	sudo ln -sf /usr/bin/bash /usr/bin/sh
-		#fi
 		sudo apt-get install gcc-11 g++-11 gfortran-11
 		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 \
 			--slave /usr/bin/g++ g++ /usr/bin/g++-11 \
