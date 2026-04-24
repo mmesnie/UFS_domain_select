@@ -1,0 +1,25 @@
+=======
+SCRIPTS
+=======
+- Get rocoto/slurm working via linux-2.2.0.yaml.tmpl
+- Reintegrate Makefile that downloads latest gfs data
+
+===
+GUI
+===
+- Experiment with all-in-one distribution (so conda isn't needed)
+- See ~/UFS_domain_select/build/ufs-srweather-app-v2.2.0/parm/data_locations.yml (line 120)
+- Add GUI option for date and downloading latest gfs
+- Bug: Zooming in on Global should not change it to regional
+- Bug: InterruptedGoodeHomolosine shifts on center
+- Bug: InterruptedGoodeHomolosine creeps on set
+- Look into draw vs. show
+- Remove uneeded abs calls
+- Keep selected grids on reset ('0')
+- Add option to show gnomonic compute grid
+- Add menu for selecting a predefined region
+- Add back option for saving to png file
+- Determine if we need corner lat/lon option when plotting GRIB
+- Output args for recreating the plot (on 'y' press) and make
+  it so that it can be copy-pasted as one of the default grids.
+  Eventually, add an option to "save" as predefined.
