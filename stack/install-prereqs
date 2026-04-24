@@ -22,6 +22,9 @@ sudo apt install git curl build-essential gfortran -y
 
 # For viewing forecast plots
 sudo apt install ristretto -y
+if cat /etc/issue | awk '{print $2}' | grep -E "^18"; then
+	sudo apt-get install libcanberra-gtk-module libcanberra-gtk0
+fi
 
 if [ "$STACK" == "hpc" ]; then
 

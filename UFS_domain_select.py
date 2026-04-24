@@ -69,6 +69,7 @@ UFS_DOMAIN_SELECT_HOME=os.path.dirname(os.path.abspath(__file__))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--file", "-f", help="grib file to plot", required=False)
+parser.add_argument("--subtitle", "-s", help="subtitle for png output", required=False)
 parser.add_argument("--close", "-x", help="close after saving plot of grib file", required=False, action="store_true")
 
 ###########
@@ -167,7 +168,7 @@ class grib():
         valid_object_pdt = now_object + timedelta(hours=int(fcst)) - timedelta(hours=7)
         valid_pdt = valid_object_pdt.strftime("%y%m%d%H")
 
-        title = f"valid utc {valid_utc} (+{fcst}), valid pdt {valid_pdt} (+{fcst})"
+        title = f"valid: utc {valid_utc} (+{fcst}), pdt {valid_pdt} (+{fcst})"
         print(f"grib: {title}")
         self.title = title
 
@@ -1072,7 +1073,10 @@ def plots_draw(uds, mode):
             for p in uds.projs:
                 if uds.plotted[p]:
                     uds.axis[p].set_title(p)
-            uds.fig.suptitle(uds.grib.title)
+            if g_args.subtitle:
+                uds.fig.suptitle(uds.grib.title + "\n" + g_args.subtitle, y=0.08)
+            else:
+                uds.fig.suptitle(uds.grib.title, y=0.08)
             print(f"plots_draw: saving forecast to {g_args.file + '.png'} ***")
             uds.fig.savefig(g_args.file + ".A.png")
             if g_args.close:
