@@ -1,4 +1,5 @@
--> add NCORES_PER_NODE to GUI output!
+--> try to recreate expr path length problem
+--> add NCORES_PER_NODE to GUI output!
 --> see if build_wgrib2.sh is needed across all distros
 
 Ubuntu 18: in progress
