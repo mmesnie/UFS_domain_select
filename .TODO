@@ -1,3 +1,61 @@
+-> add NCORES_PER_NODE to GUI output!
+--> see if build_wgrib2.sh is needed across all distros
+
+Ubuntu 18: in progress
+Ubuntu 20:
+Ubuntu 22:
+Ubuntu 24:
+
+-Add simple README
+ 1. Install Ubuntu and accept all defaults
+ 2. sudo apt-get install git
+ 3. git clone https://github.com/mmesnie/ufs_domain_select
+ 4. cd ufs_domain_select/stack
+ 5. yes y | ./do-all hpc 2.2.0
+ 6. Note: restart script if it fails due to any network timouts
+
+-Understand pathlength more. This is an issue on Ubuntu 20, but not on the
+ Inspiron (Ubuntu 18), for HPC.  See if it also shows up in spack!
+-Create build_linux_gnu.lua for 3.0.0 and try to remove devbuild.sh
+-Understand why we have to patch the CMakeFile for ncep_post.fd, to not build netcdf.
+ This is only for 3.0.0. See patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt
+ which patches sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt
+-See if we can't get "examples" building in pio
+
+=====
+Other
+=====
+
+-Build gcc-11 for hpc stacks, if it's not already there? This means we'll
+ only need build-essential in the prereqs, and no update-alternatives! ;-)
+-Add appropriate "wait" for monitoring hpc stack; need to wait for Lmod
+-Make sure we can restart, as needed, when we lose the network.  This means
+ that everything needs to be idempotent.
+-Can ufs 2.2.0 and 3.0.0 use the same hpc stack?? Try it out and see!
+-Remove conda install from ufs 3.0.0. Three enviroments are created
+ (srw_app, srw_graphics, and srw_sd)
+-Remove python versioning info from config.yaml?  Is this even needed?? Or,
+ should we be building python so that we don't have to apt-install at all?
+
+0. See how LAYOUT_X/LAYOUT_Y differs with 2.2.0, if at all.
+1. Add these to the GUI's output
+   platform:
+     RUN_CMD_FCST: mpirun -n ${PE_MEMBER01} --oversubscribe
+     NCORES_PER_NODE: <NCORES_PER_NODE>
+2. Try to get linux.yaml platform doing something useful via
+   rocoto/slurm, etc.  config.yaml will overwrite these
+   values, like NCORES_PER_NODE.  Will setting MACHINE=linux
+   invoke this for us??  Give it a try. What about setting
+   WORKFLOW_MANAGER=rocoto?  Why do we need to set it twice?
+
+   Do we even need this if we have everything in config.yaml?
+   And where do we every set the platform to "linux" ??
+   Let's try to remove these two files if we can!
+3. See if we can add USHdir, JOBSdir and PW_CSP to config.yaml,
+   rather than export them. Does it matter??
+
+===OLDER TODO ===
+
 =======
 SCRIPTS
 =======
