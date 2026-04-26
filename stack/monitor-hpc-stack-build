@@ -23,6 +23,10 @@ if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 		sleep 3
 	done
 	source /usr/local/lmod/lmod/init/profile
+	while [ ! -d $TOP/build/opt-for-$VER/modulefiles/stack ]; do
+		echo "waiting for hpc stack to begin installing...."
+		sleep 3
+	done
 	module use $TOP/build/opt-for-$VER/modulefiles/stack
 	module load hpc hpc-gnu hpc-openmpi
 	while [ 1 ]; do

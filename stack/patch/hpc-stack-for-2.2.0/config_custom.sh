@@ -3,7 +3,8 @@
 # Compiler/MPI combination
 export HPC_COMPILER=${HPC_COMPILER:-"gnu/11"}
 export HPC_MPI=${HPC_MPI:-"openmpi/4.1.2"}
-export HPC_PYTHON=${HPC_PYTHON:-"python/3.10.12"}
+
+export HPC_PYTHON=${HPC_PYTHON:-"python/x.y.z"}
 
 # Build options
 export USE_SUDO=N
