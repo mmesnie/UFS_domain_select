@@ -776,6 +776,9 @@ user:
   RUN_ENVIR: community
   MACHINE: linux
   ACCOUNT: an_account
+platform:
+  RUN_CMD_FCST: mpirun -n ${PE_MEMBER01} --oversubscribe
+  NCORES_PER_NODE: <NCORES_PER_NODE>
 workflow:
   EXPT_BASEDIR: <EXPT_BASEDIR>
   EXPT_SUBDIR: <EXPT_SUBDIR>

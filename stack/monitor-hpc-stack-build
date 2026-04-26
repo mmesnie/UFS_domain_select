@@ -17,12 +17,14 @@ old_rows=0
 
 export LMOD_PAGER=none
 
+PROFILE=$TOP/build/lmod/lmod/init/profile
+
 if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
-	while [ ! -f /usr/local/lmod/lmod/init/profile ]; do
+	while [ ! -f $PROFILE ]; do
 		echo "waiting for Lmod to install..."
 		sleep 3
 	done
-	source /usr/local/lmod/lmod/init/profile
+	source $PROFILE
 	while [ ! -d $TOP/build/opt-for-$VER/modulefiles/stack ]; do
 		echo "waiting for hpc stack to begin installing...."
 		sleep 3

@@ -31,7 +31,8 @@ if [ "$L_MACHINE" = macos ]; then
    module purge
 
 elif [ "$L_MACHINE" = linux ]; then
-   export BASH_ENV="/usr/local/lmod/lmod/init/bash"
+   #export BASH_ENV="/usr/local/lmod/lmod/init/bash"
+   export BASH_ENV="${UFS_DOMAIN_SELECT_HOME}/build/lmod/lmod/lmod/init/bash"
    source $BASH_ENV
 
    module purge
