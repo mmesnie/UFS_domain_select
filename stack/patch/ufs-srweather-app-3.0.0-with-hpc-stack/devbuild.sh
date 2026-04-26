@@ -332,7 +332,6 @@ if [ ! -f "${SRW_DIR}/modulefiles/${MODULE_FILE}.lua" ]; then
   module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
   module list
   echo "hpc stack loaded for 3.0.0"
-  read -p "<Enter> to continue build"
 fi
 
 printf "MODULE_FILE=${MODULE_FILE}\n" >&2
