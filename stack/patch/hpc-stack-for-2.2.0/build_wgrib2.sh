@@ -79,7 +79,9 @@ sed -i'.backup' "s:^USE_G2CLIB=.*:USE_G2CLIB=${STACK_wgrib2_g2clib:-0}:" makefil
 sed -i'.backup' "s:^USE_PNG=.*:USE_PNG=${STACK_wgrib2_png:-1}:" makefile
 sed -i'.backup' "s:^USE_AEC=.*:USE_AEC=${STACK_wgrib2_aec:-1}:" makefile
 
-#sed -i'.backup' 's/\"\\#define/\"#define/g' makefile
+if cat /etc/issue | awk '{print $2}' | grep -E "^22"; then
+	sed -i'.backup' 's/\"\\#define/\"#define/g' makefile
+fi
 sed -i'.backup' 's/\/bin\/sh/\/bin\/bash/g' makefile
 
 # Fix openmp flag in older version of wgrib2. Intel compilers no longer accept -openmp.
