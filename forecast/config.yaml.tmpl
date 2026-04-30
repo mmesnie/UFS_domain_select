@@ -52,9 +52,10 @@ task_run_fcst:
   OMP_NUM_THREADS_RUN_FCST: 1
 
   # These should be set automatically
-  # PE_MEMBER01: '{{ OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X + WRTCMP_write_groups * WRTCMP_write_tasks_per_group) + OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X)}}'
-  # PPN_RUN_FCST: '{{ platform.NCORES_PER_NODE // OMP_NUM_THREADS_RUN_FCST }}'
-  # NNODES_RUN_FCST: '{{ (PE_MEMBER01 + PPN_RUN_FCST - 1) // PPN_RUN_FCST }}'
+  # PE_MEMBER01:   OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y*LAYOUT_X + WRTCMP_write_groups*WRTCMP_write_tasks_per_group) 
+  #              + OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y*LAYOUT_X)
+  # PPN_RUN_FCST: platform.NCORES_PER_NODE / OMP_NUM_THREADS_RUN_FCST
+  # NNODES_RUN_FCST: (PE_MEMBER01 + PPN_RUN_FCST - 1) / PPN_RUN_FCST
 
   BLOCKSIZE: 40
   WRTCMP_write_groups: 1
