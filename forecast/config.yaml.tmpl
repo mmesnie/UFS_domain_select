@@ -1,14 +1,12 @@
-
 metadata:
   description: >-
     Automatically generated via UFS_domain_select.py
+
 user:
   RUN_ENVIR: community
   MACHINE: linux
   ACCOUNT: an_account
-platform:
-  RUN_CMD_FCST: mpirun -n ${PE_MEMBER01} --oversubscribe
-  NCORES_PER_NODE: <NCORES_PER_NODE>
+
 workflow:
   EXPT_BASEDIR: <EXPT_BASEDIR>
   EXPT_SUBDIR: <EXPT_SUBDIR>
@@ -21,6 +19,7 @@ workflow:
   VERBOSE: true
   COMPILER: gnu
   GRID_GEN_METHOD: "ESGgrid"
+
 task_make_grid:
   ESGgrid_LON_CTR: -127.68
   ESGgrid_LAT_CTR: 45.72
@@ -30,17 +29,25 @@ task_make_grid:
   ESGgrid_DELY: 25000 
   ESGgrid_PAZI: 0.0
   ESGgrid_WIDE_HALO_WIDTH: 6
+
 task_get_extrn_ics:
   EXTRN_MDL_NAME_ICS: FV3GFS
   FV3GFS_FILE_FMT_ICS: grib2
   EXTRN_MDL_SOURCE_BASEDIR_ICS: <EXTRN_MDL_SOURCE_BASEDIR_ICS>
+
 task_get_extrn_lbcs:
   EXTRN_MDL_NAME_LBCS: FV3GFS
   LBC_SPEC_INTVL_HRS: 6 
   FV3GFS_FILE_FMT_LBCS: grib2
   EXTRN_MDL_SOURCE_BASEDIR_LBCS: <EXTRN_MDL_SOURCE_BASEDIR_LBCS>
+
 task_run_post:
   POST_OUTPUT_DOMAIN_NAME: 'ufs_domain_select'
+
+#fire:
+#  UFS_FIRE: False
+#  FIRE_NUM_TASKS: 3
+
 task_run_fcst:
   QUILTING: true
   DT_ATMOS: 36
@@ -49,7 +56,7 @@ task_run_fcst:
   OMP_NUM_THREADS_RUN_FCST: 1
 
   # These should be set automatically
-  #PE_MEMBER01: '{{ OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X + WRTCMP_write_groups * WRTCMP_write_tasks_per_group) + fire.FIRE_NUM_TASKS if QUILTING else OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X) + fire.FIRE_NUM_TASKS }}'
+  # PE_MEMBER01: '{{ OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X + WRTCMP_write_groups * WRTCMP_write_tasks_per_group) + OMP_NUM_THREADS_RUN_FCST * (LAYOUT_Y * LAYOUT_X)}}'
   # PPN_RUN_FCST: '{{ platform.NCORES_PER_NODE // OMP_NUM_THREADS_RUN_FCST }}'
   # NNODES_RUN_FCST: '{{ (PE_MEMBER01 + PPN_RUN_FCST - 1) // PPN_RUN_FCST }}'
 
