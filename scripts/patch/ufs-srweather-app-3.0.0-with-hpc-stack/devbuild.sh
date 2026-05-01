@@ -328,7 +328,8 @@ if [ ! -f "${SRW_DIR}/modulefiles/${MODULE_FILE}.lua" ]; then
   printf "Please make sure PLATFORM and COMPILER are set correctly\n" >&2
   #usage >&2
   #exit 64
-  source ../../stack/load-hpc-stack 3.0.0
+
+  source ../../scripts/load-hpc-stack 3.0.0
   module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
   module list
   echo "hpc stack loaded for 3.0.0"
@@ -406,6 +407,7 @@ fi
 
 if [ -f $MODULE_FILE ]; then
 # Before we go on load modules, we first need to activate Lmod for some systems
+
 source ${SRW_DIR}/etc/lmod-setup.sh $MACHINE
 
 # source the module file for this platform/compiler combination, then build the code

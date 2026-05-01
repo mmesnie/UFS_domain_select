@@ -3,12 +3,14 @@ Ubuntu 20: OK
 Ubuntu 22:
 Ubuntu 24: In progress
 
-==================
-Building the model
-==================
-1. Confirm that ./modulefiles/build_linux_gnu.lua is being called
-   in 2.2.0 and create one for 3.0.0 (so that we can potentially
-   remove our mods to devbuild.sh)
+============================
+Building the stack and model
+============================
+
+0. Separate "build" scripts from those needed to run the model
+1. Remove conda build from spack, or reuse what they're doing
+2. Create build_linux_gnu.lua for 3.0.0 and remove devbuild.sh?
+3. Think about adding "ubuntu" machine?
 
 =================
 Running the model

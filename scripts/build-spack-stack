@@ -73,7 +73,7 @@ if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 	spack compiler find
 
 	# Apply cmake flags for the fms package.
-	cp $TOP/../stack/patch/spack-stack-for-$VER/package.py `spack location -p fms`
+	cp $TOP/../scripts/patch/spack-stack-for-$VER/package.py `spack location -p fms`
 
 	if [ "$VER" == "2.2.0" ]; then 
 		PACKAGES=("netcdf-c@4.9.2" "netcdf-fortran@4.6.0" "parallelio@2.5.10" \

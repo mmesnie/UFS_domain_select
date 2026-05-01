@@ -20,22 +20,22 @@ fi
 cd $SRC
 ./manage_externals/checkout_externals || exit 1
 
-cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/lmod-setup.sh etc
-
 if [ $VER == "2.2.0" ]; then
-	source ../../stack/load-hpc-stack 2.2.0
+	cp ${UFS_DOMAIN_SELECT_HOME}/scripts/patch/ufs-srweather-app-$VER-with-hpc-stack/lmod-setup.sh etc
+	source ../../scripts/load-hpc-stack 2.2.0
 elif [ $VER == "3.0.0" ]; then
-	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/devbuild.sh .
-	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-hpc-stack/CMakeLists.txt sorc/UPP/sorc/ncep_post.fd
-	# load-hpc-stack.sh is sourced in devbuild.sh
+	# Note: load-hpc-stack.sh is sourced in devbuild.sh
+	cp ${UFS_DOMAIN_SELECT_HOME}/scripts/patch/ufs-srweather-app-$VER-with-hpc-stack/devbuild.sh .
+	cp ${UFS_DOMAIN_SELECT_HOME}/scripts/patch/ufs-srweather-app-$VER-with-hpc-stack/CMakeLists.txt sorc/UPP/sorc/ncep_post.fd
 fi
 
 export LMOD_PAGER=none
 export PATH="${UFS_DOMAIN_SELECT_HOME}/build/opt-for-$VER/core/cmake/3.20.1/bin:"$PATH
 
 # gcc-11 binaries
-export PATH="${UFS_DOMAIN_SELECT_HOME}/stack/bin:"$PATH
+export PATH="${UFS_DOMAIN_SELECT_HOME}/scripts/bin:"$PATH
 export PATH="/usr/lib/gcc/x86_64-linux-gnu/11:"$PATH
 
 cd $SRC
+
 echo C | ./devbuild.sh --platform=linux --compiler=gnu

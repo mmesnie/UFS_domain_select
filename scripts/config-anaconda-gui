@@ -10,6 +10,6 @@ echo "### $0: creating ufs_domain_select environment"
 if $CONDA env list | grep -E "ufs_domain_select$" > /dev/null; then
 	echo ufs_domain_select environment already created
 else
-	$CONDA env create -f $UFS_DOMAIN_SELECT_HOME/stack/ufs_domain_select.yml
+	$CONDA env create -f $UFS_DOMAIN_SELECT_HOME/scripts/ufs_domain_select.yml
 fi
 

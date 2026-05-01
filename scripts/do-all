@@ -36,9 +36,9 @@ if [ $STACK == "hpc" ]; then
 	fi
 fi
 
-export UFS_DOMAIN_SELECT_HOME=`echo $(realpath $(dirname $0)) | sed 's/\/stack//'`
+export UFS_DOMAIN_SELECT_HOME=`echo $(realpath $(dirname $0)) | sed 's/\/scripts//'`
 
-cd $UFS_DOMAIN_SELECT_HOME/stack
+cd $UFS_DOMAIN_SELECT_HOME/scripts
 
 read -p "<[y]|n> install prereqs (sudo required)?" val
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
@@ -82,11 +82,11 @@ if [ "$val" == "y" ] || [ "$val" == "" ]; then
 	t_download_data=$t_elapsed
 fi
 
-read -p "<[y]|n> download earth?" val
-if [ "$val" == "y" ] || [ "$val" == "" ]; then
-	mytime "./download-earth"
-	t_download_earth=$t_elapsed
-fi
+#read -p "<[y]|n> download earth?" val
+#if [ "$val" == "y" ] || [ "$val" == "" ]; then
+#	mytime "./download-earth"
+#	t_download_earth=$t_elapsed
+#fi
 
 read -p "<[y]|n> generate and plot a forecast with UFS SRW model $VER?" val
 

@@ -17,7 +17,7 @@ It's best to start with a fresh Ubuntu installation.
 
 Make sure you have sudo access to install the prereqs.
 
-1. cd UFS_domain_select/stack
+1. cd UFS_domain_select/scripts
 2. ./do-all spack 3.0.0
 
 # Tested Spack stack platforms (do-all script)
@@ -39,7 +39,7 @@ It's best to start with a fresh Ubuntu installation.
 
 Make sure you have sudo access to install the prereqs.
 
-1. cd UFS_domain_select/stack
+1. cd UFS_domain_select/scripts
 2. ./do-all hpc 3.0.0
 
 # Tested HPC stack platforms (do-all script)

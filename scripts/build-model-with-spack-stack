@@ -35,7 +35,7 @@ if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 	echo "*** COPYING DEVBUILD.SH ***"
 	echo
 
-	cp ${UFS_DOMAIN_SELECT_HOME}/stack/patch/ufs-srweather-app-$VER-with-spack-stack/devbuild.sh .
+	cp ${UFS_DOMAIN_SELECT_HOME}/scripts/patch/ufs-srweather-app-$VER-with-spack-stack/devbuild.sh .
 
 	echo "### $0: activating ufs environment"
         source $TOP/spack-stack-for-$VER/share/spack/setup-env.sh
@@ -45,9 +45,9 @@ if [ "$VER" == "2.2.0" ] || [ "$VER" == "3.0.0" ]; then
 
 	echo "### $0: building model"
 	if [ "$VER" == "2.2.0" ]; then
-		./devbuild.sh --platform=foo --compiler=bar
+		echo C | ./devbuild.sh --platform=foo --compiler=bar
 	elif [ "$VER" == "3.0.0" ]; then
-		./devbuild.sh --platform=linux --compiler=bar
+		echo C | ./devbuild.sh --platform=linux --compiler=bar
 	fi
 
 elif [ "$VER" == "3.0.0" ]; then
