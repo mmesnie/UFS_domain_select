@@ -1,9 +1,25 @@
---> is build_wgrib2.sh is needed across all distros
-
-Ubuntu 18:
-Ubuntu 20: in progress...
+Ubuntu 18: OK
+Ubuntu 20: OK
 Ubuntu 22:
-Ubuntu 24:
+Ubuntu 24: In progress
+
+==================
+Building the model
+==================
+1. Confirm that ./modulefiles/build_linux_gnu.lua is being called
+   in 2.2.0 and create one for 3.0.0 (so that we can potentially
+   remove our mods to devbuild.sh)
+
+=================
+Running the model
+=================
+
+1. See if we can add USHdir, JOBSdir and PW_CSP to config.yaml,
+   rather than export them. Does it matter??
+2. Get rocoto/slurm working via linux-2.2.0.yaml.tmpl (and 3.0.0).
+   Will setting MACHINE=linux invoke this for us??  
+   What about setting WORKFLOW_MANAGER=rocoto?  
+   Why do we need to set it twice?
 
 -Add simple README
  1. Install Ubuntu and accept all defaults
@@ -15,7 +31,6 @@ Ubuntu 24:
 
 -Understand pathlength more. This is an issue on Ubuntu 20, but not on the
  Inspiron (Ubuntu 18), for HPC.  See if it also shows up in spack!
--Create build_linux_gnu.lua for 3.0.0 and try to remove devbuild.sh
 -Understand why we have to patch the CMakeFile for ncep_post.fd, to not build netcdf.
  This is only for 3.0.0. See patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt
  which patches sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt
@@ -30,24 +45,12 @@ Other
 -Can ufs 2.2.0 and 3.0.0 use the same hpc stack?
 
 0. See how LAYOUT_X/LAYOUT_Y differs with 2.2.0, if at all.
-1. Try to get linux.yaml platform doing something useful via
-   rocoto/slurm, etc.  config.yaml will overwrite these
-   values, like NCORES_PER_NODE.  Will setting MACHINE=linux
-   invoke this for us??  Give it a try. What about setting
-   WORKFLOW_MANAGER=rocoto?  Why do we need to set it twice?
-
-   Do we even need this if we have everything in config.yaml?
-   And where do we every set the platform to "linux" ??
-   Let's try to remove these two files if we can!
-2. See if we can add USHdir, JOBSdir and PW_CSP to config.yaml,
-   rather than export them. Does it matter??
 
 ===OLDER TODO ===
 
 =======
 SCRIPTS
 =======
-- Get rocoto/slurm working via linux-2.2.0.yaml.tmpl
 - Reintegrate Makefile that downloads latest gfs data
 
 ===
