@@ -1,7 +1,7 @@
-Ubuntu 18: OK
-Ubuntu 20: OK
+Ubuntu 18:
+Ubuntu 20:
 Ubuntu 22:
-Ubuntu 24: In progress
+Ubuntu 24:
 
 ============================
 Building the stack and model
@@ -11,6 +11,7 @@ Building the stack and model
 1. Remove conda build from spack, or reuse what they're doing
 2. Create build_linux_gnu.lua for 3.0.0 and remove devbuild.sh?
 3. Think about adding "ubuntu" machine?
+4. Resolve python-x.y.z
 
 =================
 Running the model

@@ -95,7 +95,7 @@ if [ $STACK == "spack" ]; then
 	#export LD_LIBRARY_PATH="`spack location -i libjpeg-turbo`/lib:$LD_LIBRARY_PATH"
 elif [ $STACK == "hpc" ]; then
 	# We only need this to add the mpi executables to PATH
-	source $UFS_DOMAIN_SELECT_HOME/stack/load-hpc-stack $VER
+	source $UFS_DOMAIN_SELECT_HOME/scripts/load-hpc-stack $VER
 fi
 
 #
