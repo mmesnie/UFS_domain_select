@@ -326,13 +326,8 @@ if [ ! -f "${SRW_DIR}/modulefiles/${MODULE_FILE}.lua" ]; then
   printf "  PLATFORM=${PLATFORM}\n" >&2
   printf "  COMPILER=${COMPILER}\n\n" >&2
   printf "Please make sure PLATFORM and COMPILER are set correctly\n" >&2
-  #usage >&2
-  #exit 64
-
-  source ../../scripts/load-hpc-stack 3.0.0
-  module load netcdf esmf fms bacio sp crtm sfcio w3emc g2 libpng g2tmpl nemsio sigio ip hdf5
-  module list
-  echo "hpc stack loaded for 3.0.0"
+  usage >&2
+  exit 64
 fi
 
 printf "MODULE_FILE=${MODULE_FILE}\n" >&2
@@ -405,9 +400,7 @@ if [ "${VERBOSE}" = true ]; then
   MAKE_SETTINGS="${MAKE_SETTINGS} VERBOSE=1"
 fi
 
-if [ -f $MODULE_FILE ]; then
 # Before we go on load modules, we first need to activate Lmod for some systems
-
 source ${SRW_DIR}/etc/lmod-setup.sh $MACHINE
 
 # source the module file for this platform/compiler combination, then build the code
@@ -448,10 +441,8 @@ if [ $USE_SUB_MODULES = true ]; then
 
         # else fallback on app level modulefile
         printf "... Fall back to app level modulefile ...\n"
-        if [ -f ${MODULE_FILE} ]; then
-            module use ${SRW_DIR}/modulefiles
-       	    module load ${MODULE_FILE}
-        fi
+        module use ${SRW_DIR}/modulefiles
+        module load ${MODULE_FILE}
     }
     if [ $BUILD_UFS = "on" ]; then
         printf "... Loading UFS modules ...\n"
@@ -479,16 +470,13 @@ if [ $USE_SUB_MODULES = true ]; then
         load_module ""
     fi
 else
-    if [ -f ${MODULE_FILE} ]; then
-        module use ${SRW_DIR}/modulefiles
-        module load ${MODULE_FILE}
-    fi
+    module use ${SRW_DIR}/modulefiles
+    module load ${MODULE_FILE}
     if [[ "${PLATFORM}" == "macos" ]]; then
         export LDFLAGS+=" -L$MPI_ROOT/lib "
     fi
 fi
 module list
-fi
 
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
