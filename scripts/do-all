@@ -91,7 +91,7 @@ fi
 read -p "<[y]|n> generate and plot a forecast with UFS SRW model $VER?" val
 
 if [ "$val" == "y" ] || [ "$val" == "" ]; then
-        mytime "../forecast/do-forecast $STACK $VER"
+        mytime "../scripts/do-forecast $STACK $VER"
         t_do_forecast=$t_elapsed
         echo
         echo "*** FORECAST COMPLETE ***"
@@ -125,8 +125,8 @@ echo "            forecast: $t_do_forecast"
 
 echo
 echo "*"
-echo "* You can modify $UFS_DOMAIN_SELECT_HOME/forecast/config.yaml.tmpl and execute"
-echo "* $UFS_DOMAIN_SELECT_HOME/forecast/do-forecast $STACK $VER to generate"
+echo "* You can modify $UFS_DOMAIN_SELECT_HOME/scripts/config.yaml.tmpl and execute"
+echo "* $UFS_DOMAIN_SELECT_HOME/scripts/do-forecast $STACK $VER to generate"
 echo "* another forecast."
 echo "*"
 echo

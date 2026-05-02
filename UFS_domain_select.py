@@ -859,7 +859,7 @@ task_run_fcst:
     print(f"\n*")
     print(f"* YAML written to {f.yaml_file}")
     print(f"*")
-    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/forecast/do-forecast spack 2.2.0\" to execute model")
+    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/scripts/do-forecast spack 2.2.0\" to execute model")
     print(f"*\n")
 
 def get_index(uds, ax):
@@ -1352,8 +1352,8 @@ def show_help():
 
 show_help()
 
-config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/forecast/config.yaml.tmpl"
-predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/forecast/predef_grid_params-2.2.0.yaml"
+config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/scripts/config.yaml.tmpl"
+predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/scripts/predef_grid_params-2.2.0.yaml"
 
 myuds = ufs_domain_select(compute_grid_dflt=1.1, yaml_file_output=config_yaml)
 

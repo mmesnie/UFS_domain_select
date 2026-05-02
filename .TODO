@@ -1,15 +1,10 @@
-Ubuntu 18:
-Ubuntu 20:
-Ubuntu 22:
-Ubuntu 24:
+==================
+Building the model
+==================
 
-============================
-Building the stack and model
-============================
-
-0. Separate "build" scripts from those needed to run the model
-1. Resolve python-x.y.z
-2. Should we be using the srw_common.lua from 3.0.0 better than we are??
+- Build gcc-11 for hpc stacks, if it's not already there?
+- Build python for hpc, like we do for cmake and openmpi?
+  Or just include the correct python via conda??
 
 =================
 Running the model
@@ -22,43 +17,20 @@ Running the model
    What about setting WORKFLOW_MANAGER=rocoto?  
    Why do we need to set it twice?
 
--Add simple README
- 1. Install Ubuntu and accept all defaults
- 2. sudo apt-get install git
- 3. git clone https://github.com/mmesnie/ufs_domain_select
- 4. cd ufs_domain_select/stack
- 5. yes y | ./do-all hpc 2.2.0
- 6. Note: restart script if it fails due to any network timouts
+- Understand pathlength more. This is an issue on Ubuntu 20, but not on the
+  Inspiron (Ubuntu 18), for HPC.  See if it also shows up in spack!
+- Understand why we have to patch the CMakeFile for ncep_post.fd, to not build netcdf.
+  This is only for 3.0.0. See patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt
+  which patches sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt
+- See if we can't get "examples" building in pio
+- Reintegrate Makefile that downloads latest gfs data. See ~/UFS_domain_select/build/
+  ufs-srweather-app-v2.2.0/parm/data_locations.yml (line 120, which points to AWS.
 
--Understand pathlength more. This is an issue on Ubuntu 20, but not on the
- Inspiron (Ubuntu 18), for HPC.  See if it also shows up in spack!
--Understand why we have to patch the CMakeFile for ncep_post.fd, to not build netcdf.
- This is only for 3.0.0. See patch/ufs-srweather-app-3.0.0-with-hpc-stack/CMakeLists.txt
- which patches sorc/UPP/sorc/ncep_post.fd/CMakeLists.txt
--See if we can't get "examples" building in pio
+===============
+Running the GUI
+===============
 
-=====
-Other
-=====
-
--Build gcc-11 for hpc stacks, if it's not already there?
--Build python for hpc, like we do for cmake and openmpi?
--Can ufs 2.2.0 and 3.0.0 use the same hpc stack?
-
-0. See how LAYOUT_X/LAYOUT_Y differs with 2.2.0, if at all.
-
-===OLDER TODO ===
-
-=======
-SCRIPTS
-=======
-- Reintegrate Makefile that downloads latest gfs data
-
-===
-GUI
-===
-- Experiment with all-in-one distribution (so conda isn't needed)
-- See ~/UFS_domain_select/build/ufs-srweather-app-v2.2.0/parm/data_locations.yml (line 120)
+- Experiment with all-in-one distribution (so conda isn't needed)?
 - Add GUI option for date and downloading latest gfs
 - Bug: Zooming in on Global should not change it to regional
 - Bug: InterruptedGoodeHomolosine shifts on center
