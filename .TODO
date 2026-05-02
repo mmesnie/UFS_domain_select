@@ -9,6 +9,7 @@ Building the stack and model
 
 0. Separate "build" scripts from those needed to run the model
 1. Resolve python-x.y.z
+2. Should we be using the srw_common.lua from 3.0.0 better than we are??
 
 =================
 Running the model
