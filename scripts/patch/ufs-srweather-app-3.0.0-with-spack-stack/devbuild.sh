@@ -120,7 +120,7 @@ VERBOSE=false
 
 # Turn off all apps to build and choose default later
 DEFAULT_BUILD=true
-BUILD_CONDA="on"
+BUILD_CONDA="off"
 BUILD_UFS="off"
 BUILD_UFS_UTILS="off"
 BUILD_UPP="off"
