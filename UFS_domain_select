@@ -4,7 +4,9 @@ set -e
 
 # Prereqs
 
-sudo apt-get install curl -y
+if ! which curl > /dev/null; then
+	sudo apt-get install curl -y
+fi
 
 export UFS_DOMAIN_SELECT_HOME=`echo $(realpath $(dirname $0))`
 
