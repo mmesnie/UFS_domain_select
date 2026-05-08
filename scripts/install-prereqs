@@ -19,6 +19,9 @@ fi
 
 # Essential build tools
 sudo apt install git curl build-essential -y
+if cat /etc/issue | awk '{print $2}' | grep -E "^22"; then
+	sudo apt install gfortran -y
+fi
 
 # For viewing forecast plots
 sudo apt install ristretto -y
@@ -42,7 +45,6 @@ if [ "$STACK" == "hpc" ]; then
 		fi
 		sudo apt-get install gcc-11 g++-11
 	fi
-	sudo apt install gfortran-11
 
 	# For cmake
 	sudo apt install libssl-dev -y

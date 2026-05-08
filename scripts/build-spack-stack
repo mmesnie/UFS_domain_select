@@ -12,6 +12,7 @@ VER=$1
 # Be as specific as needed (e.g., 11, 11.4, 11.4.0)
 GCC_VERSION=11
 GCC_EXEC=`echo -n "gcc-"; echo $GCC_VERSION | sed 's/\..*//'`
+GFORTRAN_EXEC=`echo -n "gfortran-"; echo $GCC_VERSION | sed 's/\..*//'`
 
 echo "looking for gcc compiler version $GCC_VERSION"
 
@@ -20,11 +21,21 @@ if which=`which $GCC_EXEC`; then
 	echo "$GCC_EXEC found at $which (version $version)"
 	read -p "<Enter> to continue the build with gcc-$version"
 	prompt_gcc_build=false
+	echo "looking for gfortran compiler version $GCC_VERSION"
+	if which=`which $GFORTRAN_EXEC`; then
+		version=`$GFORTRAN_EXEC --version | head -n 1 | awk '{print $4}'`
+		echo "$GFORTRAN_EXEC found at $which (version $version)"
+		read -p "<Enter> to continue the build with gfortran-$version"
+	else
+		echo "$GFORTRAN_EXEC not found"
+		exit 1
+	fi
 else
 	echo "$GCC_EXEC not found - you will be asked to build gcc@$GCC_VERSION"
 	read -p "<Enter> to continue the build"
 	prompt_gcc_build=true
 fi
+
 
 export UFS_DOMAIN_SELECT_HOME=$(realpath $(dirname $0))/..
 
