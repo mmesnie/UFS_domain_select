@@ -777,7 +777,7 @@ user:
   MACHINE: linux
   ACCOUNT: an_account
 platform:
-  RUN_CMD_FCST: mpirun -n ${PE_MEMBER01} --oversubscribe
+  RUN_CMD_FCST: mpirun -n ${{PE_MEMBER01}} --oversubscribe
   NCORES_PER_NODE: <NCORES_PER_NODE>
 workflow:
   EXPT_BASEDIR: <EXPT_BASEDIR>
@@ -859,7 +859,7 @@ task_run_fcst:
     print(f"\n*")
     print(f"* YAML written to {f.yaml_file}")
     print(f"*")
-    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/scripts/do-forecast spack 2.2.0\" to execute model")
+    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/scripts/do-forecast <hpc|spack> <2.2.0|3.0.0>\" to execute model")
     print(f"*\n")
 
 def get_index(uds, ax):
