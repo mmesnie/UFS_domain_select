@@ -14,18 +14,18 @@ workflow:
   EXPT_SUBDIR: <EXPT_SUBDIR>
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
-  DATE_FIRST_CYCL: '2026050806'
-  DATE_LAST_CYCL: '2026050806'
-  FCST_LEN_HRS: 6
+  DATE_FIRST_CYCL: <DATE_FIRST_CYCL>
+  DATE_LAST_CYCL: <DATE_FIRST_CYCL>
+  FCST_LEN_HRS: <FCST_LEN_HRS>
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
   COMPILER: gnu
   GRID_GEN_METHOD: "ESGgrid"
 task_make_grid:
-  ESGgrid_LON_CTR: -127.68
-  ESGgrid_LAT_CTR: 45.72
-  ESGgrid_NX: 37 
-  ESGgrid_NY: 37
+  ESGgrid_LON_CTR: -135.01923268948005
+  ESGgrid_LAT_CTR: 43.33487568082547
+  ESGgrid_NX: 128 
+  ESGgrid_NY: 86
   ESGgrid_DELX: 25000
   ESGgrid_DELY: 25000 
   ESGgrid_PAZI: 0.0
@@ -50,13 +50,13 @@ task_run_fcst:
   WRTCMP_write_groups: 1
   WRTCMP_write_tasks_per_group: 1
   WRTCMP_output_grid: "lambert_conformal"
-  WRTCMP_cen_lon: -127.68
-  WRTCMP_cen_lat: 45.72 
-  WRTCMP_stdlat1: 45.72 
-  WRTCMP_stdlat2: 45.72 
-  WRTCMP_nx: 34
-  WRTCMP_ny: 34
-  WRTCMP_lon_lwr_left: -132.86 
-  WRTCMP_lat_lwr_left: 41.56
+  WRTCMP_cen_lon: -135.01923268948005
+  WRTCMP_cen_lat: 43.33487568082547 
+  WRTCMP_stdlat1: 43.33487568082547 
+  WRTCMP_stdlat2: 43.33487568082547 
+  WRTCMP_nx: 116
+  WRTCMP_ny: 78
+  WRTCMP_lon_lwr_left: -150.52 
+  WRTCMP_lat_lwr_left: 33.1
   WRTCMP_dx: 25000
   WRTCMP_dy: 25000

@@ -2,14 +2,14 @@
 
 set -e
 
-if [ $# != 2 ]; then
-        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0>"
+if [ $# != 4 ]; then
+        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0> <cycle> <len>"
         exit 1
 fi
 
 if [ ! $1 == "hpc" ] && [ ! $1 == "spack" ]; then
 	echo \"$1\" is an invalid stack
-        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0>"
+        echo "usage: $0 <hpc|spack> <2.2.0|3.0.0> <cycle> <len>"
 	exit 1 
 fi
 
@@ -24,36 +24,23 @@ else
         exit 1
 fi
 
+DATE_FIRST_CYCL=$3
+FCST_LEN_HRS=$4
+
+UFS_DOMAIN_SELECT_HOME=`echo $(realpath $(dirname $0))/.. | sed 's/\/scripts\/\.\.//'`
+
+EXPT_BASEDIR=/tmp/expt/$STACK-$VER
+EXPT_SUBDIR=OR_Coast
+
 #
-# Be careful here. The setting of EXPT_SUBDIR leads to strange
+# Be careful here. The setting of EXPTDIR leads to strange
 # errors in run_make_orog.sh, particularly if the path length
 # is too long.
 #
-export UFS_DOMAIN_SELECT_HOME=`echo $(realpath $(dirname $0))/.. | sed 's/\/scripts\/\.\.//'`
-
-EXPT_BASEDIR=$UFS_DOMAIN_SELECT_HOME/build/exp-$STACK-$VER
-EXPT_SUBDIR=test
-
-#EXPT_BASEDIR=$UFS_DOMAIN_SELECT_HOME/build/expt
-#EXPT_SUBDIR=test_${STACK}
-
-echo "### Experiment path is $EXPT_BASEDIR/$EXPT_SUBDIR"
-length=`echo $EXPT_BASEDIR/$EXPT_SUBDIR | wc -c`
-echo "length is $length"
-sleep 1
-
-if [ $length -gt 61 ]; then
-	echo
-	echo "Bad experiment directory path: \"$EXPT_BASEDIR/$EXPT_SUBDIR\""
-	echo "Path length is $length"
-	echo "Path length cannot exceed 61 bytes"
-	#exit 1
-fi
+export EXPTDIR=$EXPT_BASEDIR/$EXPT_SUBDIR
 
 EXTRN_MDL_SOURCE_BASEDIR_ICS=$UFS_DOMAIN_SELECT_HOME/build/DATA-$VER/input_model_data/FV3GFS/grib2/2019061518
 EXTRN_MDL_SOURCE_BASEDIR_LBCS=$UFS_DOMAIN_SELECT_HOME/build/DATA-$VER/input_model_data/FV3GFS/grib2/2019061518
-
-export EXPTDIR=$EXPT_BASEDIR/$EXPT_SUBDIR
 
 #
 # Apply patches to UFS
@@ -66,7 +53,7 @@ ncores_per_node=`lscpu -p | egrep -v '^#' | wc -l`
 layout_x=`echo "sqrt($ncores_per_node)" | bc`
 layout_y=$layout_x
 
-cat config.yaml.tmpl | sed "s|<EXPT_SUBDIR>|${EXPT_SUBDIR}|g" | sed "s|<EXPT_BASEDIR>|${EXPT_BASEDIR}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_ICS>|${EXTRN_MDL_SOURCE_BASEDIR_ICS}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_LBCS>|${EXTRN_MDL_SOURCE_BASEDIR_LBCS}|g" | sed "s|<LAYOUT_X>|${layout_x}|g" | sed "s|<LAYOUT_Y>|${layout_y}|g" | sed "s|<NCORES_PER_NODE>|${ncores_per_node}|g" | sed "s|<UFS_DOMAIN_SELECT_HOME>|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/config.yaml
+cat config.yaml.tmpl | sed "s|<EXPT_SUBDIR>|${EXPT_SUBDIR}|g" | sed "s|<EXPT_BASEDIR>|${EXPT_BASEDIR}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_ICS>|${EXTRN_MDL_SOURCE_BASEDIR_ICS}|g" | sed "s|<DATE_FIRST_CYCL>|\"${DATE_FIRST_CYCL}\"|g" | sed "s|<FCST_LEN_HRS>|${FCST_LEN_HRS}|g" | sed "s|<EXTRN_MDL_SOURCE_BASEDIR_LBCS>|${EXTRN_MDL_SOURCE_BASEDIR_LBCS}|g" | sed "s|<LAYOUT_X>|${layout_x}|g" | sed "s|<LAYOUT_Y>|${layout_y}|g" | sed "s|<NCORES_PER_NODE>|${ncores_per_node}|g" | sed "s|<UFS_DOMAIN_SELECT_HOME>|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/config.yaml
 
 cat linux-$VER.yaml.tmpl | sed "s|<UFS_DOMAIN_SELECT_HOME>|${UFS_DOMAIN_SELECT_HOME}|g" > ${UFS_DOMAIN_SELECT_HOME}/build/ufs-srweather-app-$VER-with-$STACK-stack/ush/machine/linux.yaml
 
@@ -83,16 +70,6 @@ if [ $STACK == "spack" ]; then
 	echo "### Activating $ENV spack environment..."
 	spack env activate $ENV -p
 
-	#
-	# Certain shared libraries cannot be found, like the ones below.
-	# Enabling LD_LIBRARY_PATH in the build-spack-stack script fixes
-	# this for now.
-	#
-        #export LD_LIBRARY_PATH="`spack location -i jasper`/lib:$LD_LIBRARY_PATH"
-        #export LD_LIBRARY_PATH="`spack location -i netcdf-c`/lib:$LD_LIBRARY_PATH"
-        #export LD_LIBRARY_PATH="`spack location -i netcdf-fortran`/lib:$LD_LIBRARY_PATH"
-        #export LD_LIBRARY_PATH="`spack location -i parallelio`/lib:$LD_LIBRARY_PATH"
-	#export LD_LIBRARY_PATH="`spack location -i libjpeg-turbo`/lib:$LD_LIBRARY_PATH"
 elif [ $STACK == "hpc" ]; then
 	# We only need this to add the mpi executables to PATH
 	source $UFS_DOMAIN_SELECT_HOME/scripts/load-hpc-stack $VER

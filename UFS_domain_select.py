@@ -784,9 +784,9 @@ workflow:
   EXPT_SUBDIR: <EXPT_SUBDIR>
   USE_CRON_TO_RELAUNCH: false
   CCPP_PHYS_SUITE: FV3_GFS_v16
-  DATE_FIRST_CYCL: '{f.date}{f.cycle}'
-  DATE_LAST_CYCL: '{f.date}{f.cycle}'
-  FCST_LEN_HRS: {f.fcst_len_hrs}
+  DATE_FIRST_CYCL: <DATE_FIRST_CYCL>
+  DATE_LAST_CYCL: <DATE_FIRST_CYCL>
+  FCST_LEN_HRS: <FCST_LEN_HRS>
   PREEXISTING_DIR_METHOD: rename
   VERBOSE: true
   COMPILER: gnu
@@ -859,7 +859,8 @@ task_run_fcst:
     print(f"\n*")
     print(f"* YAML written to {f.yaml_file}")
     print(f"*")
-    print(f"* Run \"{UFS_DOMAIN_SELECT_HOME}/scripts/do-forecast <hpc|spack> <2.2.0|3.0.0>\" to execute model")
+    print(f"*     Run {UFS_DOMAIN_SELECT_HOME}/scripts/do-forecast <hpc|spack> <2.2.0|3.0.0> <date first cycle> <fcst len> to execute model")
+    print(f"* Latest: {UFS_DOMAIN_SELECT_HOME}/scripts/do-forecast spack 3.0.0 {f.date}{f.cycle} {f.fcst_len_hrs}")
     print(f"*\n")
 
 def get_index(uds, ax):
