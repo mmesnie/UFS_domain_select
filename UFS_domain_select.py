@@ -76,7 +76,7 @@ parser.add_argument("--close", "-x", help="close after saving plot of grib file"
 # Globals #
 ###########
 
-g_debug = False
+g_debug = True
 g_args = parser.parse_args()
 g_box = None
 g_scale = "110m" 
@@ -365,10 +365,16 @@ class ufs_domain_select():
                 s.view[p] = "regional"
 
     def on_button_press(self, event):
+
+        index = get_index(self, event.inaxes)
+
+        if (event.inaxes and event.button is MouseButton.LEFT):
+            self.axis[index].plot(*(event.xdata, event.ydata), marker='x', ms=10, color='blue')
+            plt.draw()
+            return
+
         if not (event.inaxes and event.button is MouseButton.MIDDLE):
             return
-    
-        index = get_index(self, event.inaxes)
     
         debug(f"on_button_press: centering projection ({index})")
     
@@ -390,8 +396,11 @@ class ufs_domain_select():
         else:
             restore = False
     
+        debug(f"on_button_press: Projected center: {event.xdata}, {event.ydata}")
         self.cen_lon, self.cen_lat = ccrs.PlateCarree().transform_point(event.xdata, event.ydata,
                                                                   event.inaxes.projection)
+        debug(f"on_button_press: Geodetic center: {self.cen_lon}, {self.cen_lat}")
+
         x1, x2, y1, y2 = self.axis[index].get_extent()
         if no_cen_lat(index):
             yc = event.ydata
@@ -434,7 +443,8 @@ class ufs_domain_select():
 
         set_title(self, index, "A", f"centered regional")
         self.axis[index].plot(*(self.cen_lon, self.cen_lat), transform=ccrs.Geodetic(), 
-                             marker='*', ms=20, color='green')
+                             marker='*', ms=10, color='green')
+
         if force_global:
             self.axis[index].set_global()
             set_title(self, index, "B", f"centered forced global")
