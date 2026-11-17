@@ -76,10 +76,10 @@ parser.add_argument("--close", "-x", help="close after saving plot of grib file"
 # Globals #
 ###########
 
-g_debug = True
+g_debug = False
 g_args = parser.parse_args()
 g_box = None
-g_scale = "110m" 
+g_scale = "50m" 
 
 #####################
 # Class definitions #
@@ -179,8 +179,10 @@ class grib():
         # Parse vorticity
         self.vort500 = vdata * 100000
         self.vort500 = scipy.ndimage.gaussian_filter(self.vort500, 1.7225)
+
         if False:
-            self.vort500[self.vort500 > 1000] = 0  # Mask out undefined values on domain edge
+            self.vort500[self.vort500 > 40] = 0  # Mask out undefined values on domain edge
+
         vortlevs = [16, 20, 24, 28, 32, 36, 40]
         colorlist = ["yellow", "gold", "goldenrod", "orange", "orangered", "red" ]
         self.cm = matplotlib.colors.ListedColormap(colorlist)
@@ -368,10 +370,10 @@ class ufs_domain_select():
 
         index = get_index(self, event.inaxes)
 
-        if (event.inaxes and event.button is MouseButton.LEFT):
-            self.axis[index].plot(*(event.xdata, event.ydata), marker='x', ms=10, color='blue')
-            plt.draw()
-            return
+        #if (event.inaxes and event.button is MouseButton.LEFT):
+        #    self.axis[index].plot(*(event.xdata, event.ydata), marker='x', ms=10, color='blue')
+        #    plt.draw()
+        #    return
 
         if not (event.inaxes and event.button is MouseButton.MIDDLE):
             return
@@ -990,6 +992,7 @@ def plots_draw(uds, mode):
     else:
         if mode == "set":
             uds.cen_lon, uds.cen_lat, uds.crn_lon, uds.crn_lat, (x1, x2, y1, y2) = get_dims(uds, uds.index, stretch=1.0)
+            print(f"cen_lon {uds.cen_lon} cen_lat {uds.cen_lat}") 
         elif mode == "center":
             _, _, _, _, (x1, x2, y1, y2) = get_dims(uds, uds.index, stretch=1.0)
         if no_cen_lat(uds.index):
@@ -1366,7 +1369,7 @@ show_help()
 config_yaml = f"{UFS_DOMAIN_SELECT_HOME}/scripts/config.yaml.tmpl"
 predef_grid_params_yaml = f"{UFS_DOMAIN_SELECT_HOME}/scripts/predef_grid_params-2.2.0.yaml"
 
-myuds = ufs_domain_select(compute_grid_dflt=1.1, yaml_file_output=config_yaml)
+myuds = ufs_domain_select(compute_grid_dflt=1.15, yaml_file_output=config_yaml)
 
 register_grid(myuds, "Trinidad and Tobago auto", -61.13, 10.65, -61.98, 9.85, 'lambert_conformal', -1)
 register_grid(myuds, "Falkland Islands auto", -59.5, -51.7, -61.98, -52.81, 'lambert_conformal', 13000)
